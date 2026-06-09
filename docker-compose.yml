@@ -1,55 +1,87 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: blog
-      POSTGRES_USER: blog
-      POSTGRES_PASSWORD: blog_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U blog -d blog"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
+    container_name: blog-backend
+    restart: unless-stopped
+
     env_file:
       - path: ./backend/.env
         required: false
+
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+psycopg://blog:blog_password@postgres:5432/blog
+
+      # 注意：postgresql16 要改成你实际 PostgreSQL 容器名
+      # backend 容器不能用 127.0.0.1 连接数据库
+      DATABASE_URL: postgresql+psycopg://blog:blog_password@postgresql16:5432/blog
+
       SECRET_KEY: please-change-this-secret-in-production
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       UPLOAD_DIR: /app/uploads
-      BACKEND_CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
-    ports:
-      - "8000:8000"
+
+      # 生产域名
+      BACKEND_CORS_ORIGINS: '["https://www.ccby.us"]'
+
     volumes:
       - uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
+
+    networks:
+      - traefik_proxy
+      - postgres_net
+
     command: >
       sh -c "alembic upgrade head &&
-             python scripts/seed_demo.py &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # API 路由：同域名 /api 转发到 backend
+      - "traefik.http.routers.blog-api.rule=Host(`www.ccby.us`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.blog-api.entrypoints=websecure"
+      - "traefik.http.routers.blog-api.tls=true"
+      - "traefik.http.routers.blog-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-api.priority=100"
+      - "traefik.http.services.blog-api.loadbalancer.server.port=8000"
 
   frontend:
     build:
       context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://www.ccby.us/api/v1
+
+    container_name: blog-frontend
+    restart: unless-stopped
+
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
-    ports:
-      - "3000:3000"
+      NEXT_PUBLIC_API_BASE_URL: https://www.ccby.us/api/v1
+
     depends_on:
       - backend
 
+    networks:
+      - traefik_proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # 前端路由：所有非 /api 请求转发到 frontend
+      - "traefik.http.routers.blog-web.rule=Host(`www.ccby.us`)"
+      - "traefik.http.routers.blog-web.entrypoints=websecure"
+      - "traefik.http.routers.blog-web.tls=true"
+      - "traefik.http.routers.blog-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-web.priority=1"
+      - "traefik.http.services.blog-web.loadbalancer.server.port=3000"
+
 volumes:
-  postgres_data:
   uploads:
+
+networks:
+  traefik_proxy:
+    external: true
+
+  postgres_net:
+    external: true
