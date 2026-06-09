@@ -1,0 +1,153 @@
+export type Envelope<T> = {
+  code: number;
+  message: string;
+  data: T;
+};
+
+export type Paginated<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+};
+
+export type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  sort_order: number;
+  post_count?: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Tag = {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  post_count?: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Post = {
+  id: number;
+  title: string;
+  slug: string;
+  summary?: string | null;
+  content?: string;
+  cover_image?: string | null;
+  status: "draft" | "published" | "deleted";
+  view_count: number;
+  category_id?: number | null;
+  category?: Category | null;
+  tags: Tag[];
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+};
+
+export type PostDetail = {
+  post: Post & { content: string };
+  previous?: Post | null;
+  next?: Post | null;
+};
+
+export type CommentItem = {
+  id: number;
+  nickname: string;
+  email?: string;
+  content: string;
+  status: "pending" | "approved" | "rejected";
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FriendLink = {
+  id: number;
+  name: string;
+  url: string;
+  description?: string | null;
+  avatar?: string | null;
+  status: "active" | "inactive";
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminStats = {
+  total_posts: number;
+  published_posts: number;
+  draft_posts: number;
+  categories: number;
+  tags: number;
+  comments: number;
+  pending_comments: number;
+  links: number;
+  users?: number;
+  media?: number;
+};
+
+export type AdminUser = {
+  id: number;
+  username: string;
+  email?: string | null;
+  nickname: string;
+  avatar?: string | null;
+  role: "admin" | "editor";
+  is_active: boolean;
+  mfa_enabled: boolean;
+  last_login_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MediaAsset = {
+  id: number;
+  filename: string;
+  original_name: string;
+  original_filename?: string;
+  url: string;
+  storage_type: "r2" | "local" | "s3" | "oss" | "minio";
+  bucket?: string | null;
+  object_key: string;
+  mime_type: string;
+  size: number;
+  width?: number | null;
+  height?: number | null;
+  usage_type: "general" | "post_cover" | "article_image" | "login_background" | "site_hero" | "avatar" | "link_avatar";
+  display_mode?: string | null;
+  is_active: boolean;
+  created_by_id?: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NavigationItem = {
+  id: number;
+  label: string;
+  href: string;
+  icon?: string | null;
+  sort_order: number;
+  target: "self" | "blank";
+  is_visible: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteConfig = Record<string, string>;
+
+export type CaptchaPayload = {
+  captcha_id: string;
+  image: string;
+};
+
+export type LoginSuccess = {
+  access_token: string;
+  token_type: string;
+};
