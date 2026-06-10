@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
 
     env_file:
-      - path: - /opt/.env
+      - /opt/.env
         required: false
 
     environment:
