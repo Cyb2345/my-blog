@@ -151,3 +151,47 @@ export type LoginSuccess = {
   access_token: string;
   token_type: string;
 };
+
+export type ServiceMonitor = {
+  timestamp: string;
+  cpu: {
+    usage_percent: number;
+    core_count: number;
+    user_percent: number;
+    system_percent: number;
+    idle_percent: number;
+  };
+  memory: {
+    total: number;
+    used: number;
+    available: number;
+    usage_percent: number;
+  };
+  server: {
+    hostname: string;
+    ip: string;
+    os: string;
+    platform: string;
+    architecture: string;
+    boot_time: string;
+    uptime_seconds: number;
+  };
+  runtime: {
+    backend_framework: string;
+    python_version: string;
+    process_id: number;
+    process_start_time: string;
+    process_uptime_seconds: number;
+    project_path: string;
+    storage_type: string;
+    r2_enabled: boolean;
+  };
+  disks: Array<{
+    mountpoint: string;
+    filesystem: string;
+    total: number;
+    used: number;
+    free: number;
+    usage_percent: number;
+  }>;
+};

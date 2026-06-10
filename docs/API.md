@@ -55,3 +55,4 @@ Authorization: Bearer <token>
 - `POST /admin/comments/{id}/reject`
 - `DELETE /admin/comments/{id}`
 - `POST /admin/uploads/image`
+- `GET /admin/monitor/service`

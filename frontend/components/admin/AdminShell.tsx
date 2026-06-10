@@ -9,6 +9,7 @@ import {
   Link as LinkIcon,
   LogOut,
   MessageSquare,
+  MonitorCog,
   Settings,
   Tags,
   Users,
@@ -32,6 +33,10 @@ const items: Array<[string, string, LucideIcon]> = [
   ["用户", "/admin/users", Users],
   ["媒体", "/admin/media", FileImage],
   ["设置", "/admin/settings", Settings],
+];
+
+const groupedItems: Array<[string, Array<[string, string, LucideIcon]>]> = [
+  ["监控中心", [["服务监控", "/admin/monitor/service", MonitorCog]]],
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -85,12 +90,37 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+          {groupedItems.map(([groupLabel, links]) => (
+            <div key={groupLabel} className="pt-3">
+              <p className="px-3 pb-2 text-xs font-black uppercase tracking-wide text-ink/35 dark:text-slate-500">{groupLabel}</p>
+              <div className="grid gap-2">
+                {links.map(([label, href, Icon]) => {
+                  const active = isActivePath(pathname, href);
+
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "interactive flex items-center gap-3 rounded-md px-3 py-2 text-sm font-bold text-ink/65 hover:bg-paper hover:text-ink dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white",
+                        active && "bg-ink text-white hover:bg-ink hover:text-white dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300 dark:hover:text-slate-950",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </aside>
       <div className="md:pl-60">
         <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-ink/10 bg-white/85 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-900/85 md:px-6">
           <div className="flex gap-2 overflow-x-auto md:hidden">
-            {items.map(([label, href]) => {
+            {[...items, ...groupedItems.flatMap(([, links]) => links)].map(([label, href]) => {
               const active = isActivePath(pathname, href);
 
               return (

@@ -15,6 +15,7 @@ from app.api.v1 import (
     comments,
     health,
     links,
+    monitor,
     posts,
     site,
     tags,
@@ -68,3 +69,4 @@ app.include_router(uploads.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(site.router, prefix=api_prefix)
 app.include_router(admin.router, prefix=api_prefix)
+app.include_router(monitor.router, prefix=api_prefix)
