@@ -1,5 +1,4 @@
 services:
-
   backend:
     build:
       context: ./backend
@@ -8,32 +7,19 @@ services:
 
     env_file:
       - /opt/.env
-        required: false
 
     environment:
       PYTHONPATH: /app
-
-      # 注意：postgresql16 要改成你实际 PostgreSQL 容器名
-      # backend 容器不能用 127.0.0.1 连接数据库
-      DATABASE_URL: postgresql+psycopg://blog:blog_password@postgresql16:5432/blog
-
-      SECRET_KEY: please-change-this-secret-in-production
-      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       UPLOAD_DIR: /app/uploads
-
-      # 生产域名
-      BACKEND_CORS_ORIGINS: '["https://www.ccby.us"]'
 
     volumes:
       - uploads:/app/uploads
 
     networks:
       - traefik_proxy
-      - postgres_net
 
     command: >
-      sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
     labels:
       - "traefik.enable=true"
@@ -82,7 +68,4 @@ volumes:
 
 networks:
   traefik_proxy:
-    external: true
-
-  postgres_net:
     external: true
