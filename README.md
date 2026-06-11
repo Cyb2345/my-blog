@@ -79,6 +79,10 @@ admin / admin123456
 - `LOGIN_FAILURE_LOCK_MINUTES`：登录失败锁定分钟数，默认 `10`
 - `CAPTCHA_RATE_LIMIT_PER_MINUTE`：同 IP 每分钟验证码请求上限，默认 `20`
 - `MFA_RATE_LIMIT_PER_MINUTE`：同 IP 每分钟 MFA 验证请求上限，默认 `10`
+- `PROMETHEUS_ENABLED`：是否启用 Prometheus 作为监控数据源
+- `PROMETHEUS_BASE_URL`：后端访问 Prometheus 的内网地址，例如 `http://prometheus:9090`
+- `PROMETHEUS_TIMEOUT_SECONDS`：Prometheus 查询超时时间
+- `PROMETHEUS_DEFAULT_RANGE_MINUTES`：PromQL rate 默认查询窗口
 
 前端：
 
@@ -168,6 +172,19 @@ R2_OBJECT_PREFIX=images
 - 登录成功后会清理该 IP 和用户名的失败计数
 
 限流参数可在 `backend/.env` 中调整。当前 `RATE_LIMIT_BACKEND=memory`，多实例部署时建议后续扩展为 Redis。
+
+## 监控中心
+
+后台 `/admin/monitor/service` 支持服务监控。生产环境可部署 Prometheus、node-exporter 和 cAdvisor，后端会优先通过 Prometheus 查询宿主机与容器指标；Prometheus 不可用时自动回退到 psutil 基础监控。
+
+Prometheus 不应暴露公网，推荐将 `backend` 与 `prometheus` 放入同一个 Docker 网络，并在后端环境变量中配置：
+
+```env
+PROMETHEUS_ENABLED=true
+PROMETHEUS_BASE_URL=http://prometheus:9090
+PROMETHEUS_TIMEOUT_SECONDS=5
+PROMETHEUS_DEFAULT_RANGE_MINUTES=5
+```
 
 ## 常见问题
 

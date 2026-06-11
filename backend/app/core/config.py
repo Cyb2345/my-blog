@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     CAPTCHA_RATE_LIMIT_PER_MINUTE: int = 20
     MFA_RATE_LIMIT_PER_MINUTE: int = 10
 
+    PROMETHEUS_ENABLED: bool = False
+    PROMETHEUS_BASE_URL: str = "http://prometheus:9090"
+    PROMETHEUS_TIMEOUT_SECONDS: int = 5
+    PROMETHEUS_DEFAULT_RANGE_MINUTES: int = 5
+
 
 @lru_cache
 def get_settings() -> Settings:

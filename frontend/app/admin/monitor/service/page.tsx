@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Cpu, HardDrive, Info, MemoryStick, RefreshCw, Server } from "lucide-react";
+import { Activity, AlertCircle, Boxes, Cpu, HardDrive, Info, MemoryStick, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -20,6 +20,10 @@ function formatBytes(value: number) {
     unitIndex += 1;
   }
   return `${size >= 10 || unitIndex === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function formatRate(value: number) {
+  return `${formatBytes(value)}/s`;
 }
 
 function formatDateTime(value?: string) {
@@ -92,7 +96,7 @@ function MonitorCard({
   );
 }
 
-function MetricItem({ label, value }: { label: string; value: React.ReactNode }) {
+function MetricItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-4 rounded-md bg-[#f5f7f4] px-4 py-2 dark:bg-white/5">
       <span className="text-sm font-bold text-ink/55 dark:text-slate-400">{label}</span>
@@ -149,6 +153,10 @@ export default function ServiceMonitorPage() {
   }, [loadMonitor]);
 
   const lastUpdated = useMemo(() => formatDateTime(monitor?.timestamp), [monitor?.timestamp]);
+  const host = monitor?.host ?? null;
+  const dataSourceLabel = monitor?.data_source === "prometheus" ? "Prometheus" : "psutil 基础监控";
+  const cpuUsage = host?.cpu.usage_percent ?? monitor?.cpu.usage_percent ?? 0;
+  const memory = host?.memory ?? monitor?.memory;
 
   return (
     <div className="motion-list grid gap-6">
@@ -163,6 +171,11 @@ export default function ServiceMonitorPage() {
             最后更新：{lastUpdated}
             {refreshing ? " · 正在刷新..." : " · 每 30 秒自动刷新"}
           </p>
+          {monitor ? (
+            <p className="mt-3 inline-flex rounded-full border border-ocean/20 bg-ocean/10 px-3 py-1 text-xs font-black text-ocean dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300">
+              数据来源：{dataSourceLabel}
+            </p>
+          ) : null}
         </div>
         <Button onClick={() => void loadMonitor(true)} disabled={refreshing}>
           <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} aria-hidden="true" />
@@ -182,6 +195,13 @@ export default function ServiceMonitorPage() {
         </div>
       ) : null}
 
+      {monitor?.warning ? (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          {monitor.warning}
+        </div>
+      ) : null}
+
       {loading && !monitor ? <LoadingGrid /> : null}
 
       {monitor ? (
@@ -189,7 +209,7 @@ export default function ServiceMonitorPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             <MonitorCard title="CPU 使用率" icon={<Cpu className="h-5 w-5" aria-hidden="true" />}>
               <div className="grid gap-5">
-                <PercentDial value={monitor.cpu.usage_percent} warning={60} />
+                <PercentDial value={cpuUsage} warning={60} />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <MetricItem label="核心数" value={monitor.cpu.core_count} />
                   <MetricItem label="用户使用率" value={`${monitor.cpu.user_percent.toFixed(1)}%`} />
@@ -201,16 +221,29 @@ export default function ServiceMonitorPage() {
 
             <MonitorCard title="内存使用率" icon={<MemoryStick className="h-5 w-5" aria-hidden="true" />}>
               <div className="grid gap-5">
-                <PercentDial value={monitor.memory.usage_percent} />
+                <PercentDial value={memory?.usage_percent ?? 0} />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricItem label="总内存" value={formatBytes(monitor.memory.total)} />
-                  <MetricItem label="已用内存" value={formatBytes(monitor.memory.used)} />
-                  <MetricItem label="剩余内存" value={formatBytes(monitor.memory.available)} />
-                  <MetricItem label="使用率" value={`${monitor.memory.usage_percent.toFixed(1)}%`} />
+                  <MetricItem label="总内存" value={formatBytes(memory?.total ?? 0)} />
+                  <MetricItem label="已用内存" value={formatBytes(memory?.used ?? 0)} />
+                  <MetricItem label="剩余内存" value={formatBytes(memory?.available ?? 0)} />
+                  <MetricItem label="使用率" value={`${(memory?.usage_percent ?? 0).toFixed(1)}%`} />
                 </div>
               </div>
             </MonitorCard>
           </div>
+
+          {host ? (
+            <MonitorCard title="主机监控" icon={<Activity className="h-5 w-5" aria-hidden="true" />}>
+              <div className="grid gap-3 lg:grid-cols-3">
+                <MetricItem label="CPU 使用率" value={`${host.cpu.usage_percent.toFixed(1)}%`} />
+                <MetricItem label="内存使用率" value={`${host.memory.usage_percent.toFixed(1)}%`} />
+                <MetricItem label="磁盘使用率" value={`${host.disk.usage_percent.toFixed(1)}%`} />
+                <MetricItem label="系统负载" value={`${host.load.load1.toFixed(2)} / ${host.load.load5.toFixed(2)} / ${host.load.load15.toFixed(2)}`} />
+                <MetricItem label="网络接收" value={formatRate(host.network.rx_bytes_per_second)} />
+                <MetricItem label="网络发送" value={formatRate(host.network.tx_bytes_per_second)} />
+              </div>
+            </MonitorCard>
+          ) : null}
 
           <MonitorCard title="服务器信息" icon={<Server className="h-5 w-5" aria-hidden="true" />}>
             <div className="grid gap-3 lg:grid-cols-2">
@@ -234,6 +267,52 @@ export default function ServiceMonitorPage() {
               <MetricItem label="项目路径" value={monitor.runtime.project_path} />
               <MetricItem label="上传存储" value={monitor.runtime.storage_type === "r2" ? "Cloudflare R2" : "本地存储"} />
               <MetricItem label="R2 状态" value={monitor.runtime.r2_enabled ? "已启用" : "未启用"} />
+            </div>
+          </MonitorCard>
+
+          <MonitorCard title="容器监控" icon={<Boxes className="h-5 w-5" aria-hidden="true" />}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                <thead>
+                  <tr className="text-ink/50 dark:text-slate-400">
+                    {["容器名称", "运行状态", "CPU 使用率", "内存使用量", "最后采集时间"].map((label) => (
+                      <th key={label} className="border-b border-ink/10 px-3 py-3 font-black dark:border-white/10">
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {monitor.containers.length ? (
+                    monitor.containers.map((container) => (
+                      <tr key={container.name} className="text-ink dark:text-slate-100">
+                        <td className="border-b border-ink/5 px-3 py-4 font-black dark:border-white/5">{container.name}</td>
+                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-1 text-xs font-black",
+                              container.status === "running"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-200"
+                                : "bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-200",
+                            )}
+                          >
+                            {container.status}
+                          </span>
+                        </td>
+                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{container.cpu_usage_percent.toFixed(2)}%</td>
+                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{formatBytes(container.memory_usage_bytes)}</td>
+                        <td className="border-b border-ink/5 px-3 py-4 text-ink/65 dark:border-white/5 dark:text-slate-400">{formatDateTime(container.last_seen ?? undefined)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-8 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
+                        暂无容器监控数据
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </MonitorCard>
 

@@ -153,7 +153,42 @@ export type LoginSuccess = {
 };
 
 export type ServiceMonitor = {
+  data_source: "prometheus" | "psutil_fallback";
+  warning?: string | null;
   timestamp: string;
+  host?: {
+    cpu: {
+      usage_percent: number;
+    };
+    memory: {
+      total: number;
+      used: number;
+      available: number;
+      usage_percent: number;
+    };
+    disk: {
+      total: number;
+      used: number;
+      free: number;
+      usage_percent: number;
+    };
+    load: {
+      load1: number;
+      load5: number;
+      load15: number;
+    };
+    network: {
+      rx_bytes_per_second: number;
+      tx_bytes_per_second: number;
+    };
+  } | null;
+  containers: Array<{
+    name: string;
+    status: string;
+    cpu_usage_percent: number;
+    memory_usage_bytes: number;
+    last_seen?: string | null;
+  }>;
   cpu: {
     usage_percent: number;
     core_count: number;

@@ -171,7 +171,43 @@ MAX_UPLOAD_IMAGE_SIZE_MB=5
 https://img.ccby.us/images/...
 ```
 
-### 6. 移除生产环境自动写入演示数据
+### 6. Prometheus 监控配置
+
+如果线上启用 Prometheus、node-exporter 和 cAdvisor，后端需要能通过 Docker 内网访问 Prometheus。
+
+后端环境变量：
+
+```env
+PROMETHEUS_ENABLED=true
+PROMETHEUS_BASE_URL=http://prometheus:9090
+PROMETHEUS_TIMEOUT_SECONDS=5
+PROMETHEUS_DEFAULT_RANGE_MINUTES=5
+```
+
+Compose 中 `backend` 需要加入监控网络：
+
+```yaml
+services:
+  backend:
+    networks:
+      - traefik_proxy
+      - monitoring_net
+
+networks:
+  traefik_proxy:
+    external: true
+  monitoring_net:
+    external: true
+```
+
+Prometheus 不应暴露公网；如果需要映射端口，只能绑定本机：
+
+```yaml
+ports:
+  - "127.0.0.1:9090:9090"
+```
+
+### 7. 移除生产环境自动写入演示数据
 
 当前 `docker-compose.yml` 后端启动命令包含：
 
@@ -192,7 +228,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - 生产环境不应该反复执行演示数据初始化
 - 管理员账号应使用 `scripts/create_admin.py` 单独创建或重置
 
-### 7. PostgreSQL 端口暴露
+### 8. PostgreSQL 端口暴露
 
 当前本地 Compose 暴露了数据库端口：
 

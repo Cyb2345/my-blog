@@ -48,8 +48,57 @@ class DiskMonitor(BaseModel):
     usage_percent: float
 
 
+class HostCpuMonitor(BaseModel):
+    usage_percent: float
+
+
+class HostMemoryMonitor(BaseModel):
+    total: int
+    used: int
+    available: int
+    usage_percent: float
+
+
+class HostDiskMonitor(BaseModel):
+    total: int
+    used: int
+    free: int
+    usage_percent: float
+
+
+class HostLoadMonitor(BaseModel):
+    load1: float
+    load5: float
+    load15: float
+
+
+class HostNetworkMonitor(BaseModel):
+    rx_bytes_per_second: float
+    tx_bytes_per_second: float
+
+
+class HostMonitor(BaseModel):
+    cpu: HostCpuMonitor
+    memory: HostMemoryMonitor
+    disk: HostDiskMonitor
+    load: HostLoadMonitor
+    network: HostNetworkMonitor
+
+
+class ContainerMonitor(BaseModel):
+    name: str
+    status: str
+    cpu_usage_percent: float
+    memory_usage_bytes: int
+    last_seen: datetime | None = None
+
+
 class ServiceMonitor(BaseModel):
+    data_source: str = "psutil_fallback"
+    warning: str | None = None
     timestamp: datetime
+    host: HostMonitor | None = None
+    containers: list[ContainerMonitor] = []
     cpu: CpuMonitor
     memory: MemoryMonitor
     server: ServerMonitor

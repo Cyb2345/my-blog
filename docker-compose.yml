@@ -17,6 +17,7 @@ services:
 
     networks:
       - traefik_proxy
+      - monitoring_net
 
     command: >
       sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
@@ -68,4 +69,6 @@ volumes:
 
 networks:
   traefik_proxy:
+    external: true
+  monitoring_net:
     external: true
