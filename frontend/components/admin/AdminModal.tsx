@@ -10,7 +10,7 @@ type AdminModalProps = {
   title: string;
   children: ReactNode;
   onClose: () => void;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   footer?: ReactNode;
 };
 
@@ -18,7 +18,8 @@ const sizes = {
   sm: "max-w-xl",
   md: "max-w-2xl",
   lg: "max-w-4xl",
-  xl: "max-w-5xl",
+  xl: "max-w-[1400px]",
+  full: "h-[96vh] max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)]",
 };
 
 export function AdminModal({

@@ -42,6 +42,9 @@ export type Post = {
   cover_image?: string | null;
   status: "draft" | "published" | "deleted";
   view_count: number;
+  is_recommended: boolean;
+  is_top: boolean;
+  author?: Pick<AdminUser, "id" | "username" | "nickname" | "avatar"> | null;
   category_id?: number | null;
   category?: Category | null;
   tags: Tag[];

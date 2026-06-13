@@ -7,6 +7,15 @@ from app.schemas.category import CategoryRead
 from app.schemas.tag import TagRead
 
 
+class PostAuthorRead(BaseModel):
+    id: int
+    username: str
+    nickname: str
+    avatar: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class PostBase(BaseModel):
     title: str = Field(min_length=1, max_length=160)
     slug: str = Field(min_length=1, max_length=180, pattern=r"^[a-z0-9][a-z0-9-]*$")
@@ -14,6 +23,8 @@ class PostBase(BaseModel):
     content: str = Field(min_length=1)
     cover_image: str | None = None
     category_id: int | None = None
+    is_recommended: bool = False
+    is_top: bool = False
 
 
 class PostCreate(PostBase):
@@ -30,6 +41,8 @@ class PostUpdate(BaseModel):
     status: Literal["draft", "published"] | None = None
     category_id: int | None = None
     tag_ids: list[int] | None = None
+    is_recommended: bool | None = None
+    is_top: bool | None = None
 
 
 class PostRead(BaseModel):
@@ -41,7 +54,10 @@ class PostRead(BaseModel):
     cover_image: str | None
     status: str
     view_count: int
+    is_recommended: bool
+    is_top: bool
     category_id: int | None
+    author: PostAuthorRead | None = None
     category: CategoryRead | None = None
     tags: list[TagRead] = []
     created_at: datetime
@@ -59,6 +75,9 @@ class PostListItem(BaseModel):
     cover_image: str | None
     status: str
     view_count: int
+    is_recommended: bool
+    is_top: bool
+    author: PostAuthorRead | None = None
     category: CategoryRead | None = None
     tags: list[TagRead] = []
     created_at: datetime
