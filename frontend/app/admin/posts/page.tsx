@@ -1,7 +1,7 @@
 "use client";
 
 import { Columns3, Edit, EyeOff, Plus, RefreshCw, RotateCcw, Rows3, Search, Send, Settings, Trash2 } from "lucide-react";
-import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
 import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
@@ -18,8 +18,16 @@ type PostQuery = {
 
 type Density = "compact" | "default" | "comfortable";
 type TablePanel = "density" | "columns" | "style" | null;
-type ColumnKey = "cover" | "title" | "author" | "category" | "tags" | "recommended" | "top" | "viewCount" | "createdAt" | "actions";
+type ColumnKey = "cover" | "title" | "author" | "category" | "tags" | "viewCount" | "createdAt" | "actions";
 type VisibleColumns = Record<ColumnKey, boolean>;
+type ColumnWidths = Record<ColumnKey, number>;
+type ColumnConfig = {
+  key: ColumnKey;
+  label: string;
+  defaultWidth: number;
+  locked?: boolean;
+  align?: "left" | "center";
+};
 type TableStyle = {
   bordered: boolean;
   zebra: boolean;
@@ -39,17 +47,15 @@ const densityOptions: Array<{ value: Density; label: string }> = [
   { value: "default", label: "默认" },
   { value: "comfortable", label: "宽松" },
 ];
-const columns: Array<{ key: ColumnKey; label: string; locked?: boolean; thClass?: string }> = [
-  { key: "cover", label: "封面", thClass: "w-40 text-center" },
-  { key: "title", label: "标题", locked: true },
-  { key: "author", label: "作者", thClass: "w-28" },
-  { key: "category", label: "分类", thClass: "w-32" },
-  { key: "tags", label: "标签", thClass: "w-48" },
-  { key: "recommended", label: "推荐", thClass: "w-20" },
-  { key: "top", label: "置顶", thClass: "w-20" },
-  { key: "viewCount", label: "阅读量", thClass: "w-24" },
-  { key: "createdAt", label: "创建时间", thClass: "w-44" },
-  { key: "actions", label: "操作", locked: true, thClass: "w-44 text-center" },
+const columns: ColumnConfig[] = [
+  { key: "cover", label: "封面", defaultWidth: 160, align: "center" },
+  { key: "title", label: "标题", defaultWidth: 280, locked: true },
+  { key: "author", label: "作者", defaultWidth: 120 },
+  { key: "category", label: "分类", defaultWidth: 140 },
+  { key: "tags", label: "标签", defaultWidth: 220 },
+  { key: "viewCount", label: "阅读量", defaultWidth: 110 },
+  { key: "createdAt", label: "创建时间", defaultWidth: 190 },
+  { key: "actions", label: "操作", defaultWidth: 150, locked: true, align: "center" },
 ];
 const defaultVisibleColumns: VisibleColumns = {
   cover: true,
@@ -57,12 +63,11 @@ const defaultVisibleColumns: VisibleColumns = {
   author: true,
   category: true,
   tags: true,
-  recommended: true,
-  top: true,
   viewCount: true,
   createdAt: true,
   actions: true,
 };
+const defaultColumnWidths = Object.fromEntries(columns.map((column) => [column.key, column.defaultWidth])) as ColumnWidths;
 const defaultTableStyle: TableStyle = {
   bordered: true,
   zebra: false,
@@ -76,6 +81,7 @@ const densityCellClass: Record<Density, string> = {
 const tablePreferenceKeys = {
   density: "admin-posts-density",
   columns: "admin-posts-columns",
+  widths: "admin-posts-column-widths",
   style: "admin-posts-table-style",
 };
 
@@ -113,23 +119,21 @@ function readJsonPreference<T>(key: string, fallback: T): T {
   }
 }
 
-function normalizeVisibleColumns(value: VisibleColumns): VisibleColumns {
-  return { ...value, title: true, actions: true };
+function normalizeVisibleColumns(value: Partial<Record<ColumnKey, boolean>>): VisibleColumns {
+  const normalized = { ...defaultVisibleColumns };
+  columns.forEach((column) => {
+    const saved = value[column.key];
+    if (typeof saved === "boolean") normalized[column.key] = saved;
+  });
+  return { ...normalized, title: true, actions: true };
 }
 
-function StatusBadge({ active, activeText = "是", inactiveText = "否" }: { active: boolean; activeText?: string; inactiveText?: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex min-h-7 min-w-10 items-center justify-center rounded-md px-2 text-xs font-black",
-        active
-          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200"
-          : "bg-red-50 text-red-600 dark:bg-rose-500/10 dark:text-rose-200",
-      )}
-    >
-      {active ? activeText : inactiveText}
-    </span>
-  );
+function normalizeColumnWidths(value: Partial<Record<ColumnKey, number>>): ColumnWidths {
+  return columns.reduce<ColumnWidths>((result, column) => {
+    const width = Number(value[column.key]);
+    result[column.key] = Number.isFinite(width) ? Math.min(Math.max(width, 88), 560) : column.defaultWidth;
+    return result;
+  }, { ...defaultColumnWidths });
 }
 
 function CoverThumb({ src, title }: { src?: string | null; title: string }) {
@@ -217,12 +221,16 @@ export default function AdminPostsPage() {
   const [modal, setModal] = useState<ModalState>(null);
   const [density, setDensity] = useState<Density>("default");
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(defaultVisibleColumns);
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>(defaultColumnWidths);
   const [tableStyle, setTableStyle] = useState<TableStyle>(defaultTableStyle);
   const [activePanel, setActivePanel] = useState<TablePanel>(null);
+  const [resizingColumn, setResizingColumn] = useState<ColumnKey | null>(null);
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const toolbarRef = useRef<HTMLDivElement | null>(null);
+  const resizeRef = useRef<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -264,25 +272,36 @@ export default function AdminPostsPage() {
   const pageNumbers = useMemo(() => getPageNumbers(page.page, page.pages), [page.page, page.pages]);
   const visibleColumnCount = columns.filter((column) => visibleColumns[column.key]).length;
   const tableCellPadding = densityCellClass[density];
+  const tableWidth = 56 + columns.reduce((total, column) => total + (visibleColumns[column.key] ? columnWidths[column.key] : 0), 0);
 
   useEffect(() => {
     const savedDensity = window.localStorage.getItem(tablePreferenceKeys.density) as Density | null;
     setDensity(savedDensity && densityOptions.some((option) => option.value === savedDensity) ? savedDensity : "default");
     setVisibleColumns(normalizeVisibleColumns(readJsonPreference(tablePreferenceKeys.columns, defaultVisibleColumns)));
+    setColumnWidths(normalizeColumnWidths(readJsonPreference(tablePreferenceKeys.widths, defaultColumnWidths)));
     setTableStyle(readJsonPreference(tablePreferenceKeys.style, defaultTableStyle));
+    setPreferencesReady(true);
   }, []);
 
   useEffect(() => {
+    if (!preferencesReady) return;
     window.localStorage.setItem(tablePreferenceKeys.density, density);
-  }, [density]);
+  }, [density, preferencesReady]);
 
   useEffect(() => {
+    if (!preferencesReady) return;
     window.localStorage.setItem(tablePreferenceKeys.columns, JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
+  }, [preferencesReady, visibleColumns]);
 
   useEffect(() => {
+    if (!preferencesReady) return;
+    window.localStorage.setItem(tablePreferenceKeys.widths, JSON.stringify(columnWidths));
+  }, [columnWidths, preferencesReady]);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
     window.localStorage.setItem(tablePreferenceKeys.style, JSON.stringify(tableStyle));
-  }, [tableStyle]);
+  }, [preferencesReady, tableStyle]);
 
   useEffect(() => {
     if (!activePanel) return;
@@ -302,6 +321,35 @@ export default function AdminPostsPage() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [activePanel]);
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    function handleMouseMove(event: MouseEvent) {
+      const current = resizeRef.current;
+      if (!current) return;
+      const nextWidth = Math.min(Math.max(current.startWidth + event.clientX - current.startX, 88), 560);
+      setColumnWidths((value) => ({ ...value, [current.key]: nextWidth }));
+    }
+
+    function handleMouseUp() {
+      resizeRef.current = null;
+      setResizingColumn(null);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [resizingColumn]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -329,10 +377,22 @@ export default function AdminPostsPage() {
 
   function resetColumns() {
     setVisibleColumns(normalizeVisibleColumns(defaultVisibleColumns));
+    setColumnWidths(defaultColumnWidths);
   }
 
   function toggleTableStyle(key: keyof TableStyle) {
     setTableStyle((current) => ({ ...current, [key]: !current[key] }));
+  }
+
+  function startColumnResize(event: ReactMouseEvent<HTMLSpanElement>, key: ColumnKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    resizeRef.current = {
+      key,
+      startX: event.clientX,
+      startWidth: columnWidths[key],
+    };
+    setResizingColumn(key);
   }
 
   function toggleSelect(id: number) {
@@ -420,12 +480,6 @@ export default function AdminPostsPage() {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold">
-        <span className="text-ink/45 dark:text-slate-500">内容管理</span>
-        <span className="text-ink/30 dark:text-slate-600">/</span>
-        <h1 className="text-lg font-black text-ink dark:text-slate-100">文章管理</h1>
-      </div>
-
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
@@ -578,11 +632,16 @@ export default function AdminPostsPage() {
         <div className="overflow-x-auto">
           <table
             className={cn(
-              "admin-table w-full min-w-[1280px] border-collapse text-sm",
+              "admin-table table-fixed border-collapse text-sm",
               tableStyle.bordered &&
                 "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
             )}
+            style={{ minWidth: "100%", width: tableWidth }}
           >
+            <colgroup>
+              <col style={{ width: 56 }} />
+              {columns.map((column) => (visibleColumns[column.key] ? <col key={column.key} style={{ width: columnWidths[column.key] }} /> : null))}
+            </colgroup>
             <thead
               className={cn(
                 "text-left text-ink/60 dark:text-slate-400",
@@ -595,8 +654,19 @@ export default function AdminPostsPage() {
                 </th>
                 {columns.map((column) =>
                   visibleColumns[column.key] ? (
-                    <th key={column.key} className={cn(tableCellPadding, column.thClass)}>
-                      {column.label}
+                    <th key={column.key} className={cn("relative select-none", tableCellPadding, column.align === "center" && "text-center")}>
+                      <span className="block truncate pr-3">{column.label}</span>
+                      <span
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label={`调整${column.label}列宽`}
+                        title="拖拽调整列宽"
+                        onMouseDown={(event) => startColumnResize(event, column.key)}
+                        className={cn(
+                          "absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none transition-colors duration-150 hover:bg-ocean/25 dark:hover:bg-sky-300/25",
+                          resizingColumn === column.key && "bg-ocean/40 dark:bg-sky-300/40",
+                        )}
+                      />
                     </th>
                   ) : null,
                 )}
@@ -625,7 +695,7 @@ export default function AdminPostsPage() {
                     ) : null}
                     {visibleColumns.title ? (
                       <td className={tableCellPadding}>
-                        <p className="line-clamp-2 max-w-[300px] font-bold text-ocean dark:text-sky-300" title={post.title}>
+                        <p className="truncate font-bold text-ocean dark:text-sky-300" title={post.title}>
                           {post.title}
                         </p>
                       </td>
@@ -634,12 +704,12 @@ export default function AdminPostsPage() {
                     {visibleColumns.category ? <td className={cn("text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.category?.name ?? "-"}</td> : null}
                     {visibleColumns.tags ? (
                       <td className={tableCellPadding}>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex max-w-full flex-nowrap gap-1 overflow-hidden">
                           {visibleTags.length ? (
                             <>
                               {visibleTags.map((tag) => (
-                                <span key={tag.id} className="rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200">
-                                  {tag.name}
+                                <span key={tag.id} className="inline-flex max-w-[6.5rem] shrink-0 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200">
+                                  <span className="truncate">{tag.name}</span>
                                 </span>
                               ))}
                               {extraTags ? <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraTags}</span> : null}
@@ -648,16 +718,6 @@ export default function AdminPostsPage() {
                             <span className="text-ink/40 dark:text-slate-500">-</span>
                           )}
                         </div>
-                      </td>
-                    ) : null}
-                    {visibleColumns.recommended ? (
-                      <td className={tableCellPadding}>
-                        <StatusBadge active={post.is_recommended} />
-                      </td>
-                    ) : null}
-                    {visibleColumns.top ? (
-                      <td className={tableCellPadding}>
-                        <StatusBadge active={post.is_top} />
                       </td>
                     ) : null}
                     {visibleColumns.viewCount ? <td className={cn("font-bold text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.view_count}</td> : null}

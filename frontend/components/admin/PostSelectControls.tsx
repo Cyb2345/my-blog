@@ -93,7 +93,8 @@ export function PostCategorySelect({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useCloseOnOutside(open, () => setOpen(false));
-  const selected = categories.find((category) => String(category.id) === value);
+  const normalizedValue = value ? String(value) : "";
+  const selected = categories.find((category) => String(category.id) === normalizedValue);
 
   return (
     <div ref={ref} className="relative">
@@ -120,7 +121,7 @@ export function PostCategorySelect({
       </div>
       <DropdownPanel open={open}>
         <OptionButton
-          active={!value}
+          active={!normalizedValue}
           onClick={() => {
             onChange("");
             setOpen(false);
@@ -131,7 +132,7 @@ export function PostCategorySelect({
         {categories.map((category) => (
           <OptionButton
             key={category.id}
-            active={String(category.id) === value}
+            active={String(category.id) === normalizedValue}
             onClick={() => {
               onChange(String(category.id));
               setOpen(false);
@@ -160,6 +161,8 @@ export function PostTagMultiSelect({
   const ref = useCloseOnOutside(open, () => setOpen(false));
   const selectedIds = useMemo(() => new Set(value), [value]);
   const selectedTags = tags.filter((tag) => selectedIds.has(tag.id));
+  const visibleSelectedTags = selectedTags.slice(0, 2);
+  const extraSelectedCount = Math.max(selectedTags.length - visibleSelectedTags.length, 0);
 
   function toggle(tag: SelectOption) {
     onChange(selectedIds.has(tag.id) ? value.filter((id) => id !== tag.id) : [...value, tag.id]);
@@ -183,35 +186,38 @@ export function PostTagMultiSelect({
           open && "border-ocean/70 dark:border-sky-300/70",
         )}
       >
-        <span className="flex min-w-0 flex-1 flex-wrap gap-1">
+        <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
           {selectedTags.length ? (
-            selectedTags.map((tag) => (
-              <span
-                key={tag.id}
-                className="inline-flex max-w-full items-center gap-1 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
-              >
-                <span className="truncate">{tag.name}</span>
+            <>
+              {visibleSelectedTags.map((tag) => (
                 <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`移除 ${tag.name}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onChange(value.filter((id) => id !== tag.id));
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
+                  key={tag.id}
+                  className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
+                >
+                  <span className="truncate">{tag.name}</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`移除 ${tag.name}`}
+                    onClick={(event) => {
                       event.stopPropagation();
                       onChange(value.filter((id) => id !== tag.id));
-                    }
-                  }}
-                  className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
-                >
-                  <X className="h-3 w-3" aria-hidden="true" />
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onChange(value.filter((id) => id !== tag.id));
+                      }
+                    }}
+                    className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
+                  >
+                    <X className="h-3 w-3" aria-hidden="true" />
+                  </span>
                 </span>
-              </span>
-            ))
+              ))}
+              {extraSelectedCount ? <span className="shrink-0 rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraSelectedCount}</span> : null}
+            </>
           ) : (
             <span className="text-ink/40 dark:text-slate-500">{placeholder}</span>
           )}
@@ -251,6 +257,8 @@ export function PostTagEditorSelect({
   const ref = useCloseOnOutside(open, () => setOpen(false));
   const selectedIds = useMemo(() => new Set(value), [value]);
   const selectedTags = tags.filter((tag) => selectedIds.has(tag.id));
+  const visibleSelectedTags = selectedTags.slice(0, 3);
+  const extraSelectedCount = Math.max(selectedTags.length - visibleSelectedTags.length, 0);
 
   function toggleTag(tag: Tag) {
     onChange(selectedIds.has(tag.id) ? value.filter((id) => id !== tag.id) : [...value, tag.id]);
@@ -282,32 +290,35 @@ export function PostTagEditorSelect({
 
   return (
     <div ref={ref} className="relative">
-      <div className="flex min-h-12 flex-wrap items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-950/70">
+      <div className="flex h-10 items-center gap-2 rounded-md border border-ink/10 bg-white px-3 dark:border-white/10 dark:bg-slate-950/70">
         {selectedTags.length ? (
-          selectedTags.map((tag) => (
-            <span
-              key={tag.id}
-              className="inline-flex items-center gap-1 rounded-md bg-ocean/10 px-2.5 py-1.5 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
-            >
-              {tag.name}
-              <button
-                type="button"
-                onClick={() => onChange(value.filter((id) => id !== tag.id))}
-                className="grid h-4 w-4 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
-                aria-label={`移除 ${tag.name}`}
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+            {visibleSelectedTags.map((tag) => (
+              <span
+                key={tag.id}
+                className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
               >
-                <X className="h-3 w-3" aria-hidden="true" />
-              </button>
-            </span>
-          ))
+                <span className="truncate">{tag.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(value.filter((id) => id !== tag.id))}
+                  className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
+                  aria-label={`移除 ${tag.name}`}
+                >
+                  <X className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+            {extraSelectedCount ? <span className="shrink-0 rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraSelectedCount}</span> : null}
+          </div>
         ) : (
-          <span className="text-xs font-bold text-ink/40 dark:text-slate-500">暂未选择标签</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-bold text-ink/40 dark:text-slate-500">暂未选择标签</span>
         )}
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
           className={cn(
-            "interactive ml-auto inline-flex min-h-9 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
+            "interactive ml-auto inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
             open
               ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-slate-950 dark:ring-sky-300"
               : "bg-paper text-ocean ring-ocean/20 hover:ring-ocean/50 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-300/20",
