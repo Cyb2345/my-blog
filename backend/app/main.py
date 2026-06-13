@@ -13,16 +13,21 @@ from app.api.v1 import (
     auth,
     categories,
     comments,
+    files,
     health,
     links,
+    logs,
+    menus,
     monitor,
     posts,
     site,
+    system,
     tags,
     uploads,
     users,
 )
 from app.core.config import get_settings
+from app.middleware.audit import AuditLogMiddleware
 from app.utils.response import error
 
 settings = get_settings()
@@ -47,6 +52,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuditLogMiddleware)
 
 upload_path = Path(settings.UPLOAD_DIR)
 upload_path.mkdir(parents=True, exist_ok=True)
@@ -70,3 +76,7 @@ app.include_router(users.router, prefix=api_prefix)
 app.include_router(site.router, prefix=api_prefix)
 app.include_router(admin.router, prefix=api_prefix)
 app.include_router(monitor.router, prefix=api_prefix)
+app.include_router(system.router, prefix=api_prefix)
+app.include_router(files.router, prefix=api_prefix)
+app.include_router(logs.router, prefix=api_prefix)
+app.include_router(menus.router, prefix=api_prefix)

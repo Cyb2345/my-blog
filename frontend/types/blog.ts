@@ -230,3 +230,91 @@ export type ServiceMonitor = {
     usage_percent: number;
   }>;
 };
+
+export type AdminRole = {
+  name: string;
+  code: "admin" | "editor";
+  description: string;
+  status: "active" | "inactive";
+  user_count: number;
+  menu_permissions: string[];
+  api_permissions: string[];
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type SystemParam = {
+  id: number;
+  name: string;
+  key: string;
+  value: string;
+  is_system: boolean;
+  remark?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FileStorageConfig = {
+  id: number;
+  name: string;
+  storage_type: "r2" | "local" | "s3";
+  is_primary: boolean;
+  status: "active" | "inactive";
+  bucket?: string | null;
+  endpoint?: string | null;
+  public_base_url?: string | null;
+  object_prefix?: string | null;
+  access_key_id?: string | null;
+  secret_access_key?: string | null;
+  max_upload_size_mb: number;
+  allowed_file_types: string;
+  remark?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OperationLog = {
+  id: number;
+  operator_id?: number | null;
+  operator_username?: string | null;
+  request_path: string;
+  request_method: string;
+  api_name?: string | null;
+  ip?: string | null;
+  ip_location?: string | null;
+  duration_ms: number;
+  request_body?: string | null;
+  response_code?: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AccessLog = {
+  id: number;
+  ip?: string | null;
+  ip_location?: string | null;
+  browser?: string | null;
+  os?: string | null;
+  path: string;
+  referer?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminMenuItem = {
+  id: number;
+  parent_id?: number | null;
+  name: string;
+  icon?: string | null;
+  type: "directory" | "menu" | "button";
+  route?: string | null;
+  component?: string | null;
+  permission?: string | null;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+  children: AdminMenuItem[];
+};
