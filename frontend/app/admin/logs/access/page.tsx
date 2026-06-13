@@ -1,9 +1,10 @@
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { Eye, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminModal } from "@/components/admin/AdminModal";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
@@ -15,6 +16,7 @@ export default function AdminAccessLogsPage() {
   const [browser, setBrowser] = useState("");
   const [os, setOs] = useState("");
   const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState<AccessLog | null>(null);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
@@ -126,10 +128,16 @@ export default function AdminAccessLogsPage() {
                   <td className="max-w-[220px] truncate p-3 text-ink/65 dark:text-slate-400">{item.referer || "-"}</td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{formatDate(item.created_at)}</td>
                   <td className="p-3">
-                    <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteLog(item)}>
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      删除
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => setDetail(item)}>
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                        详情
+                      </Button>
+                      <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteLog(item)}>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        删除
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -154,6 +162,31 @@ export default function AdminAccessLogsPage() {
           </div>
         </div>
       </section>
+
+      <AdminModal open={Boolean(detail)} title="访问日志详情" size="md" onClose={() => setDetail(null)}>
+        {detail ? (
+          <div className="grid gap-3 text-sm">
+            {[
+              ["访问 IP", detail.ip || "-"],
+              ["IP 归属地", detail.ip_location || "-"],
+              ["浏览器", detail.browser || "-"],
+              ["操作系统", detail.os || "-"],
+              ["访问路径", detail.path],
+              ["Referer", detail.referer || "-"],
+              ["User-Agent", detail.user_agent || "-"],
+              ["创建时间", formatDate(detail.created_at)],
+            ].map(([label, value]) => (
+              <div key={label} className="grid gap-1 rounded-md bg-paper p-3 dark:bg-slate-950">
+                <p className="text-xs font-black text-ink/45 dark:text-slate-500">{label}</p>
+                <p className="break-all font-bold text-ink/75 dark:text-slate-300">{value}</p>
+              </div>
+            ))}
+            <div className="flex justify-end pt-2">
+              <Button type="button" variant="ghost" onClick={() => setDetail(null)}>关闭</Button>
+            </div>
+          </div>
+        ) : null}
+      </AdminModal>
     </>
   );
 }

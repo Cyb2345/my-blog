@@ -1,9 +1,10 @@
 "use client";
 
-import { Search, Trash2 } from "lucide-react";
+import { Eye, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminModal } from "@/components/admin/AdminModal";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
@@ -14,6 +15,7 @@ export default function AdminOperationLogsPage() {
   const [username, setUsername] = useState("");
   const [method, setMethod] = useState("");
   const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState<OperationLog | null>(null);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
@@ -118,10 +120,16 @@ export default function AdminOperationLogsPage() {
                   <td className="p-3 text-ink/65 dark:text-slate-400">{item.response_code || "-"}</td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{formatDate(item.created_at)}</td>
                   <td className="p-3">
-                    <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteLog(item)}>
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      删除
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => setDetail(item)}>
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                        详情
+                      </Button>
+                      <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteLog(item)}>
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        删除
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -146,6 +154,33 @@ export default function AdminOperationLogsPage() {
           </div>
         </div>
       </section>
+
+      <AdminModal open={Boolean(detail)} title="操作日志详情" size="md" onClose={() => setDetail(null)}>
+        {detail ? (
+          <div className="grid gap-3 text-sm">
+            {[
+              ["操作人", detail.operator_username || "-"],
+              ["请求接口", detail.request_path],
+              ["请求方式", detail.request_method],
+              ["接口名", detail.api_name || "-"],
+              ["IP", detail.ip || "-"],
+              ["IP 来源", detail.ip_location || "-"],
+              ["请求耗时", `${detail.duration_ms} ms`],
+              ["创建时间", formatDate(detail.created_at)],
+              ["响应状态", String(detail.response_code ?? "-")],
+              ["请求参数", detail.request_body || "未记录请求体，避免敏感字段入库"],
+            ].map(([label, value]) => (
+              <div key={label} className="grid gap-1 rounded-md bg-paper p-3 dark:bg-slate-950">
+                <p className="text-xs font-black text-ink/45 dark:text-slate-500">{label}</p>
+                <p className="break-all font-bold text-ink/75 dark:text-slate-300">{value}</p>
+              </div>
+            ))}
+            <div className="flex justify-end pt-2">
+              <Button type="button" variant="ghost" onClick={() => setDetail(null)}>关闭</Button>
+            </div>
+          </div>
+        ) : null}
+      </AdminModal>
     </>
   );
 }

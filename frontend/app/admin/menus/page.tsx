@@ -1,14 +1,20 @@
 "use client";
 
-import { Edit, Minus, Plus, Save, Trash2 } from "lucide-react";
+import { Edit, Minus, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import type { AdminMenuItem } from "@/types/blog";
 
 type FlatMenu = AdminMenuItem & { level: number };
+type MenuModalState = {
+  mode: "create" | "edit";
+  item?: AdminMenuItem;
+  parentId?: number | "";
+};
 
 function flattenMenus(items: AdminMenuItem[], level = 0): FlatMenu[] {
   return items.flatMap((item) => [
@@ -25,9 +31,10 @@ const typeLabels: Record<AdminMenuItem["type"], string> = {
 
 export default function AdminMenusPage() {
   const [tree, setTree] = useState<AdminMenuItem[]>([]);
-  const [editing, setEditing] = useState<AdminMenuItem | null>(null);
+  const [modal, setModal] = useState<MenuModalState | null>(null);
   const [parentId, setParentId] = useState<number | "">("");
   const [error, setError] = useState("");
+  const [modalError, setModalError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -45,36 +52,47 @@ export default function AdminMenusPage() {
     void load();
   }, []);
 
-  function beginCreate(parent?: AdminMenuItem) {
-    setEditing(null);
-    setParentId(parent?.id ?? "");
+  function openModal(next: MenuModalState) {
+    setModalError("");
+    setParentId(next.item?.parent_id ?? next.parentId ?? "");
+    setModal(next);
   }
 
-  function beginEdit(item: AdminMenuItem) {
-    setEditing(item);
-    setParentId(item.parent_id ?? "");
+  function closeModal() {
+    if (saving) return;
+    setModal(null);
+    setParentId("");
+    setModalError("");
   }
 
   async function saveMenu(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!modal) return;
     const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") ?? "").trim();
+    if (!name) {
+      setModalError("菜单名称不能为空");
+      return;
+    }
     const payload = {
       parent_id: parentId || null,
-      name: String(form.get("name") ?? ""),
-      icon: String(form.get("icon") ?? "") || null,
+      name,
+      icon: String(form.get("icon") ?? "").trim() || null,
       type: String(form.get("type") ?? "menu"),
-      route: String(form.get("route") ?? "") || null,
-      component: String(form.get("component") ?? "") || null,
-      permission: String(form.get("permission") ?? "") || null,
+      route: String(form.get("route") ?? "").trim() || null,
+      component: String(form.get("component") ?? "").trim() || null,
+      permission: String(form.get("permission") ?? "").trim() || null,
       sort_order: Number(form.get("sort_order") || 0),
       is_active: form.get("is_active") === "on",
+      is_system: form.get("is_system") === "on",
     };
     setSaving(true);
     setError("");
+    setModalError("");
     setNotice("");
     try {
-      if (editing) {
-        await adminRequest(`/admin/menus/${editing.id}`, {
+      if (modal.item) {
+        await adminRequest(`/admin/menus/${modal.item.id}`, {
           method: "PUT",
           body: JSON.stringify(payload),
         });
@@ -86,12 +104,11 @@ export default function AdminMenusPage() {
         });
         setNotice("菜单已新增。");
       }
-      setEditing(null);
+      setModal(null);
       setParentId("");
-      event.currentTarget.reset();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      setModalError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
@@ -110,6 +127,10 @@ export default function AdminMenusPage() {
   }
 
   async function deleteMenu(item: AdminMenuItem) {
+    if (item.children?.length) {
+      setError("存在子菜单，不能直接删除");
+      return;
+    }
     if (!window.confirm(`确认删除菜单「${item.name}」吗？`)) return;
     setError("");
     setNotice("");
@@ -131,136 +152,131 @@ export default function AdminMenusPage() {
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
-      <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-        <form key={editing?.id ?? `new-${parentId}`} onSubmit={saveMenu} className="motion-surface grid h-fit gap-4 rounded-lg border border-ink/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-          <h2 className="text-lg font-black text-ink dark:text-slate-100">{editing ? "编辑菜单" : "添加菜单"}</h2>
-          <AdminField label="父级菜单">
-            <select value={parentId} onChange={(event) => setParentId(event.target.value ? Number(event.target.value) : "")} className={inputClass}>
-              <option value="">一级菜单</option>
-              {flatMenus
-                .filter((item) => item.id !== editing?.id && item.type !== "button")
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {"　".repeat(item.level)}{item.name}
-                  </option>
-                ))}
-            </select>
-          </AdminField>
-          <AdminField label="菜单名称">
-            <input name="name" required defaultValue={editing?.name ?? ""} className={inputClass} />
-          </AdminField>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <AdminField label="图标">
-              <input name="icon" defaultValue={editing?.icon ?? ""} placeholder="Lucide 图标名" className={inputClass} />
+      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-white/10">
+          <Button type="button" onClick={() => openModal({ mode: "create" })}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            添加菜单
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="admin-table w-full min-w-[1100px] text-sm">
+            <thead className="bg-paper text-left text-ink/60 dark:bg-white/5 dark:text-slate-400">
+              <tr>
+                <th className="p-3">菜单名称</th>
+                <th className="p-3">图标</th>
+                <th className="p-3">类型</th>
+                <th className="p-3">路由</th>
+                <th className="p-3">组件路径</th>
+                <th className="p-3">权限标识</th>
+                <th className="p-3">排序</th>
+                <th className="p-3">状态</th>
+                <th className="p-3">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flatMenus.map((item) => (
+                <tr key={item.id} className="border-t border-ink/10 dark:border-white/10">
+                  <td className="p-3 font-black text-ink dark:text-slate-100">
+                    <span style={{ paddingLeft: `${item.level * 20}px` }} className="inline-flex items-center gap-2">
+                      {item.children?.length ? <Minus className="h-3.5 w-3.5 text-ink/40" aria-hidden="true" /> : <span className="h-3.5 w-3.5" />}
+                      {item.name}
+                    </span>
+                  </td>
+                  <td className="p-3 font-mono text-xs text-ink/60 dark:text-slate-400">{item.icon || "-"}</td>
+                  <td className="p-3">
+                    <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-black text-amber-700 dark:bg-amber-400/10 dark:text-amber-200">{typeLabels[item.type]}</span>
+                  </td>
+                  <td className="max-w-[180px] truncate p-3 text-ink/65 dark:text-slate-400">{item.route || "-"}</td>
+                  <td className="max-w-[220px] truncate p-3 text-ink/65 dark:text-slate-400">{item.component || "-"}</td>
+                  <td className="p-3 text-ink/65 dark:text-slate-400">{item.permission || "-"}</td>
+                  <td className="p-3 text-ink/65 dark:text-slate-400">{item.sort_order}</td>
+                  <td className="p-3">
+                    <span className={item.is_active ? "rounded-md bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200" : "rounded-md bg-red-50 px-2 py-1 text-xs font-black text-red-700 dark:bg-red-500/10 dark:text-red-200"}>
+                      {item.is_active ? "显示" : "隐藏"}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <div className="flex gap-2">
+                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => openModal({ mode: "create", parentId: item.id })}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => openModal({ mode: "edit", item })}>
+                        <Edit className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => void toggleActive(item)}>
+                        {item.is_active ? "隐藏" : "显示"}
+                      </Button>
+                      {!item.is_system ? (
+                        <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteMenu(item)}>
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <AdminModal open={Boolean(modal)} title={modal?.mode === "edit" ? "编辑菜单" : "添加菜单"} size="lg" onClose={closeModal}>
+        <form key={modal?.item?.id ?? `new-${parentId}`} onSubmit={saveMenu} className="grid gap-4">
+          <ModalError message={modalError} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <AdminField label="上级菜单">
+              <select value={parentId} onChange={(event) => setParentId(event.target.value ? Number(event.target.value) : "")} className={inputClass}>
+                <option value="">一级菜单</option>
+                {flatMenus
+                  .filter((item) => item.id !== modal?.item?.id && item.type !== "button")
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {"　".repeat(item.level)}{item.name}
+                    </option>
+                  ))}
+              </select>
             </AdminField>
-            <AdminField label="类型">
-              <select name="type" defaultValue={editing?.type ?? "menu"} className={inputClass}>
+            <AdminField label="菜单名称 *">
+              <input name="name" required defaultValue={modal?.item?.name ?? ""} className={inputClass} />
+            </AdminField>
+            <AdminField label="菜单类型">
+              <select name="type" defaultValue={modal?.item?.type ?? "menu"} className={inputClass}>
                 <option value="directory">目录</option>
                 <option value="menu">菜单</option>
                 <option value="button">按钮</option>
               </select>
             </AdminField>
-          </div>
-          <AdminField label="路由">
-            <input name="route" defaultValue={editing?.route ?? ""} className={inputClass} />
-          </AdminField>
-          <AdminField label="组件路径">
-            <input name="component" defaultValue={editing?.component ?? ""} className={inputClass} />
-          </AdminField>
-          <div className="grid gap-4 sm:grid-cols-2">
+            <AdminField label="图标">
+              <input name="icon" defaultValue={modal?.item?.icon ?? ""} placeholder="Lucide 图标名" className={inputClass} />
+            </AdminField>
+            <AdminField label="路由">
+              <input name="route" defaultValue={modal?.item?.route ?? ""} className={inputClass} />
+            </AdminField>
+            <AdminField label="组件路径">
+              <input name="component" defaultValue={modal?.item?.component ?? ""} className={inputClass} />
+            </AdminField>
             <AdminField label="权限标识">
-              <input name="permission" defaultValue={editing?.permission ?? ""} className={inputClass} />
+              <input name="permission" defaultValue={modal?.item?.permission ?? ""} className={inputClass} />
             </AdminField>
             <AdminField label="排序">
-              <input name="sort_order" type="number" defaultValue={editing?.sort_order ?? 0} className={inputClass} />
+              <input name="sort_order" type="number" defaultValue={modal?.item?.sort_order ?? 0} className={inputClass} />
             </AdminField>
+            <label className="flex items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink dark:bg-white/10 dark:text-slate-200">
+              <input name="is_active" type="checkbox" defaultChecked={modal?.item?.is_active ?? true} />
+              显示菜单
+            </label>
+            <label className="flex items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink dark:bg-white/10 dark:text-slate-200">
+              <input name="is_system" type="checkbox" defaultChecked={modal?.item?.is_system ?? false} />
+              系统内置
+            </label>
           </div>
-          <label className="flex items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink dark:bg-white/10 dark:text-slate-200">
-            <input name="is_active" type="checkbox" defaultChecked={editing?.is_active ?? true} />
-            显示菜单
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={saving}>
-              {editing ? <Save className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-              {editing ? "保存菜单" : "添加菜单"}
-            </Button>
-            {(editing || parentId) ? (
-              <Button type="button" variant="ghost" onClick={() => { setEditing(null); setParentId(""); }}>
-                取消
-              </Button>
-            ) : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>
+            <Button type="submit" disabled={saving}>{saving ? "提交中..." : "提交"}</Button>
           </div>
         </form>
-
-        <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-          <div className="flex items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-white/10">
-            <Button type="button" onClick={() => beginCreate()}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              添加菜单
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="admin-table w-full min-w-[1100px] text-sm">
-              <thead className="bg-paper text-left text-ink/60 dark:bg-white/5 dark:text-slate-400">
-                <tr>
-                  <th className="p-3">菜单名称</th>
-                  <th className="p-3">图标</th>
-                  <th className="p-3">类型</th>
-                  <th className="p-3">路由</th>
-                  <th className="p-3">组件路径</th>
-                  <th className="p-3">权限标识</th>
-                  <th className="p-3">排序</th>
-                  <th className="p-3">状态</th>
-                  <th className="p-3">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {flatMenus.map((item) => (
-                  <tr key={item.id} className="border-t border-ink/10 dark:border-white/10">
-                    <td className="p-3 font-black text-ink dark:text-slate-100">
-                      <span style={{ paddingLeft: `${item.level * 20}px` }} className="inline-flex items-center gap-2">
-                        {item.children?.length ? <Minus className="h-3.5 w-3.5 text-ink/40" aria-hidden="true" /> : <span className="h-3.5 w-3.5" />}
-                        {item.name}
-                      </span>
-                    </td>
-                    <td className="p-3 font-mono text-xs text-ink/60 dark:text-slate-400">{item.icon || "-"}</td>
-                    <td className="p-3">
-                      <span className="rounded-md bg-amber-50 px-2 py-1 text-xs font-black text-amber-700 dark:bg-amber-400/10 dark:text-amber-200">{typeLabels[item.type]}</span>
-                    </td>
-                    <td className="max-w-[180px] truncate p-3 text-ink/65 dark:text-slate-400">{item.route || "-"}</td>
-                    <td className="max-w-[220px] truncate p-3 text-ink/65 dark:text-slate-400">{item.component || "-"}</td>
-                    <td className="p-3 text-ink/65 dark:text-slate-400">{item.permission || "-"}</td>
-                    <td className="p-3 text-ink/65 dark:text-slate-400">{item.sort_order}</td>
-                    <td className="p-3">
-                      <span className={item.is_active ? "rounded-md bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200" : "rounded-md bg-red-50 px-2 py-1 text-xs font-black text-red-700 dark:bg-red-500/10 dark:text-red-200"}>
-                        {item.is_active ? "显示" : "隐藏"}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => beginCreate(item)}>
-                          <Plus className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                        <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => beginEdit(item)}>
-                          <Edit className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                        <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => void toggleActive(item)}>
-                          {item.is_active ? "隐藏" : "显示"}
-                        </Button>
-                        {!item.is_system ? (
-                          <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteMenu(item)}>
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+      </AdminModal>
     </>
   );
 }

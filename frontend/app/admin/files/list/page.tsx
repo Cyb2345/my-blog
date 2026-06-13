@@ -4,6 +4,7 @@ import { Copy, Eye, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminModal } from "@/components/admin/AdminModal";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { formatDate, getAssetUrl } from "@/lib/utils";
@@ -226,20 +227,33 @@ export default function AdminFileListPage() {
         </div>
       </section>
 
-      {preview ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" onClick={() => setPreview(null)}>
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-soft dark:bg-slate-900" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-ink/10 p-4 dark:border-white/10">
-              <h2 className="truncate text-sm font-black text-ink dark:text-slate-100">{preview.original_name}</h2>
-              <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => setPreview(null)}>关闭</Button>
+      <AdminModal open={Boolean(preview)} title={preview?.original_name ?? "文件详情"} size="lg" onClose={() => setPreview(null)}>
+        {preview ? (
+          <div className="grid gap-4">
+            <img src={getAssetUrl(preview.url)} alt={preview.original_name} className="mx-auto max-h-[50vh] rounded-md object-contain" />
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              {[
+                ["文件名", preview.original_name],
+                ["文件类型", preview.mime_type],
+                ["文件大小", formatBytes(preview.size)],
+                ["存储器", preview.storage_type === "r2" ? "R2服务器" : preview.storage_type],
+                ["Object Key", preview.object_key],
+                ["上传时间", formatDate(preview.created_at)],
+                ["URL", preview.url],
+              ].map(([label, value]) => (
+                <div key={label} className="grid gap-1 rounded-md bg-paper p-3 dark:bg-slate-950 md:last:col-span-2">
+                  <p className="text-xs font-black text-ink/45 dark:text-slate-500">{label}</p>
+                  <p className="break-all font-bold text-ink/75 dark:text-slate-300">{value}</p>
+                </div>
+              ))}
             </div>
-            <div className="max-h-[70vh] overflow-auto p-4">
-              <img src={getAssetUrl(preview.url)} alt={preview.original_name} className="mx-auto max-h-[65vh] rounded-md object-contain" />
-              <p className="mt-3 break-all rounded-md bg-paper p-3 text-xs font-bold text-ink/60 dark:bg-slate-950 dark:text-slate-400">{preview.url}</p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPreview(null)}>关闭</Button>
+              <Button type="button" onClick={() => void copyUrl(preview.url)}>复制 URL</Button>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </AdminModal>
     </>
   );
 }
