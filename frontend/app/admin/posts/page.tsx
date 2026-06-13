@@ -327,7 +327,7 @@ export default function AdminPostsPage() {
     setVisibleColumns((current) => ({ ...current, [key]: !current[key] }));
   }
 
-function resetColumns() {
+  function resetColumns() {
     setVisibleColumns(normalizeVisibleColumns(defaultVisibleColumns));
   }
 
@@ -420,18 +420,17 @@ function resetColumns() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-ocean dark:text-sky-300">内容管理 / 文章管理</p>
-          <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">文章管理</h1>
-        </div>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold">
+        <span className="text-ink/45 dark:text-slate-500">内容管理</span>
+        <span className="text-ink/30 dark:text-slate-600">/</span>
+        <h1 className="text-lg font-black text-ink dark:text-slate-100">文章管理</h1>
       </div>
 
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
-      <form onSubmit={handleSearch} className="motion-surface mb-5 grid gap-4 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_auto]">
+      <form onSubmit={handleSearch} className="motion-surface mb-4 grid gap-3 rounded-lg border border-ink/10 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
             文章标题
             <input
@@ -471,7 +470,7 @@ function resetColumns() {
       </form>
 
       <div className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-4 py-4 dark:border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-4 py-3 dark:border-white/10">
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="ghost" onClick={() => setModal({ mode: "create" })}>
               <Plus className="h-4 w-4" aria-hidden="true" />

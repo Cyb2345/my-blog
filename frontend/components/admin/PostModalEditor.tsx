@@ -4,6 +4,9 @@ import {
   Bold,
   Code,
   Code2,
+  Eye,
+  FileText,
+  FolderOpen,
   Heading1,
   Heading2,
   Heading3,
@@ -20,6 +23,7 @@ import {
   Redo2,
   Strikethrough,
   Table2,
+  Trash2,
   Undo2,
   Upload,
   WandSparkles,
@@ -29,13 +33,13 @@ import { FormEvent, type UIEvent, useEffect, useMemo, useRef, useState } from "r
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
-import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
+import { PostCategorySelect, PostTagEditorSelect } from "@/components/admin/PostSelectControls";
 import { MarkdownView } from "@/components/blog/MarkdownView";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { normalizeYuqueMarkdown } from "@/lib/markdown";
 import { cn, getAssetUrl, normalizeSlug } from "@/lib/utils";
-import type { Category, MediaAsset, Post, Tag } from "@/types/blog";
+import type { Category, MediaAsset, Paginated, Post, Tag } from "@/types/blog";
 
 type PostFormState = {
   title: string;
@@ -191,7 +195,16 @@ export function PostModalEditor({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [coverMenuOpen, setCoverMenuOpen] = useState(false);
+  const [coverLibraryOpen, setCoverLibraryOpen] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [networkCoverUrl, setNetworkCoverUrl] = useState("");
+  const [coverBroken, setCoverBroken] = useState(false);
+  const [editorTags, setEditorTags] = useState<Tag[]>(tags);
+  const coverMenuRef = useRef<HTMLDivElement | null>(null);
+  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const syncingScrollRef = useRef(false);
@@ -202,7 +215,11 @@ export function PostModalEditor({
     if (!open) return;
     setError("");
     setFullscreen(false);
-    setSlugTouched(mode === "edit");
+    setCoverMenuOpen(false);
+    setCoverLibraryOpen(false);
+    setNetworkCoverUrl("");
+    setCoverBroken(false);
+    setShowPreview(true);
     contentPastRef.current = [];
     contentFutureRef.current = [];
 
@@ -222,6 +239,10 @@ export function PostModalEditor({
       .finally(() => setLoadingPost(false));
   }, [mode, open, post]);
 
+  useEffect(() => {
+    setEditorTags(tags);
+  }, [tags]);
+
   const renderedPreview = useMemo(() => previewMarkdown(form.content), [form.content]);
 
   useEffect(() => {
@@ -234,6 +255,29 @@ export function PostModalEditor({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [fullscreen]);
 
+  useEffect(() => {
+    setCoverBroken(false);
+  }, [form.cover_image]);
+
+  useEffect(() => {
+    if (!coverMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!coverMenuRef.current?.contains(event.target as Node)) setCoverMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setCoverMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [coverMenuOpen]);
+
   function updateField<Key extends keyof PostFormState>(key: Key, value: PostFormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -242,7 +286,6 @@ export function PostModalEditor({
     setForm((current) => ({
       ...current,
       title: value,
-      slug: slugTouched ? current.slug : normalizeSlug(value),
     }));
   }
 
@@ -332,6 +375,7 @@ export function PostModalEditor({
     if (!file) return;
     setUploadingCover(true);
     setError("");
+    setCoverMenuOpen(false);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("usage_type", "post_cover");
@@ -342,6 +386,7 @@ export function PostModalEditor({
       setError(err instanceof Error ? err.message : "封面上传失败，请重试");
     } finally {
       setUploadingCover(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
     }
   }
 
@@ -361,6 +406,48 @@ export function PostModalEditor({
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  async function loadMediaLibrary() {
+    setCoverLibraryOpen(true);
+    setCoverMenuOpen(false);
+    if (mediaAssets.length) return;
+    setLoadingLibrary(true);
+    setError("");
+    try {
+      const data = await adminRequest<Paginated<MediaAsset>>("/admin/files?file_type=image&page=1&page_size=24");
+      setMediaAssets(data.items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "文件库加载失败");
+    } finally {
+      setLoadingLibrary(false);
+    }
+  }
+
+  function applyNetworkCover() {
+    const url = networkCoverUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      setError("网络图片地址需要以 http:// 或 https:// 开头");
+      return;
+    }
+    updateField("cover_image", url);
+    setNetworkCoverUrl("");
+    setCoverMenuOpen(false);
+  }
+
+  async function createTag(name: string) {
+    const baseSlug = normalizeSlug(name) || `tag-${Date.now()}`;
+    const created = await adminRequest<Tag>("/admin/tags", {
+      method: "POST",
+      body: JSON.stringify({
+        name: name.trim(),
+        slug: baseSlug,
+        description: null,
+      }),
+    });
+    setEditorTags((current) => (current.some((tag) => tag.id === created.id) ? current : [...current, created].sort((a, b) => a.name.localeCompare(b.name))));
+    return created;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -467,18 +554,158 @@ export function PostModalEditor({
           />
         </label>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr]">
-          <AdminField label="文章别名 Slug">
+        <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="grid content-start gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <span>文章封面</span>
             <input
-              value={form.slug}
-              onChange={(event) => {
-                setSlugTouched(true);
-                updateField("slug", normalizeSlug(event.target.value));
-              }}
-              placeholder="docker-basic"
+              ref={coverFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={uploadingCover}
+              onChange={(event) => void uploadCover(event.target.files?.[0] ?? null)}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              {form.cover_image ? (
+                <div className="group relative grid h-[104px] w-[184px] place-items-center overflow-hidden rounded-lg border border-ink/10 bg-paper text-xs font-bold text-ink/40 dark:border-white/10 dark:bg-slate-950 dark:text-slate-500">
+                  {!coverBroken ? (
+                    <img
+                      src={getAssetUrl(form.cover_image)}
+                      alt="文章封面预览"
+                      className="h-full w-full object-cover"
+                      onError={() => setCoverBroken(true)}
+                    />
+                  ) : (
+                    <span>加载失败</span>
+                  )}
+                  <div className="absolute inset-0 grid place-items-center bg-slate-950/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => updateField("cover_image", "")}
+                      className="interactive grid h-10 w-10 place-items-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600"
+                      aria-label="删除封面"
+                      title="删除封面"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              <div ref={coverMenuRef} className="relative">
+                <Button type="button" variant="ghost" onClick={() => setCoverMenuOpen((value) => !value)} disabled={uploadingCover}>
+                  <ImageIcon className="h-4 w-4" aria-hidden="true" />
+                  {form.cover_image ? "更换封面" : uploadingCover ? "上传中..." : "选择封面"}
+                </Button>
+                <div
+                  className={cn(
+                    "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-72 origin-top rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+                    coverMenuOpen ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+                  )}
+                >
+                  <button
+                    type="button"
+                    disabled
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-ink/35 dark:text-slate-600"
+                  >
+                    <FileText className="h-4 w-4" aria-hidden="true" />
+                    <span>从正文选择</span>
+                    <span className="ml-auto text-xs">后续支持</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-ink/70 transition-colors hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+                  >
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    本地上传
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void loadMediaLibrary()}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-ink/70 transition-colors hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+                  >
+                    <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                    文件库选择
+                  </button>
+                  <div className="mt-2 rounded-md bg-paper p-2 dark:bg-slate-950/70">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-black text-ink/50 dark:text-slate-400">
+                      <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                      网络图片
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={networkCoverUrl}
+                        onChange={(event) => setNetworkCoverUrl(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            applyNetworkCover();
+                          }
+                        }}
+                        placeholder="https://..."
+                        className="min-h-9 min-w-0 flex-1 rounded-md border border-ink/10 bg-white px-2 text-xs font-bold outline-none ring-ocean/20 focus:ring-2 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={applyNetworkCover}
+                        className="interactive rounded-md bg-ocean px-3 text-xs font-black text-white dark:bg-sky-400 dark:text-slate-950"
+                      >
+                        使用
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <AdminField label="文章简介">
+            <textarea
+              value={form.summary}
+              onChange={(event) => updateField("summary", event.target.value.slice(0, 300))}
+              rows={4}
+              placeholder="请输入文章简介"
               className={inputClass}
             />
           </AdminField>
+          {coverLibraryOpen ? (
+            <div className="notice-pop grid gap-3 rounded-lg border border-ink/10 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-950/70 lg:col-span-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-black text-ink dark:text-slate-100">文件库选择</p>
+                <button type="button" onClick={() => setCoverLibraryOpen(false)} className="text-ink/45 hover:text-ink dark:text-slate-500 dark:hover:text-slate-100" aria-label="关闭文件库">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+              {loadingLibrary ? (
+                <p className="rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink/50 dark:bg-white/10 dark:text-slate-400">正在加载图片资源...</p>
+              ) : (
+                <div className="grid max-h-64 grid-cols-2 gap-3 overflow-auto sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {mediaAssets.length ? (
+                    mediaAssets.map((asset) => (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={() => {
+                          updateField("cover_image", asset.url);
+                          setCoverLibraryOpen(false);
+                        }}
+                        className="group grid gap-2 rounded-lg border border-ink/10 bg-paper p-2 text-left transition-all duration-150 hover:border-ocean/50 dark:border-white/10 dark:bg-slate-900 dark:hover:border-sky-300/50"
+                      >
+                        <span className="grid h-20 place-items-center overflow-hidden rounded-md bg-white text-xs font-bold text-ink/40 dark:bg-slate-950 dark:text-slate-500">
+                          <img src={getAssetUrl(asset.url)} alt={asset.original_name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                        </span>
+                        <span className="truncate text-xs font-bold text-ink/60 dark:text-slate-400">{asset.original_name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="col-span-full rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink/50 dark:bg-white/10 dark:text-slate-400">文件库暂无图片</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.7fr)_minmax(180px,0.6fr)]">
           <AdminField label="分类">
             <PostCategorySelect
               value={form.category_id}
@@ -486,6 +713,15 @@ export function PostModalEditor({
               categories={categories}
             />
           </AdminField>
+          <div className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <span>标签</span>
+            <PostTagEditorSelect
+              value={form.tag_ids}
+              onChange={(value) => updateField("tag_ids", value)}
+              tags={editorTags}
+              onCreateTag={createTag}
+            />
+          </div>
           <AdminField label="上架状态">
             <select value={form.status} onChange={(event) => updateField("status", event.target.value as PostFormState["status"])} className={inputClass}>
               <option value="draft">草稿</option>
@@ -494,65 +730,9 @@ export function PostModalEditor({
           </AdminField>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <AdminField label="文章封面">
-            <div className="grid gap-3">
-              <div className="grid h-[158px] place-items-center overflow-hidden rounded-lg border border-ink/10 bg-paper dark:border-white/10 dark:bg-slate-950">
-                {form.cover_image ? (
-                  <img src={getAssetUrl(form.cover_image)} alt="文章封面预览" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-sm font-bold text-ink/40 dark:text-slate-500">暂无封面</span>
-                )}
-              </div>
-              <input
-                value={form.cover_image}
-                onChange={(event) => updateField("cover_image", event.target.value)}
-                placeholder="上传后自动填入 R2 图片 URL"
-                className={inputClass}
-              />
-              <div className="flex flex-wrap gap-2">
-                <label className="interactive inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink ring-1 ring-ink/10 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10">
-                  <Upload className="h-4 w-4" aria-hidden="true" />
-                  {uploadingCover ? "上传中..." : "上传封面"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    disabled={uploadingCover}
-                    onChange={(event) => void uploadCover(event.target.files?.[0] ?? null)}
-                  />
-                </label>
-                <Button type="button" variant="ghost" onClick={() => updateField("cover_image", "")}>
-                  <X className="h-4 w-4" aria-hidden="true" />
-                  清空
-                </Button>
-              </div>
-            </div>
-          </AdminField>
-
-          <div className="grid gap-4">
-            <AdminField label="文章简介">
-              <textarea
-                value={form.summary}
-                onChange={(event) => updateField("summary", event.target.value.slice(0, 300))}
-                rows={5}
-                placeholder="请输入文章简介"
-                className={inputClass}
-              />
-            </AdminField>
-            <div className="grid gap-3 rounded-lg border border-ink/10 bg-paper/50 p-3 dark:border-white/10 dark:bg-slate-950/40">
-              <p className="text-sm font-bold text-ink dark:text-slate-200">标签</p>
-              <PostTagMultiSelect
-                value={form.tag_ids}
-                onChange={(value) => updateField("tag_ids", value)}
-                tags={tags}
-              />
-            </div>
-            <div className="flex flex-wrap gap-6 rounded-lg border border-ink/10 bg-white p-3 dark:border-white/10 dark:bg-slate-950/60">
-              <SwitchField checked={form.is_recommended} label="是否推荐" onChange={(checked) => updateField("is_recommended", checked)} />
-              <SwitchField checked={form.is_top} label="是否置顶" onChange={(checked) => updateField("is_top", checked)} />
-            </div>
-          </div>
+        <div className="flex flex-wrap gap-6 rounded-lg border border-ink/10 bg-white p-3 dark:border-white/10 dark:bg-slate-950/60">
+          <SwitchField checked={form.is_recommended} label="是否推荐" onChange={(checked) => updateField("is_recommended", checked)} />
+          <SwitchField checked={form.is_top} label="是否置顶" onChange={(checked) => updateField("is_top", checked)} />
         </div>
 
         <div className="grid gap-2">
@@ -617,6 +797,20 @@ export function PostModalEditor({
               ) : null}
               <button
                 type="button"
+                onClick={() => setShowPreview((value) => !value)}
+                className={cn(
+                  "interactive grid h-9 w-9 place-items-center rounded-md",
+                  showPreview
+                    ? "bg-paper text-ink dark:bg-white/10 dark:text-slate-100"
+                    : "text-ink/60 hover:bg-paper hover:text-ink dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100",
+                )}
+                aria-label={showPreview ? "隐藏预览" : "显示预览"}
+                title={showPreview ? "隐藏预览" : "显示预览"}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
                 onClick={() => setFullscreen((value) => !value)}
                 className="interactive grid h-9 w-9 place-items-center rounded-md text-ink/60 hover:bg-paper hover:text-ink dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
                 aria-label={fullscreen ? "退出全屏" : "全屏编辑"}
@@ -625,7 +819,7 @@ export function PostModalEditor({
                 {fullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
               </button>
             </div>
-            <div className={cn("grid lg:grid-cols-2", fullscreen && "min-h-0 flex-1")}>
+            <div className={cn("grid", showPreview && "lg:grid-cols-2", fullscreen && "min-h-0 flex-1")}>
               <textarea
                 ref={textareaRef}
                 value={form.content}
@@ -634,35 +828,39 @@ export function PostModalEditor({
                 required
                 spellCheck={false}
                 className={cn(
-                  "min-h-[420px] resize-y border-0 bg-white px-4 py-4 font-mono text-sm leading-7 text-ink outline-none ring-ocean/20 focus:ring-4 dark:bg-slate-950 dark:text-slate-100 dark:ring-sky-300/20",
+                  "min-h-[460px] resize-y border-0 bg-white px-4 py-4 font-mono text-sm leading-7 text-ink outline-none ring-ocean/20 focus:ring-4 dark:bg-slate-950 dark:text-slate-100 dark:ring-sky-300/20",
                   fullscreen && "h-full min-h-0 resize-none overflow-auto",
                 )}
                 placeholder="在这里编写 Markdown 内容..."
               />
-              <div
-                ref={previewRef}
-                className={cn(
-                  "markdown-editor-preview min-h-[420px] overflow-auto border-t border-ink/10 bg-white px-5 py-4 dark:border-white/10 dark:bg-slate-950 lg:border-l lg:border-t-0",
-                  fullscreen && "h-full min-h-0",
-                )}
-              >
-                {form.content.trim() ? (
-                  <MarkdownView content={renderedPreview} />
-                ) : (
-                  <p className="text-sm font-bold text-ink/45 dark:text-slate-500">Markdown 预览会显示在这里</p>
-                )}
-              </div>
+              {showPreview ? (
+                <div
+                  ref={previewRef}
+                  className={cn(
+                    "markdown-editor-preview min-h-[460px] overflow-auto border-t border-ink/10 bg-white px-5 py-4 dark:border-white/10 dark:bg-slate-950 lg:border-l lg:border-t-0",
+                    fullscreen && "h-full min-h-0",
+                  )}
+                >
+                  {form.content.trim() ? (
+                    <MarkdownView content={renderedPreview} />
+                  ) : (
+                    <p className="text-sm font-bold text-ink/45 dark:text-slate-500">Markdown 预览会显示在这里</p>
+                  )}
+                </div>
+              ) : null}
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-ink/10 bg-white/90 px-3 py-2 text-xs font-bold text-ink/45 dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-500">
               <span>字数：{form.content.length}</span>
               <button
                 type="button"
                 onClick={() => setSyncScroll((value) => !value)}
+                disabled={!showPreview}
                 className={cn(
                   "interactive inline-flex min-h-8 items-center gap-2 rounded-md px-3 transition-all duration-200",
                   syncScroll
                     ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
                     : "bg-paper text-ink/60 ring-1 ring-ink/10 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10",
+                  !showPreview && "cursor-not-allowed opacity-50",
                 )}
                 aria-pressed={syncScroll}
               >

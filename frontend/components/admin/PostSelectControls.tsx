@@ -232,3 +232,140 @@ export function PostTagMultiSelect({
     </div>
   );
 }
+
+export function PostTagEditorSelect({
+  value,
+  onChange,
+  tags,
+  onCreateTag,
+}: {
+  value: number[];
+  onChange: (value: number[]) => void;
+  tags: Tag[];
+  onCreateTag?: (name: string) => Promise<Tag>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [panelError, setPanelError] = useState("");
+  const ref = useCloseOnOutside(open, () => setOpen(false));
+  const selectedIds = useMemo(() => new Set(value), [value]);
+  const selectedTags = tags.filter((tag) => selectedIds.has(tag.id));
+
+  function toggleTag(tag: Tag) {
+    onChange(selectedIds.has(tag.id) ? value.filter((id) => id !== tag.id) : [...value, tag.id]);
+  }
+
+  async function createCustomTag() {
+    const name = draft.trim();
+    if (!name || !onCreateTag || creating) return;
+    const existing = tags.find((tag) => tag.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!selectedIds.has(existing.id)) onChange([...value, existing.id]);
+      setDraft("");
+      setPanelError("");
+      return;
+    }
+
+    setCreating(true);
+    setPanelError("");
+    try {
+      const created = await onCreateTag(name);
+      onChange([...value, created.id]);
+      setDraft("");
+    } catch (err) {
+      setPanelError(err instanceof Error ? err.message : "标签创建失败");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="flex min-h-12 flex-wrap items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-950/70">
+        {selectedTags.length ? (
+          selectedTags.map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center gap-1 rounded-md bg-ocean/10 px-2.5 py-1.5 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
+            >
+              {tag.name}
+              <button
+                type="button"
+                onClick={() => onChange(value.filter((id) => id !== tag.id))}
+                className="grid h-4 w-4 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
+                aria-label={`移除 ${tag.name}`}
+              >
+                <X className="h-3 w-3" aria-hidden="true" />
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="text-xs font-bold text-ink/40 dark:text-slate-500">暂未选择标签</span>
+        )}
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className={cn(
+            "interactive ml-auto inline-flex min-h-9 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
+            open
+              ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-slate-950 dark:ring-sky-300"
+              : "bg-paper text-ocean ring-ocean/20 hover:ring-ocean/50 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-300/20",
+          )}
+        >
+          添加标签
+        </button>
+      </div>
+      <div
+        className={cn(
+          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-ink/10 bg-white p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+          open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+        )}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-black text-ink dark:text-slate-100">标签</p>
+          <button type="button" onClick={() => setOpen(false)} className="text-ink/45 hover:text-ink dark:text-slate-500 dark:hover:text-slate-100" aria-label="关闭标签面板">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void createCustomTag();
+            }
+          }}
+          placeholder="请输入标签名，enter 添加自定义标签"
+          className="min-h-10 w-full rounded-md border border-ink/10 bg-white px-3 py-2 text-sm font-bold outline-none ring-ocean/20 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20"
+        />
+        {panelError ? <p className="mt-2 text-xs font-bold text-red-600 dark:text-rose-300">{panelError}</p> : null}
+        <p className="mt-3 text-xs font-black text-ink/50 dark:text-slate-400">{creating ? "正在添加标签..." : "添加标签"}</p>
+        <div className="mt-2 max-h-52 overflow-auto pr-1">
+          <div className="flex flex-wrap gap-2">
+            {tags.length ? (
+              tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    "interactive rounded-md px-2.5 py-1.5 text-xs font-black transition-all duration-150",
+                    selectedIds.has(tag.id)
+                      ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                      : "bg-paper text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
+                  )}
+                >
+                  {tag.name}
+                </button>
+              ))
+            ) : (
+              <span className="text-sm font-bold text-ink/45 dark:text-slate-500">暂无标签</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
