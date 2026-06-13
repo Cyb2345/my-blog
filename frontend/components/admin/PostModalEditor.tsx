@@ -2,6 +2,7 @@
 
 import {
   Bold,
+  Code,
   Code2,
   Heading1,
   Heading2,
@@ -10,21 +11,25 @@ import {
   Italic,
   Link as LinkIcon,
   List,
+  ListChecks,
   ListOrdered,
   Maximize2,
   Minimize2,
   Minus,
   Quote,
+  Redo2,
   Strikethrough,
   Table2,
+  Undo2,
   Upload,
   WandSparkles,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type UIEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
 import { MarkdownView } from "@/components/blog/MarkdownView";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
@@ -87,6 +92,46 @@ function fallbackSlug(title: string) {
   return normalizeSlug(title) || `post-${Date.now()}`;
 }
 
+function looksLikeHtmlDocument(value: string) {
+  return /<\/(p|h[1-6]|ul|ol|li|blockquote|pre|table|div)>/i.test(value) || /<[^>]+data-line=/i.test(value);
+}
+
+function nodeToMarkdown(node: ChildNode): string {
+  if (node.nodeType === 3) return node.textContent ?? "";
+  if (node.nodeType !== 1) return "";
+
+  const element = node as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  const children = Array.from(element.childNodes).map(nodeToMarkdown).join("");
+  const text = children.trim();
+
+  if (!text && tag !== "br" && tag !== "hr") return "";
+  if (tag === "br") return "\n";
+  if (tag === "hr") return "\n---\n\n";
+  if (tag === "p" || tag === "div") return `${children.trim()}\n\n`;
+  if (/^h[1-6]$/.test(tag)) return `${"#".repeat(Number(tag[1]))} ${text}\n\n`;
+  if (tag === "strong" || tag === "b") return `**${children}**`;
+  if (tag === "em" || tag === "i") return `*${children}*`;
+  if (tag === "del" || tag === "s") return `~~${children}~~`;
+  if (tag === "blockquote") return `${text.split("\n").map((line) => `> ${line}`).join("\n")}\n\n`;
+  if (tag === "code") return `\`${children}\``;
+  if (tag === "pre") return `\n\`\`\`\n${element.textContent?.trim() ?? ""}\n\`\`\`\n\n`;
+  if (tag === "a") return `[${children}](${element.getAttribute("href") ?? "#"})`;
+  if (tag === "img") return `![${element.getAttribute("alt") ?? "图片"}](${element.getAttribute("src") ?? ""})\n\n`;
+  if (tag === "li") return `- ${text}\n`;
+  if (tag === "ul" || tag === "ol") return `${children}\n`;
+  if (tag === "tr") return `${Array.from(element.children).map((child) => child.textContent?.trim() ?? "").join(" | ")}\n`;
+  if (tag === "table") return `${element.textContent?.trim() ?? children}\n\n`;
+  return children;
+}
+
+function previewMarkdown(content: string) {
+  if (!looksLikeHtmlDocument(content)) return content;
+  if (typeof window === "undefined") return content.replace(/<[^>]*>/g, "");
+  const document = new DOMParser().parseFromString(content, "text/html");
+  return Array.from(document.body.childNodes).map(nodeToMarkdown).join("").trim();
+}
+
 function RequiredLabel({ children }: { children: string }) {
   return (
     <span>
@@ -145,14 +190,21 @@ export function PostModalEditor({
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [syncScroll, setSyncScroll] = useState(true);
   const [slugTouched, setSlugTouched] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const syncingScrollRef = useRef(false);
+  const contentPastRef = useRef<string[]>([]);
+  const contentFutureRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
     setError("");
     setFullscreen(false);
     setSlugTouched(mode === "edit");
+    contentPastRef.current = [];
+    contentFutureRef.current = [];
 
     if (mode === "create") {
       setForm(emptyForm());
@@ -170,7 +222,17 @@ export function PostModalEditor({
       .finally(() => setLoadingPost(false));
   }, [mode, open, post]);
 
-  const selectedTagIds = useMemo(() => new Set(form.tag_ids), [form.tag_ids]);
+  const renderedPreview = useMemo(() => previewMarkdown(form.content), [form.content]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setFullscreen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fullscreen]);
 
   function updateField<Key extends keyof PostFormState>(key: Key, value: PostFormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -184,17 +246,47 @@ export function PostModalEditor({
     }));
   }
 
-  function toggleTag(tagId: number) {
-    setForm((current) => ({
-      ...current,
-      tag_ids: current.tag_ids.includes(tagId)
-        ? current.tag_ids.filter((id) => id !== tagId)
-        : [...current.tag_ids, tagId],
-    }));
+  function setContent(nextContent: string, recordHistory = true) {
+    setForm((current) => {
+      if (recordHistory && current.content !== nextContent) {
+        contentPastRef.current = [...contentPastRef.current.slice(-79), current.content];
+        contentFutureRef.current = [];
+      }
+      return { ...current, content: nextContent };
+    });
   }
 
-  function setContent(nextContent: string) {
-    setForm((current) => ({ ...current, content: nextContent }));
+  function undoContent() {
+    setForm((current) => {
+      const previous = contentPastRef.current.pop();
+      if (previous === undefined) return current;
+      contentFutureRef.current = [...contentFutureRef.current.slice(-79), current.content];
+      return { ...current, content: previous };
+    });
+  }
+
+  function redoContent() {
+    setForm((current) => {
+      const next = contentFutureRef.current.pop();
+      if (next === undefined) return current;
+      contentPastRef.current = [...contentPastRef.current.slice(-79), current.content];
+      return { ...current, content: next };
+    });
+  }
+
+  function handleEditorScroll(event: UIEvent<HTMLTextAreaElement>) {
+    if (!syncScroll || syncingScrollRef.current || !previewRef.current) return;
+    const editor = event.currentTarget;
+    const preview = previewRef.current;
+    const editorScrollable = editor.scrollHeight - editor.clientHeight;
+    const previewScrollable = preview.scrollHeight - preview.clientHeight;
+    if (editorScrollable <= 0 || previewScrollable <= 0) return;
+
+    syncingScrollRef.current = true;
+    preview.scrollTop = (editor.scrollTop / editorScrollable) * previewScrollable;
+    window.requestAnimationFrame(() => {
+      syncingScrollRef.current = false;
+    });
   }
 
   function insertMarkdown(before: string, after = "", placeholder = "文本") {
@@ -322,6 +414,8 @@ export function PostModalEditor({
   }
 
   const toolbar = [
+    { label: "撤销", icon: Undo2, action: undoContent },
+    { label: "重做", icon: Redo2, action: redoContent },
     { label: "加粗", icon: Bold, action: () => insertMarkdown("**", "**", "加粗文本") },
     { label: "斜体", icon: Italic, action: () => insertMarkdown("*", "*", "斜体文本") },
     { label: "删除线", icon: Strikethrough, action: () => insertMarkdown("~~", "~~", "删除文本") },
@@ -331,6 +425,8 @@ export function PostModalEditor({
     { label: "引用", icon: Quote, action: () => insertLine("> ", "引用内容") },
     { label: "无序列表", icon: List, action: () => insertLine("- ", "列表项") },
     { label: "有序列表", icon: ListOrdered, action: () => insertLine("1. ", "列表项") },
+    { label: "任务列表", icon: ListChecks, action: () => insertLine("- [ ] ", "待办项") },
+    { label: "行内代码", icon: Code, action: () => insertMarkdown("`", "`", "code") },
     { label: "代码块", icon: Code2, action: () => insertMarkdown("```bash\n", "\n```", "echo hello") },
     { label: "链接", icon: LinkIcon, action: () => insertMarkdown("[", "](https://example.com)", "链接文本") },
     { label: "表格", icon: Table2, action: () => insertLine("| 列 1 | 列 2 |\n| --- | --- |\n| 内容 | 内容 |", "") },
@@ -384,14 +480,11 @@ export function PostModalEditor({
             />
           </AdminField>
           <AdminField label="分类">
-            <select value={form.category_id} onChange={(event) => updateField("category_id", event.target.value)} className={inputClass}>
-              <option value="">请选择文章分类</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <PostCategorySelect
+              value={form.category_id}
+              onChange={(value) => updateField("category_id", value)}
+              categories={categories}
+            />
           </AdminField>
           <AdminField label="上架状态">
             <select value={form.status} onChange={(event) => updateField("status", event.target.value as PostFormState["status"])} className={inputClass}>
@@ -449,27 +542,11 @@ export function PostModalEditor({
             </AdminField>
             <div className="grid gap-3 rounded-lg border border-ink/10 bg-paper/50 p-3 dark:border-white/10 dark:bg-slate-950/40">
               <p className="text-sm font-bold text-ink dark:text-slate-200">标签</p>
-              <div className="flex flex-wrap gap-2">
-                {tags.length ? (
-                  tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={cn(
-                        "interactive min-h-9 rounded-md px-3 text-sm font-bold ring-1 ring-ink/10 dark:ring-white/10",
-                        selectedTagIds.has(tag.id)
-                          ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-slate-950"
-                          : "bg-white text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300",
-                      )}
-                    >
-                      {tag.name}
-                    </button>
-                  ))
-                ) : (
-                  <span className="text-sm font-bold text-ink/45 dark:text-slate-500">暂无标签</span>
-                )}
-              </div>
+              <PostTagMultiSelect
+                value={form.tag_ids}
+                onChange={(value) => updateField("tag_ids", value)}
+                tags={tags}
+              />
             </div>
             <div className="flex flex-wrap gap-6 rounded-lg border border-ink/10 bg-white p-3 dark:border-white/10 dark:bg-slate-950/60">
               <SwitchField checked={form.is_recommended} label="是否推荐" onChange={(checked) => updateField("is_recommended", checked)} />
@@ -482,8 +559,16 @@ export function PostModalEditor({
           <span className="text-sm font-bold text-ink dark:text-slate-200">
             <RequiredLabel>文章内容</RequiredLabel>
           </span>
-          <div className="overflow-hidden rounded-lg border border-ink/10 bg-paper/60 dark:border-white/10 dark:bg-slate-950/60">
+          <div
+            className={cn(
+              "overflow-hidden rounded-lg border border-ink/10 bg-paper/60 transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-950/60",
+              fullscreen && "fixed inset-2 z-[70] flex flex-col rounded-xl bg-white shadow-2xl dark:bg-slate-950 sm:inset-4",
+            )}
+          >
             <div className="flex flex-wrap items-center gap-1 border-b border-ink/10 bg-white/90 px-3 py-2 dark:border-white/10 dark:bg-slate-900/95">
+              {fullscreen ? (
+                <span className="mr-2 text-sm font-black text-ink dark:text-slate-100">Markdown 全屏编辑</span>
+              ) : null}
               {toolbar.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -525,6 +610,11 @@ export function PostModalEditor({
               <span className="ml-auto text-xs font-bold text-ink/45 dark:text-slate-500">
                 {uploadingImage ? "图片上传中..." : `${form.content.length} 字符`}
               </span>
+              {fullscreen ? (
+                <Button type="submit" form="post-modal-editor-form" disabled={saving || loadingPost} className="min-h-9 px-3 py-1 text-xs">
+                  {saving ? "提交中..." : "提交"}
+                </Button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setFullscreen((value) => !value)}
@@ -535,31 +625,49 @@ export function PostModalEditor({
                 {fullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
               </button>
             </div>
-            <div className="grid lg:grid-cols-2">
+            <div className={cn("grid lg:grid-cols-2", fullscreen && "min-h-0 flex-1")}>
               <textarea
                 ref={textareaRef}
                 value={form.content}
                 onChange={(event) => setContent(event.target.value)}
+                onScroll={handleEditorScroll}
                 required
                 spellCheck={false}
                 className={cn(
                   "min-h-[420px] resize-y border-0 bg-white px-4 py-4 font-mono text-sm leading-7 text-ink outline-none ring-ocean/20 focus:ring-4 dark:bg-slate-950 dark:text-slate-100 dark:ring-sky-300/20",
-                  fullscreen && "min-h-[62vh]",
+                  fullscreen && "h-full min-h-0 resize-none overflow-auto",
                 )}
                 placeholder="在这里编写 Markdown 内容..."
               />
               <div
+                ref={previewRef}
                 className={cn(
                   "markdown-editor-preview min-h-[420px] overflow-auto border-t border-ink/10 bg-white px-5 py-4 dark:border-white/10 dark:bg-slate-950 lg:border-l lg:border-t-0",
-                  fullscreen && "min-h-[62vh]",
+                  fullscreen && "h-full min-h-0",
                 )}
               >
                 {form.content.trim() ? (
-                  <MarkdownView content={form.content} />
+                  <MarkdownView content={renderedPreview} />
                 ) : (
                   <p className="text-sm font-bold text-ink/45 dark:text-slate-500">Markdown 预览会显示在这里</p>
                 )}
               </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-ink/10 bg-white/90 px-3 py-2 text-xs font-bold text-ink/45 dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-500">
+              <span>字数：{form.content.length}</span>
+              <button
+                type="button"
+                onClick={() => setSyncScroll((value) => !value)}
+                className={cn(
+                  "interactive inline-flex min-h-8 items-center gap-2 rounded-md px-3 transition-all duration-200",
+                  syncScroll
+                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                    : "bg-paper text-ink/60 ring-1 ring-ink/10 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10",
+                )}
+                aria-pressed={syncScroll}
+              >
+                {syncScroll ? "同步滚动：开" : "同步滚动：关"}
+              </button>
             </div>
           </div>
         </div>

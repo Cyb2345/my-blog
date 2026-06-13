@@ -132,6 +132,22 @@ def _ensure_category(db: Session, category_id: int | None) -> None:
         raise HTTPException(status_code=400, detail="Category does not exist")
 
 
+def _parse_tag_ids(tag_id: int | None, tag_ids: str | None) -> list[int]:
+    values: list[int] = []
+    if tag_id is not None:
+        values.append(tag_id)
+    if tag_ids:
+        for raw in tag_ids.split(","):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                values.append(int(raw))
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid tag_ids") from exc
+    return list(dict.fromkeys(values))
+
+
 @router.get("/posts")
 def list_posts(
     page: int = 1,
@@ -186,6 +202,7 @@ def admin_list_posts(
     keyword: str | None = None,
     category_id: int | None = None,
     tag_id: int | None = None,
+    tag_ids: str | None = None,
     status_filter: str | None = None,
     db: Session = Depends(get_db),
 ):
@@ -200,8 +217,9 @@ def admin_list_posts(
         statement = statement.where(Post.title.ilike(f"%{search_title}%"))
     if category_id is not None:
         statement = statement.where(Post.category_id == category_id)
-    if tag_id is not None:
-        statement = statement.join(Post.tags).where(Tag.id == tag_id)
+    selected_tag_ids = _parse_tag_ids(tag_id, tag_ids)
+    if selected_tag_ids:
+        statement = statement.join(Post.tags).where(Tag.id.in_(selected_tag_ids))
     if status_filter in {"draft", "published"}:
         statement = statement.where(Post.status == status_filter)
     return ok(_page_dict(paginate(db, statement.distinct(), page, page_size)))

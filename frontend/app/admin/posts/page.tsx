@@ -1,9 +1,10 @@
 "use client";
 
-import { Edit, EyeOff, Plus, RotateCcw, Search, Send, Trash2 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { Columns3, Edit, EyeOff, Plus, RefreshCw, RotateCcw, Rows3, Search, Send, Settings, Trash2 } from "lucide-react";
+import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
+import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
@@ -12,7 +13,17 @@ import type { Category, Paginated, Post, Tag } from "@/types/blog";
 type PostQuery = {
   title: string;
   category_id: string;
-  tag_id: string;
+  tag_ids: number[];
+};
+
+type Density = "compact" | "default" | "comfortable";
+type TablePanel = "density" | "columns" | "style" | null;
+type ColumnKey = "cover" | "title" | "author" | "category" | "tags" | "recommended" | "top" | "viewCount" | "createdAt" | "actions";
+type VisibleColumns = Record<ColumnKey, boolean>;
+type TableStyle = {
+  bordered: boolean;
+  zebra: boolean;
+  headerBg: boolean;
 };
 
 type ModalState =
@@ -21,8 +32,52 @@ type ModalState =
   | null;
 
 const emptyPage: Paginated<Post> = { items: [], total: 0, page: 1, page_size: 10, pages: 0 };
-const emptyQuery: PostQuery = { title: "", category_id: "", tag_id: "" };
+const emptyQuery: PostQuery = { title: "", category_id: "", tag_ids: [] };
 const pageSizeOptions = [10, 20, 50];
+const densityOptions: Array<{ value: Density; label: string }> = [
+  { value: "compact", label: "紧凑" },
+  { value: "default", label: "默认" },
+  { value: "comfortable", label: "宽松" },
+];
+const columns: Array<{ key: ColumnKey; label: string; locked?: boolean; thClass?: string }> = [
+  { key: "cover", label: "封面", thClass: "w-40 text-center" },
+  { key: "title", label: "标题", locked: true },
+  { key: "author", label: "作者", thClass: "w-28" },
+  { key: "category", label: "分类", thClass: "w-32" },
+  { key: "tags", label: "标签", thClass: "w-48" },
+  { key: "recommended", label: "推荐", thClass: "w-20" },
+  { key: "top", label: "置顶", thClass: "w-20" },
+  { key: "viewCount", label: "阅读量", thClass: "w-24" },
+  { key: "createdAt", label: "创建时间", thClass: "w-44" },
+  { key: "actions", label: "操作", locked: true, thClass: "w-44 text-center" },
+];
+const defaultVisibleColumns: VisibleColumns = {
+  cover: true,
+  title: true,
+  author: true,
+  category: true,
+  tags: true,
+  recommended: true,
+  top: true,
+  viewCount: true,
+  createdAt: true,
+  actions: true,
+};
+const defaultTableStyle: TableStyle = {
+  bordered: true,
+  zebra: false,
+  headerBg: true,
+};
+const densityCellClass: Record<Density, string> = {
+  compact: "p-2",
+  default: "p-3",
+  comfortable: "p-5",
+};
+const tablePreferenceKeys = {
+  density: "admin-posts-density",
+  columns: "admin-posts-columns",
+  style: "admin-posts-table-style",
+};
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -46,6 +101,20 @@ function getPageNumbers(current: number, total: number) {
   const end = Math.min(total, start + count - 1);
   start = Math.max(1, end - count + 1);
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
+function readJsonPreference<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? ({ ...fallback, ...JSON.parse(raw) } as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeVisibleColumns(value: VisibleColumns): VisibleColumns {
+  return { ...value, title: true, actions: true };
 }
 
 function StatusBadge({ active, activeText = "是", inactiveText = "否" }: { active: boolean; activeText?: string; inactiveText?: string }) {
@@ -84,6 +153,57 @@ function CoverThumb({ src, title }: { src?: string | null; title: string }) {
   );
 }
 
+function ToolPopover({
+  open,
+  children,
+  className,
+}: {
+  open: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute right-0 top-[calc(100%+0.5rem)] z-30 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+        open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ToolIconButton({
+  active,
+  children,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "interactive grid h-10 w-10 place-items-center rounded-md transition-all duration-200",
+        active
+          ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+          : "bg-paper text-ink/55 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
+      )}
+      aria-label={label}
+      title={label}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function AdminPostsPage() {
   const [page, setPage] = useState<Paginated<Post>>(emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -95,9 +215,14 @@ export default function AdminPostsPage() {
   const [jumpPage, setJumpPage] = useState("1");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<ModalState>(null);
+  const [density, setDensity] = useState<Density>("default");
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(defaultVisibleColumns);
+  const [tableStyle, setTableStyle] = useState<TableStyle>(defaultTableStyle);
+  const [activePanel, setActivePanel] = useState<TablePanel>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,7 +233,7 @@ export default function AdminPostsPage() {
     });
     if (activeQuery.title.trim()) params.set("title", activeQuery.title.trim());
     if (activeQuery.category_id) params.set("category_id", activeQuery.category_id);
-    if (activeQuery.tag_id) params.set("tag_id", activeQuery.tag_id);
+    if (activeQuery.tag_ids.length) params.set("tag_ids", activeQuery.tag_ids.join(","));
 
     try {
       const data = await adminRequest<Paginated<Post>>(`/admin/posts?${params.toString()}`);
@@ -137,6 +262,46 @@ export default function AdminPostsPage() {
 
   const allCurrentPageSelected = page.items.length > 0 && page.items.every((post) => selectedIds.has(post.id));
   const pageNumbers = useMemo(() => getPageNumbers(page.page, page.pages), [page.page, page.pages]);
+  const visibleColumnCount = columns.filter((column) => visibleColumns[column.key]).length;
+  const tableCellPadding = densityCellClass[density];
+
+  useEffect(() => {
+    const savedDensity = window.localStorage.getItem(tablePreferenceKeys.density) as Density | null;
+    setDensity(savedDensity && densityOptions.some((option) => option.value === savedDensity) ? savedDensity : "default");
+    setVisibleColumns(normalizeVisibleColumns(readJsonPreference(tablePreferenceKeys.columns, defaultVisibleColumns)));
+    setTableStyle(readJsonPreference(tablePreferenceKeys.style, defaultTableStyle));
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(tablePreferenceKeys.density, density);
+  }, [density]);
+
+  useEffect(() => {
+    window.localStorage.setItem(tablePreferenceKeys.columns, JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  useEffect(() => {
+    window.localStorage.setItem(tablePreferenceKeys.style, JSON.stringify(tableStyle));
+  }, [tableStyle]);
+
+  useEffect(() => {
+    if (!activePanel) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!toolbarRef.current?.contains(event.target as Node)) setActivePanel(null);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setActivePanel(null);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activePanel]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,6 +315,24 @@ export default function AdminPostsPage() {
     setActiveQuery(emptyQuery);
     setPageNumber(1);
     setNotice("");
+  }
+
+  function togglePanel(panel: Exclude<TablePanel, null>) {
+    setActivePanel((current) => (current === panel ? null : panel));
+  }
+
+  function toggleColumn(key: ColumnKey) {
+    const column = columns.find((item) => item.key === key);
+    if (column?.locked) return;
+    setVisibleColumns((current) => ({ ...current, [key]: !current[key] }));
+  }
+
+function resetColumns() {
+    setVisibleColumns(normalizeVisibleColumns(defaultVisibleColumns));
+  }
+
+  function toggleTableStyle(key: keyof TableStyle) {
+    setTableStyle((current) => ({ ...current, [key]: !current[key] }));
   }
 
   function toggleSelect(id: number) {
@@ -258,36 +441,22 @@ export default function AdminPostsPage() {
               className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm outline-none ring-ocean/20 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20"
             />
           </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
-            文章分类
-            <select
+          <div className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <span>文章分类</span>
+            <PostCategorySelect
               value={filters.category_id}
-              onChange={(event) => setFilters((current) => ({ ...current, category_id: event.target.value }))}
-              className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm outline-none ring-ocean/20 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20"
-            >
-              <option value="">请选择文章分类</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
-            文章标签
-            <select
-              value={filters.tag_id}
-              onChange={(event) => setFilters((current) => ({ ...current, tag_id: event.target.value }))}
-              className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm outline-none ring-ocean/20 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20"
-            >
-              <option value="">请选择文章标签</option>
-              {tags.map((tag) => (
-                <option key={tag.id} value={tag.id}>
-                  {tag.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(value) => setFilters((current) => ({ ...current, category_id: value }))}
+              categories={categories}
+            />
+          </div>
+          <div className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <span>文章标签</span>
+            <PostTagMultiSelect
+              value={filters.tag_ids}
+              onChange={(value) => setFilters((current) => ({ ...current, tag_ids: value }))}
+              tags={tags}
+            />
+          </div>
           <div className="flex items-end gap-2">
             <Button type="submit" className="min-w-20">
               <Search className="h-4 w-4" aria-hidden="true" />
@@ -313,108 +482,226 @@ export default function AdminPostsPage() {
               批量删除
             </Button>
           </div>
-          {loading ? <span className="text-sm font-bold text-ink/45 dark:text-slate-500">加载中...</span> : null}
+          <div ref={toolbarRef} className="flex flex-wrap items-center gap-2">
+            <ToolIconButton label="刷新" onClick={() => void load()}>
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
+            </ToolIconButton>
+            <div className="relative">
+              <ToolIconButton active={activePanel === "density"} label="行高 / 密度设置" onClick={() => togglePanel("density")}>
+                <Rows3 className="h-4 w-4" aria-hidden="true" />
+              </ToolIconButton>
+              <ToolPopover open={activePanel === "density"}>
+                {densityOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setDensity(option.value);
+                      setActivePanel(null);
+                    }}
+                    className={cn(
+                      "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
+                      density === option.value ? "bg-ocean/10 text-ocean dark:bg-sky-400/15 dark:text-sky-200" : "text-ink/65 dark:text-slate-300",
+                    )}
+                  >
+                    {option.label}
+                    {density === option.value ? <span>✓</span> : null}
+                  </button>
+                ))}
+              </ToolPopover>
+            </div>
+            <div className="relative">
+              <ToolIconButton active={activePanel === "columns"} label="列显示设置" onClick={() => togglePanel("columns")}>
+                <Columns3 className="h-4 w-4" aria-hidden="true" />
+              </ToolIconButton>
+              <ToolPopover open={activePanel === "columns"} className="min-w-56">
+                <div className="grid gap-1">
+                  {columns.map((column) => (
+                    <label
+                      key={column.key}
+                      className={cn(
+                        "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
+                        visibleColumns[column.key] ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
+                        column.locked && "opacity-80",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns[column.key]}
+                        disabled={column.locked}
+                        onChange={() => toggleColumn(column.key)}
+                        className="h-4 w-4 accent-blue-500"
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={resetColumns}
+                    className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+                  >
+                    恢复默认列
+                  </button>
+                </div>
+              </ToolPopover>
+            </div>
+            <div className="relative">
+              <ToolIconButton active={activePanel === "style"} label="表格样式设置" onClick={() => togglePanel("style")}>
+                <Settings className="h-4 w-4" aria-hidden="true" />
+              </ToolIconButton>
+              <ToolPopover open={activePanel === "style"} className="min-w-52">
+                {[
+                  { key: "bordered" as const, label: "边框" },
+                  { key: "zebra" as const, label: "斑马纹" },
+                  { key: "headerBg" as const, label: "表头背景" },
+                ].map((option) => (
+                  <label
+                    key={option.key}
+                    className={cn(
+                      "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
+                      tableStyle[option.key] ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={tableStyle[option.key]}
+                      onChange={() => toggleTableStyle(option.key)}
+                      className="h-4 w-4 accent-blue-500"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </ToolPopover>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[1280px] border-collapse text-sm">
-            <thead className="bg-paper text-left text-ink/60 dark:bg-slate-950/80 dark:text-slate-400">
+          <table
+            className={cn(
+              "admin-table w-full min-w-[1280px] border-collapse text-sm",
+              tableStyle.bordered &&
+                "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
+            )}
+          >
+            <thead
+              className={cn(
+                "text-left text-ink/60 dark:text-slate-400",
+                tableStyle.headerBg && "bg-paper dark:bg-slate-950/80",
+              )}
+            >
               <tr>
-                <th className="w-14 p-3 text-center">
+                <th className={cn("w-14 text-center", tableCellPadding)}>
                   <input type="checkbox" checked={allCurrentPageSelected} onChange={toggleSelectCurrentPage} aria-label="选择当前页文章" />
                 </th>
-                <th className="w-40 p-3 text-center">封面</th>
-                <th className="p-3">标题</th>
-                <th className="w-28 p-3">作者</th>
-                <th className="w-32 p-3">分类</th>
-                <th className="w-48 p-3">标签</th>
-                <th className="w-20 p-3">推荐</th>
-                <th className="w-20 p-3">置顶</th>
-                <th className="w-24 p-3">阅读量</th>
-                <th className="w-44 p-3">创建时间</th>
-                <th className="w-44 p-3 text-center">操作</th>
+                {columns.map((column) =>
+                  visibleColumns[column.key] ? (
+                    <th key={column.key} className={cn(tableCellPadding, column.thClass)}>
+                      {column.label}
+                    </th>
+                  ) : null,
+                )}
               </tr>
             </thead>
             <tbody>
-              {page.items.map((post) => {
+              {page.items.map((post, rowIndex) => {
                 const visibleTags = post.tags?.slice(0, 3) ?? [];
                 const extraTags = Math.max((post.tags?.length ?? 0) - visibleTags.length, 0);
                 return (
-                  <tr key={post.id} className="border-t border-ink/10 transition-colors hover:bg-paper/60 dark:border-white/10 dark:hover:bg-white/5">
-                    <td className="p-3 text-center">
+                  <tr
+                    key={post.id}
+                    className={cn(
+                      "transition-colors hover:bg-paper/60 dark:hover:bg-white/5",
+                      tableStyle.bordered && "border-t border-ink/10 dark:border-white/10",
+                      tableStyle.zebra && rowIndex % 2 === 1 && "bg-paper/40 dark:bg-white/[0.03]",
+                    )}
+                  >
+                    <td className={cn("text-center", tableCellPadding)}>
                       <input type="checkbox" checked={selectedIds.has(post.id)} onChange={() => toggleSelect(post.id)} aria-label={`选择 ${post.title}`} />
                     </td>
-                    <td className="p-3 text-center">
-                      <CoverThumb src={post.cover_image} title={post.title} />
-                    </td>
-                    <td className="p-3">
-                      <p className="line-clamp-2 max-w-[300px] font-bold text-ocean dark:text-sky-300" title={post.title}>
-                        {post.title}
-                      </p>
-                    </td>
-                    <td className="p-3 text-ink/70 dark:text-slate-300">{post.author?.nickname || post.author?.username || "管理员"}</td>
-                    <td className="p-3 text-ink/70 dark:text-slate-300">{post.category?.name ?? "-"}</td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        {visibleTags.length ? (
-                          <>
-                            {visibleTags.map((tag) => (
-                              <span key={tag.id} className="rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200">
-                                {tag.name}
-                              </span>
-                            ))}
-                            {extraTags ? <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraTags}</span> : null}
-                          </>
-                        ) : (
-                          <span className="text-ink/40 dark:text-slate-500">-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <StatusBadge active={post.is_recommended} />
-                    </td>
-                    <td className="p-3">
-                      <StatusBadge active={post.is_top} />
-                    </td>
-                    <td className="p-3 font-bold text-ink/70 dark:text-slate-300">{post.view_count}</td>
-                    <td className="p-3 text-ink/65 dark:text-slate-400">{formatDateTime(post.created_at)}</td>
-                    <td className="p-3">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setModal({ mode: "edit", post })}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
-                          aria-label="编辑"
-                          title="编辑"
-                        >
-                          <Edit className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deletePosts([post.id])}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
-                          aria-label="删除"
-                          title="删除"
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void togglePublish(post)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20"
-                          aria-label={post.status === "published" ? "下架" : "上架"}
-                          title={post.status === "published" ? "下架" : "上架"}
-                        >
-                          {post.status === "published" ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-                        </button>
-                      </div>
-                    </td>
+                    {visibleColumns.cover ? (
+                      <td className={cn("text-center", tableCellPadding)}>
+                        <CoverThumb src={post.cover_image} title={post.title} />
+                      </td>
+                    ) : null}
+                    {visibleColumns.title ? (
+                      <td className={tableCellPadding}>
+                        <p className="line-clamp-2 max-w-[300px] font-bold text-ocean dark:text-sky-300" title={post.title}>
+                          {post.title}
+                        </p>
+                      </td>
+                    ) : null}
+                    {visibleColumns.author ? <td className={cn("text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.author?.nickname || post.author?.username || "管理员"}</td> : null}
+                    {visibleColumns.category ? <td className={cn("text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.category?.name ?? "-"}</td> : null}
+                    {visibleColumns.tags ? (
+                      <td className={tableCellPadding}>
+                        <div className="flex flex-wrap gap-1">
+                          {visibleTags.length ? (
+                            <>
+                              {visibleTags.map((tag) => (
+                                <span key={tag.id} className="rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200">
+                                  {tag.name}
+                                </span>
+                              ))}
+                              {extraTags ? <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraTags}</span> : null}
+                            </>
+                          ) : (
+                            <span className="text-ink/40 dark:text-slate-500">-</span>
+                          )}
+                        </div>
+                      </td>
+                    ) : null}
+                    {visibleColumns.recommended ? (
+                      <td className={tableCellPadding}>
+                        <StatusBadge active={post.is_recommended} />
+                      </td>
+                    ) : null}
+                    {visibleColumns.top ? (
+                      <td className={tableCellPadding}>
+                        <StatusBadge active={post.is_top} />
+                      </td>
+                    ) : null}
+                    {visibleColumns.viewCount ? <td className={cn("font-bold text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.view_count}</td> : null}
+                    {visibleColumns.createdAt ? <td className={cn("text-ink/65 dark:text-slate-400", tableCellPadding)}>{formatDateTime(post.created_at)}</td> : null}
+                    {visibleColumns.actions ? (
+                      <td className={tableCellPadding}>
+                        <div className="flex justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModal({ mode: "edit", post })}
+                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
+                            aria-label="编辑"
+                            title="编辑"
+                          >
+                            <Edit className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deletePosts([post.id])}
+                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
+                            aria-label="删除"
+                            title="删除"
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void togglePublish(post)}
+                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20"
+                            aria-label={post.status === "published" ? "下架" : "上架"}
+                            title={post.status === "published" ? "下架" : "上架"}
+                          >
+                            {post.status === "published" ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
+                          </button>
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}
               {!page.items.length && !loading ? (
                 <tr>
-                  <td colSpan={11} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
+                  <td colSpan={visibleColumnCount + 1} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
                     暂无文章数据
                   </td>
                 </tr>
