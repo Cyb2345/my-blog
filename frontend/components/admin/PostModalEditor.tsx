@@ -5,6 +5,8 @@ import {
   Code,
   Code2,
   Eye,
+  FileText,
+  FolderOpen,
   Heading1,
   Heading2,
   Heading3,
@@ -23,6 +25,7 @@ import {
   Table2,
   Trash2,
   Undo2,
+  Upload,
   WandSparkles,
   X,
 } from "lucide-react";
@@ -154,15 +157,24 @@ export function PostModalEditor({
   const [error, setError] = useState("");
   const [loadingPost, setLoadingPost] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
+  const [coverMenuOpen, setCoverMenuOpen] = useState(false);
   const [coverDialogOpen, setCoverDialogOpen] = useState(false);
+  const [coverLibraryOpen, setCoverLibraryOpen] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [networkCoverUrl, setNetworkCoverUrl] = useState("");
   const [coverDialogError, setCoverDialogError] = useState("");
   const [coverBroken, setCoverBroken] = useState(false);
+  const [editorCategories, setEditorCategories] = useState<Category[]>(categories);
+  const [categoryError, setCategoryError] = useState("");
   const [editorTags, setEditorTags] = useState<Tag[]>(tags);
+  const coverMenuRef = useRef<HTMLDivElement | null>(null);
+  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const syncingScrollRef = useRef(false);
@@ -173,7 +185,9 @@ export function PostModalEditor({
     if (!open) return;
     setError("");
     setFullscreen(false);
+    setCoverMenuOpen(false);
     setCoverDialogOpen(false);
+    setCoverLibraryOpen(false);
     setNetworkCoverUrl("");
     setCoverDialogError("");
     setCoverBroken(false);
@@ -198,6 +212,21 @@ export function PostModalEditor({
   }, [mode, open, post]);
 
   useEffect(() => {
+    if (categories.length) {
+      setEditorCategories(categories);
+      setCategoryError("");
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    if (!open || categories.length) return;
+    setCategoryError("");
+    adminRequest<Category[]>("/admin/categories")
+      .then((data) => setEditorCategories(data))
+      .catch((err: Error) => setCategoryError(err.message || "分类列表加载失败"));
+  }, [categories.length, open]);
+
+  useEffect(() => {
     setEditorTags(tags);
   }, [tags]);
 
@@ -216,6 +245,25 @@ export function PostModalEditor({
   useEffect(() => {
     setCoverBroken(false);
   }, [form.cover_image]);
+
+  useEffect(() => {
+    if (!coverMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!coverMenuRef.current?.contains(event.target as Node)) setCoverMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setCoverMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [coverMenuOpen]);
 
   function updateField<Key extends keyof PostFormState>(key: Key, value: PostFormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -325,6 +373,40 @@ export function PostModalEditor({
       setError(err instanceof Error ? err.message : "正文图片上传失败，请重试");
     } finally {
       setUploadingImage(false);
+    }
+  }
+
+  async function uploadCover(file: File | null) {
+    if (!file) return;
+    setUploadingCover(true);
+    setError("");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("usage_type", "post_cover");
+    try {
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData);
+      updateField("cover_image", asset.url);
+      setCoverMenuOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "封面上传失败，请重试");
+    } finally {
+      setUploadingCover(false);
+    }
+  }
+
+  async function loadCoverLibrary() {
+    setLoadingLibrary(true);
+    setError("");
+    setCoverMenuOpen(false);
+    setCoverLibraryOpen(true);
+    try {
+      const assets = await adminRequest<MediaAsset[]>("/admin/media");
+      setMediaAssets(assets.filter((asset) => asset.is_active && asset.mime_type.startsWith("image/")));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "文件库图片加载失败");
+      setMediaAssets([]);
+    } finally {
+      setLoadingLibrary(false);
     }
   }
 
@@ -464,13 +546,15 @@ export function PostModalEditor({
             />
           </label>
           <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)_180px]">
-            <AdminField label="文章分类">
+            <div className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+              <span>文章分类</span>
               <PostCategorySelect
                 value={form.category_id}
                 onChange={(value) => updateField("category_id", value)}
-                categories={categories}
+                categories={editorCategories}
               />
-            </AdminField>
+              {categoryError ? <span className="text-xs font-bold text-red-600 dark:text-rose-300">{categoryError}</span> : null}
+            </div>
             <div className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
               <span>文章标签</span>
               <PostTagEditorSelect
@@ -492,7 +576,7 @@ export function PostModalEditor({
         <section className="grid gap-3 rounded-lg border border-ink/10 bg-white p-4 dark:border-white/10 dark:bg-slate-950/40">
           <h3 className="text-sm font-black text-ink dark:text-slate-100">文章封面</h3>
           {form.cover_image ? (
-            <div className="relative grid h-[156px] w-[280px] max-w-full place-items-center overflow-hidden rounded-lg border border-ink/10 bg-paper text-xs font-bold text-ink/40 dark:border-white/10 dark:bg-slate-950 dark:text-slate-500">
+            <div className="group relative grid h-[156px] w-[280px] max-w-full place-items-center overflow-hidden rounded-lg border border-ink/10 bg-paper text-xs font-bold text-ink/40 dark:border-white/10 dark:bg-slate-950 dark:text-slate-500">
               {!coverBroken ? (
                 <img
                   src={getAssetUrl(form.cover_image)}
@@ -506,7 +590,7 @@ export function PostModalEditor({
               <button
                 type="button"
                 onClick={() => updateField("cover_image", "")}
-                className="interactive absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600"
+                className="interactive absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-red-500 text-white opacity-0 shadow-lg transition-opacity duration-150 hover:bg-red-600 focus:opacity-100 group-hover:opacity-100"
                 aria-label="删除封面"
                 title="删除封面"
               >
@@ -514,19 +598,74 @@ export function PostModalEditor({
               </button>
             </div>
           ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setNetworkCoverUrl("");
-                setCoverDialogError("");
-                setCoverDialogOpen(true);
-              }}
-              className="w-fit"
-            >
-              <ImageIcon className="h-4 w-4" aria-hidden="true" />
-              选择封面
-            </Button>
+            <div ref={coverMenuRef} className="relative w-fit">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCoverMenuOpen((value) => !value)}
+                disabled={uploadingCover}
+                className="w-fit"
+              >
+                <ImageIcon className="h-4 w-4" aria-hidden="true" />
+                {uploadingCover ? "上传中..." : "选择封面"}
+              </Button>
+              <input
+                ref={coverFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={uploadingCover}
+                onChange={(event) => {
+                  void uploadCover(event.target.files?.[0] ?? null);
+                  event.target.value = "";
+                }}
+              />
+              <div
+                className={cn(
+                  "absolute left-0 top-[calc(100%+0.5rem)] z-[80] min-w-56 origin-top rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+                  coverMenuOpen ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+                )}
+              >
+                <button
+                  type="button"
+                  disabled
+                  className="flex min-h-11 w-full cursor-not-allowed items-center gap-3 rounded-md px-3 text-left text-sm font-black text-ink/35 dark:text-slate-600"
+                >
+                  <FileText className="h-4 w-4" aria-hidden="true" />
+                  从正文选择
+                  <span className="ml-auto text-xs">后续支持</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="interactive flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-black text-ink/70 hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+                >
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                  本地上传
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadCoverLibrary()}
+                  className="interactive flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-black text-ink/70 hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+                >
+                  <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                  文件库选择
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverMenuOpen(false);
+                    setNetworkCoverUrl("");
+                    setCoverDialogError("");
+                    setCoverDialogOpen(true);
+                  }}
+                  className="interactive flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-sm font-black text-ink/70 hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+                >
+                  <ImageIcon className="h-4 w-4" aria-hidden="true" />
+                  网络图片
+                </button>
+              </div>
+            </div>
           )}
         </section>
 
@@ -678,6 +817,63 @@ export function PostModalEditor({
           </div>
         </section>
       </form>
+      {coverLibraryOpen ? (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="关闭文件库选择弹窗"
+            onClick={() => setCoverLibraryOpen(false)}
+          />
+          <section className="relative flex max-h-[82vh] w-full max-w-4xl flex-col rounded-lg border border-ink/10 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
+            <header className="flex items-center justify-between border-b border-ink/10 px-5 py-4 dark:border-white/10">
+              <div>
+                <h3 className="text-lg font-black text-ink dark:text-slate-100">文件库选择</h3>
+                <p className="mt-1 text-xs font-bold text-ink/45 dark:text-slate-500">仅展示已有图片资源，点击图片后设为文章封面。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCoverLibraryOpen(false)}
+                className="interactive grid h-9 w-9 place-items-center rounded-md text-ink/50 hover:bg-paper hover:text-ink dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                aria-label="关闭"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-auto p-5">
+              {loadingLibrary ? (
+                <p className="rounded-md bg-paper px-3 py-3 text-sm font-bold text-ink/55 dark:bg-white/10 dark:text-slate-400">正在加载文件库图片...</p>
+              ) : mediaAssets.length ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {mediaAssets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => {
+                        updateField("cover_image", asset.url);
+                        setCoverLibraryOpen(false);
+                      }}
+                      className="group grid gap-2 rounded-lg border border-ink/10 bg-paper p-2 text-left transition-all duration-150 hover:border-ocean/50 hover:shadow-md dark:border-white/10 dark:bg-slate-950 dark:hover:border-sky-300/50"
+                    >
+                      <span className="grid h-28 place-items-center overflow-hidden rounded-md bg-white text-xs font-bold text-ink/40 dark:bg-slate-900 dark:text-slate-500">
+                        <img
+                          src={getAssetUrl(asset.url)}
+                          alt={asset.original_name}
+                          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </span>
+                      <span className="truncate text-xs font-bold text-ink/60 dark:text-slate-400">{asset.original_name}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-md bg-paper px-3 py-3 text-sm font-bold text-ink/55 dark:bg-white/10 dark:text-slate-400">文件库暂无可选图片</p>
+              )}
+            </div>
+          </section>
+        </div>
+      ) : null}
       {coverDialogOpen ? (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
           <button

@@ -47,7 +47,7 @@ function DropdownPanel({
   return (
     <div
       className={cn(
-        "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-72 origin-top overflow-auto rounded-lg border border-ink/10 bg-white p-1 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+        "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[80] max-h-72 origin-top overflow-auto rounded-lg border border-ink/10 bg-white p-1 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
         open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
       )}
     >
@@ -129,18 +129,22 @@ export function PostCategorySelect({
         >
           不限分类
         </OptionButton>
-        {categories.map((category) => (
-          <OptionButton
-            key={category.id}
-            active={String(category.id) === normalizedValue}
-            onClick={() => {
-              onChange(String(category.id));
-              setOpen(false);
-            }}
-          >
-            {category.name}
-          </OptionButton>
-        ))}
+        {categories.length ? (
+          categories.map((category) => (
+            <OptionButton
+              key={category.id}
+              active={String(category.id) === normalizedValue}
+              onClick={() => {
+                onChange(String(category.id));
+                setOpen(false);
+              }}
+            >
+              {category.name}
+            </OptionButton>
+          ))
+        ) : (
+          <p className="px-3 py-2 text-sm font-bold text-ink/45 dark:text-slate-500">暂无可选分类</p>
+        )}
       </DropdownPanel>
     </div>
   );
@@ -329,7 +333,7 @@ export function PostTagEditorSelect({
       </div>
       <div
         className={cn(
-          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-ink/10 bg-white p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+          "absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-ink/10 bg-white p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
           open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
       >

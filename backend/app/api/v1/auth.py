@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.core.deps import get_current_user, get_db
 from app.core.rate_limit import get_client_ip, rate_limiter
 from app.core.security import create_access_token
+from app.models.admin_system import SystemParam
 from app.models.user import User
 from app.schemas.auth import LoginRequest, MfaVerifyRequest, UserRead
 from app.services.auth_service import authenticate_user
@@ -22,6 +23,11 @@ LOGIN_FAILED_DETAIL = "登录失败，请检查账号、密码、验证码或动
 
 def authenticate_user_by_username(db: Session, username: str) -> User | None:
     return db.scalar(select(User).where(User.username == username, User.is_active.is_(True)))
+
+
+def is_system_mfa_enabled(db: Session) -> bool:
+    value = db.scalar(select(SystemParam.value).where(SystemParam.key == "sys_mfa_enabled"))
+    return str(value or "N").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 @router.get("/captcha")
@@ -60,7 +66,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=LOGIN_FAILED_DETAIL,
         )
-    if user.mfa_enabled:
+    if is_system_mfa_enabled(db) and user.mfa_enabled:
         if not user.mfa_secret:
             login_security.record_login_failure(ip, payload.username)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=LOGIN_FAILED_DETAIL)

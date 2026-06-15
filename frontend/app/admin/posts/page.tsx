@@ -25,6 +25,8 @@ type ColumnConfig = {
   key: ColumnKey;
   label: string;
   defaultWidth: number;
+  minWidth?: number;
+  maxWidth?: number;
   locked?: boolean;
   align?: "left" | "center";
 };
@@ -48,14 +50,14 @@ const densityOptions: Array<{ value: Density; label: string }> = [
   { value: "comfortable", label: "宽松" },
 ];
 const columns: ColumnConfig[] = [
-  { key: "cover", label: "封面", defaultWidth: 160, align: "center" },
-  { key: "title", label: "标题", defaultWidth: 280, locked: true },
-  { key: "author", label: "作者", defaultWidth: 120 },
-  { key: "category", label: "分类", defaultWidth: 140 },
-  { key: "tags", label: "标签", defaultWidth: 220 },
-  { key: "viewCount", label: "阅读量", defaultWidth: 110 },
-  { key: "createdAt", label: "创建时间", defaultWidth: 190 },
-  { key: "actions", label: "操作", defaultWidth: 150, locked: true, align: "center" },
+  { key: "cover", label: "封面", defaultWidth: 150, minWidth: 140, maxWidth: 180, align: "center" },
+  { key: "title", label: "标题", defaultWidth: 320, minWidth: 220, maxWidth: 520, locked: true },
+  { key: "author", label: "作者", defaultWidth: 120, minWidth: 100, maxWidth: 200 },
+  { key: "category", label: "分类", defaultWidth: 140, minWidth: 120, maxWidth: 240 },
+  { key: "tags", label: "标签", defaultWidth: 220, minWidth: 160, maxWidth: 360 },
+  { key: "viewCount", label: "阅读量", defaultWidth: 110, minWidth: 100, maxWidth: 160 },
+  { key: "createdAt", label: "创建时间", defaultWidth: 190, minWidth: 160, maxWidth: 260 },
+  { key: "actions", label: "操作", defaultWidth: 150, minWidth: 132, maxWidth: 180, locked: true, align: "center" },
 ];
 const defaultVisibleColumns: VisibleColumns = {
   cover: true,
@@ -131,7 +133,9 @@ function normalizeVisibleColumns(value: Partial<Record<ColumnKey, boolean>>): Vi
 function normalizeColumnWidths(value: Partial<Record<ColumnKey, number>>): ColumnWidths {
   return columns.reduce<ColumnWidths>((result, column) => {
     const width = Number(value[column.key]);
-    result[column.key] = Number.isFinite(width) ? Math.min(Math.max(width, 88), 560) : column.defaultWidth;
+    const minWidth = column.minWidth ?? 88;
+    const maxWidth = column.maxWidth ?? 560;
+    result[column.key] = Number.isFinite(width) ? Math.min(Math.max(width, minWidth), maxWidth) : column.defaultWidth;
     return result;
   }, { ...defaultColumnWidths });
 }
@@ -328,7 +332,10 @@ export default function AdminPostsPage() {
     function handleMouseMove(event: MouseEvent) {
       const current = resizeRef.current;
       if (!current) return;
-      const nextWidth = Math.min(Math.max(current.startWidth + event.clientX - current.startX, 88), 560);
+      const column = columns.find((item) => item.key === current.key);
+      const minWidth = column?.minWidth ?? 88;
+      const maxWidth = column?.maxWidth ?? 560;
+      const nextWidth = Math.min(Math.max(current.startWidth + event.clientX - current.startX, minWidth), maxWidth);
       setColumnWidths((value) => ({ ...value, [current.key]: nextWidth }));
     }
 
@@ -636,7 +643,7 @@ export default function AdminPostsPage() {
               tableStyle.bordered &&
                 "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
             )}
-            style={{ minWidth: "100%", width: tableWidth }}
+            style={{ width: tableWidth }}
           >
             <colgroup>
               <col style={{ width: 56 }} />
