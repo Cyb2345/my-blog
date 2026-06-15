@@ -150,7 +150,7 @@ function CoverThumb({ src, title }: { src?: string | null; title: string }) {
         <img
           src={getAssetUrl(src)}
           alt={`${title} 封面`}
-          className="h-full w-full object-cover"
+          className="block h-[70px] w-[120px] object-cover"
           loading="lazy"
           onError={() => setBroken(true)}
         />
