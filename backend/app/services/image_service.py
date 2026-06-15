@@ -108,7 +108,7 @@ def process_upload_image(file: UploadFile, usage_type: str) -> ProcessedImage:
         image = Image.open(BytesIO(content))
         image.verify()
         image = Image.open(BytesIO(content))
-    except UnidentifiedImageError as exc:
+    except (OSError, SyntaxError, UnidentifiedImageError) as exc:
         raise HTTPException(status_code=400, detail="图片文件无法识别") from exc
 
     if image.format not in ALLOWED_IMAGE_TYPES.values():
