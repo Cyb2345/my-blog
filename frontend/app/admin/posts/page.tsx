@@ -145,7 +145,7 @@ function CoverThumb({ src, title }: { src?: string | null; title: string }) {
   const showImage = Boolean(src) && !broken;
 
   return (
-    <div className="mx-auto grid h-[70px] w-[120px] place-items-center overflow-hidden rounded-lg border border-ink/10 bg-paper text-xs font-bold text-ink/40 dark:border-white/10 dark:bg-slate-950 dark:text-slate-500">
+    <div className="mx-auto grid h-[70px] w-[120px] place-items-center overflow-hidden rounded-lg bg-paper text-xs font-bold text-ink/40 ring-1 ring-ink/10 dark:bg-slate-950 dark:text-slate-500 dark:ring-white/10">
       {showImage ? (
         <img
           src={getAssetUrl(src)}
