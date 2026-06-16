@@ -1,8 +1,15 @@
 "use client";
 
-import { Columns3, Edit, EyeOff, Plus, RefreshCw, RotateCcw, Rows3, Search, Send, Settings, Trash2 } from "lucide-react";
-import { FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Edit, EyeOff, Plus, RotateCcw, Search, Send, Trash2 } from "lucide-react";
+import { FormEvent, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  DataTableToolbar,
+  type TableSettings,
+  tableDensityCellClass,
+  useTableSettings,
+} from "@/components/admin/DataTableToolbar";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
 import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
 import { Button } from "@/components/ui/Button";
@@ -16,8 +23,6 @@ type PostQuery = {
   tag_ids: number[];
 };
 
-type Density = "compact" | "default" | "comfortable";
-type TablePanel = "density" | "columns" | "style" | null;
 type ColumnKey = "cover" | "title" | "author" | "category" | "tags" | "viewCount" | "createdAt" | "actions";
 type VisibleColumns = Record<ColumnKey, boolean>;
 type ColumnWidths = Record<ColumnKey, number>;
@@ -30,25 +35,15 @@ type ColumnConfig = {
   locked?: boolean;
   align?: "left" | "center";
 };
-type TableStyle = {
-  bordered: boolean;
-  zebra: boolean;
-  headerBg: boolean;
-};
-
 type ModalState =
   | { mode: "create"; post?: null }
   | { mode: "edit"; post: Post }
   | null;
+type DeleteState = { ids: number[]; title?: string } | null;
 
 const emptyPage: Paginated<Post> = { items: [], total: 0, page: 1, page_size: 10, pages: 0 };
 const emptyQuery: PostQuery = { title: "", category_id: "", tag_ids: [] };
 const pageSizeOptions = [10, 20, 50];
-const densityOptions: Array<{ value: Density; label: string }> = [
-  { value: "compact", label: "紧凑" },
-  { value: "default", label: "默认" },
-  { value: "comfortable", label: "宽松" },
-];
 const columns: ColumnConfig[] = [
   { key: "cover", label: "封面", defaultWidth: 150, minWidth: 140, maxWidth: 180, align: "center" },
   { key: "title", label: "标题", defaultWidth: 320, minWidth: 220, maxWidth: 520, locked: true },
@@ -59,32 +54,16 @@ const columns: ColumnConfig[] = [
   { key: "createdAt", label: "创建时间", defaultWidth: 190, minWidth: 160, maxWidth: 260 },
   { key: "actions", label: "操作", defaultWidth: 150, minWidth: 132, maxWidth: 180, locked: true, align: "center" },
 ];
-const defaultVisibleColumns: VisibleColumns = {
-  cover: true,
-  title: true,
-  author: true,
-  category: true,
-  tags: true,
-  viewCount: true,
-  createdAt: true,
-  actions: true,
-};
 const defaultColumnWidths = Object.fromEntries(columns.map((column) => [column.key, column.defaultWidth])) as ColumnWidths;
-const defaultTableStyle: TableStyle = {
+const postTableSettingsKey = "admin-table-settings:content-posts";
+const postColumnWidthStorageKey = "admin-table-column-widths:content-posts";
+const tableColumnOptions = columns.map(({ key, label, locked }) => ({ key, label, locked }));
+const defaultPostTableSettings: TableSettings = {
   bordered: true,
-  zebra: false,
-  headerBg: true,
-};
-const densityCellClass: Record<Density, string> = {
-  compact: "p-2",
-  default: "p-3",
-  comfortable: "p-5",
-};
-const tablePreferenceKeys = {
-  density: "admin-posts-density",
-  columns: "admin-posts-columns",
-  widths: "admin-posts-column-widths",
-  style: "admin-posts-table-style",
+  striped: false,
+  headerBackground: true,
+  density: "default",
+  visibleColumns: columns.map((column) => column.key),
 };
 
 function formatDateTime(value?: string | null) {
@@ -121,15 +100,6 @@ function readJsonPreference<T>(key: string, fallback: T): T {
   }
 }
 
-function normalizeVisibleColumns(value: Partial<Record<ColumnKey, boolean>>): VisibleColumns {
-  const normalized = { ...defaultVisibleColumns };
-  columns.forEach((column) => {
-    const saved = value[column.key];
-    if (typeof saved === "boolean") normalized[column.key] = saved;
-  });
-  return { ...normalized, title: true, actions: true };
-}
-
 function normalizeColumnWidths(value: Partial<Record<ColumnKey, number>>): ColumnWidths {
   return columns.reduce<ColumnWidths>((result, column) => {
     const width = Number(value[column.key]);
@@ -161,57 +131,6 @@ function CoverThumb({ src, title }: { src?: string | null; title: string }) {
   );
 }
 
-function ToolPopover({
-  open,
-  children,
-  className,
-}: {
-  open: boolean;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "absolute right-0 top-[calc(100%+0.5rem)] z-30 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
-        open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function ToolIconButton({
-  active,
-  children,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  children: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "interactive grid h-10 w-10 place-items-center rounded-md transition-all duration-200",
-        active
-          ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
-          : "bg-paper text-ink/55 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
-      )}
-      aria-label={label}
-      title={label}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function AdminPostsPage() {
   const [page, setPage] = useState<Paginated<Post>>(emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -223,17 +142,16 @@ export default function AdminPostsPage() {
   const [jumpPage, setJumpPage] = useState("1");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<ModalState>(null);
-  const [density, setDensity] = useState<Density>("default");
-  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(defaultVisibleColumns);
+  const [tableSettings, setTableSettings] = useTableSettings(postTableSettingsKey, defaultPostTableSettings, tableColumnOptions);
   const [columnWidths, setColumnWidths] = useState<ColumnWidths>(defaultColumnWidths);
-  const [tableStyle, setTableStyle] = useState<TableStyle>(defaultTableStyle);
-  const [activePanel, setActivePanel] = useState<TablePanel>(null);
   const [resizingColumn, setResizingColumn] = useState<ColumnKey | null>(null);
-  const [preferencesReady, setPreferencesReady] = useState(false);
+  const [columnWidthsReady, setColumnWidthsReady] = useState(false);
+  const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [notice, setNotice] = useState("");
-  const toolbarRef = useRef<HTMLDivElement | null>(null);
   const resizeRef = useRef<{ key: ColumnKey; startX: number; startWidth: number } | null>(null);
 
   const load = useCallback(async () => {
@@ -274,57 +192,27 @@ export default function AdminPostsPage() {
 
   const allCurrentPageSelected = page.items.length > 0 && page.items.every((post) => selectedIds.has(post.id));
   const pageNumbers = useMemo(() => getPageNumbers(page.page, page.pages), [page.page, page.pages]);
+  const visibleColumns = useMemo(
+    () =>
+      columns.reduce<VisibleColumns>((result, column) => {
+        result[column.key] = tableSettings.visibleColumns.includes(column.key);
+        return result;
+      }, {} as VisibleColumns),
+    [tableSettings.visibleColumns],
+  );
   const visibleColumnCount = columns.filter((column) => visibleColumns[column.key]).length;
-  const tableCellPadding = densityCellClass[density];
+  const tableCellPadding = tableDensityCellClass[tableSettings.density];
   const tableWidth = 56 + columns.reduce((total, column) => total + (visibleColumns[column.key] ? columnWidths[column.key] : 0), 0);
 
   useEffect(() => {
-    const savedDensity = window.localStorage.getItem(tablePreferenceKeys.density) as Density | null;
-    setDensity(savedDensity && densityOptions.some((option) => option.value === savedDensity) ? savedDensity : "default");
-    setVisibleColumns(normalizeVisibleColumns(readJsonPreference(tablePreferenceKeys.columns, defaultVisibleColumns)));
-    setColumnWidths(normalizeColumnWidths(readJsonPreference(tablePreferenceKeys.widths, defaultColumnWidths)));
-    setTableStyle(readJsonPreference(tablePreferenceKeys.style, defaultTableStyle));
-    setPreferencesReady(true);
+    setColumnWidths(normalizeColumnWidths(readJsonPreference(postColumnWidthStorageKey, defaultColumnWidths)));
+    setColumnWidthsReady(true);
   }, []);
 
   useEffect(() => {
-    if (!preferencesReady) return;
-    window.localStorage.setItem(tablePreferenceKeys.density, density);
-  }, [density, preferencesReady]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    window.localStorage.setItem(tablePreferenceKeys.columns, JSON.stringify(visibleColumns));
-  }, [preferencesReady, visibleColumns]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    window.localStorage.setItem(tablePreferenceKeys.widths, JSON.stringify(columnWidths));
-  }, [columnWidths, preferencesReady]);
-
-  useEffect(() => {
-    if (!preferencesReady) return;
-    window.localStorage.setItem(tablePreferenceKeys.style, JSON.stringify(tableStyle));
-  }, [preferencesReady, tableStyle]);
-
-  useEffect(() => {
-    if (!activePanel) return;
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!toolbarRef.current?.contains(event.target as Node)) setActivePanel(null);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setActivePanel(null);
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [activePanel]);
+    if (!columnWidthsReady) return;
+    window.localStorage.setItem(postColumnWidthStorageKey, JSON.stringify(columnWidths));
+  }, [columnWidths, columnWidthsReady]);
 
   useEffect(() => {
     if (!resizingColumn) return;
@@ -372,25 +260,6 @@ export default function AdminPostsPage() {
     setNotice("");
   }
 
-  function togglePanel(panel: Exclude<TablePanel, null>) {
-    setActivePanel((current) => (current === panel ? null : panel));
-  }
-
-  function toggleColumn(key: ColumnKey) {
-    const column = columns.find((item) => item.key === key);
-    if (column?.locked) return;
-    setVisibleColumns((current) => ({ ...current, [key]: !current[key] }));
-  }
-
-  function resetColumns() {
-    setVisibleColumns(normalizeVisibleColumns(defaultVisibleColumns));
-    setColumnWidths(defaultColumnWidths);
-  }
-
-  function toggleTableStyle(key: keyof TableStyle) {
-    setTableStyle((current) => ({ ...current, [key]: !current[key] }));
-  }
-
   function startColumnResize(event: ReactMouseEvent<HTMLSpanElement>, key: ColumnKey) {
     event.preventDefault();
     event.stopPropagation();
@@ -428,9 +297,7 @@ export default function AdminPostsPage() {
 
   async function refreshAfterMutation(message: string, removedIds: number[] = []) {
     setNotice(message);
-    const currentPageIds = new Set(page.items.map((post) => post.id));
-    const currentPageWillBeEmpty =
-      page.items.length > 0 && page.items.every((post) => removedIds.includes(post.id) || !currentPageIds.has(post.id));
+    const currentPageWillBeEmpty = page.items.length > 0 && page.items.every((post) => removedIds.includes(post.id));
     if (removedIds.length && currentPageWillBeEmpty && pageNumber > 1) {
       setPageNumber((value) => Math.max(1, value - 1));
       return;
@@ -438,19 +305,44 @@ export default function AdminPostsPage() {
     await load();
   }
 
-  async function deletePosts(ids: number[]) {
+  function openDeletePosts(ids: number[], title?: string) {
     if (!ids.length) return;
-    const message = ids.length === 1 ? "确认删除该文章吗？" : `确认删除选中的 ${ids.length} 篇文章吗？`;
-    if (!window.confirm(message)) return;
+    setDeleteState({ ids, title });
+    setDeleteError("");
+    setError("");
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteState(null);
+    setDeleteError("");
+  }
+
+  async function confirmDeletePosts() {
+    if (!deleteState) return;
+    const ids = deleteState.ids;
+    setDeleting(true);
+    setDeleteError("");
     setError("");
     setNotice("");
     try {
       await Promise.all(ids.map((id) => adminRequest(`/admin/posts/${id}`, { method: "DELETE" })));
       setSelectedIds(new Set());
+      setDeleteState(null);
       await refreshAfterMutation(ids.length === 1 ? "文章已删除，列表已刷新。" : "选中文章已删除，列表已刷新。", ids);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setDeleteError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeleting(false);
     }
+  }
+
+  function deleteDescription() {
+    if (!deleteState) return "确定删除该文章吗？";
+    if (deleteState.ids.length === 1) {
+      return deleteState.title ? `确定删除文章「${deleteState.title}」吗？` : "确定删除该文章吗？";
+    }
+    return `确定删除选中的 ${deleteState.ids.length} 篇文章吗？`;
   }
 
   async function togglePublish(post: Post) {
@@ -537,110 +429,29 @@ export default function AdminPostsPage() {
               <Plus className="h-4 w-4" aria-hidden="true" />
               新增
             </Button>
-            <Button type="button" variant="danger" disabled={!selectedIds.size} onClick={() => void deletePosts(Array.from(selectedIds))}>
+            <Button type="button" variant="danger" disabled={!selectedIds.size} onClick={() => openDeletePosts(Array.from(selectedIds))}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
               批量删除
             </Button>
           </div>
-          <div ref={toolbarRef} className="flex flex-wrap items-center gap-2">
-            <ToolIconButton label="刷新" onClick={() => void load()}>
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} aria-hidden="true" />
-            </ToolIconButton>
-            <div className="relative">
-              <ToolIconButton active={activePanel === "density"} label="行高 / 密度设置" onClick={() => togglePanel("density")}>
-                <Rows3 className="h-4 w-4" aria-hidden="true" />
-              </ToolIconButton>
-              <ToolPopover open={activePanel === "density"}>
-                {densityOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setDensity(option.value);
-                      setActivePanel(null);
-                    }}
-                    className={cn(
-                      "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-                      density === option.value ? "bg-ocean/10 text-ocean dark:bg-sky-400/15 dark:text-sky-200" : "text-ink/65 dark:text-slate-300",
-                    )}
-                  >
-                    {option.label}
-                    {density === option.value ? <span>✓</span> : null}
-                  </button>
-                ))}
-              </ToolPopover>
-            </div>
-            <div className="relative">
-              <ToolIconButton active={activePanel === "columns"} label="列显示设置" onClick={() => togglePanel("columns")}>
-                <Columns3 className="h-4 w-4" aria-hidden="true" />
-              </ToolIconButton>
-              <ToolPopover open={activePanel === "columns"} className="min-w-56">
-                <div className="grid gap-1">
-                  {columns.map((column) => (
-                    <label
-                      key={column.key}
-                      className={cn(
-                        "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-                        visibleColumns[column.key] ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
-                        column.locked && "opacity-80",
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns[column.key]}
-                        disabled={column.locked}
-                        onChange={() => toggleColumn(column.key)}
-                        className="h-4 w-4 accent-blue-500"
-                      />
-                      {column.label}
-                    </label>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={resetColumns}
-                    className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-white/10 dark:text-slate-300"
-                  >
-                    恢复默认列
-                  </button>
-                </div>
-              </ToolPopover>
-            </div>
-            <div className="relative">
-              <ToolIconButton active={activePanel === "style"} label="表格样式设置" onClick={() => togglePanel("style")}>
-                <Settings className="h-4 w-4" aria-hidden="true" />
-              </ToolIconButton>
-              <ToolPopover open={activePanel === "style"} className="min-w-52">
-                {[
-                  { key: "bordered" as const, label: "边框" },
-                  { key: "zebra" as const, label: "斑马纹" },
-                  { key: "headerBg" as const, label: "表头背景" },
-                ].map((option) => (
-                  <label
-                    key={option.key}
-                    className={cn(
-                      "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-                      tableStyle[option.key] ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={tableStyle[option.key]}
-                      onChange={() => toggleTableStyle(option.key)}
-                      className="h-4 w-4 accent-blue-500"
-                    />
-                    {option.label}
-                  </label>
-                ))}
-              </ToolPopover>
-            </div>
-          </div>
+          <DataTableToolbar
+            settings={tableSettings}
+            onSettingsChange={setTableSettings}
+            columns={tableColumnOptions}
+            onRefresh={() => void load()}
+            refreshing={loading}
+            enableRefresh
+            enableDensity
+            enableColumns
+            enableStyle
+          />
         </div>
 
         <div className="overflow-x-auto">
           <table
             className={cn(
               "admin-table table-fixed border-collapse text-sm",
-              tableStyle.bordered &&
+              tableSettings.bordered &&
                 "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
             )}
             style={{ width: tableWidth }}
@@ -652,7 +463,7 @@ export default function AdminPostsPage() {
             <thead
               className={cn(
                 "text-left text-ink/60 dark:text-slate-400",
-                tableStyle.headerBg && "bg-paper dark:bg-slate-950/80",
+                tableSettings.headerBackground && "bg-paper dark:bg-slate-950/80",
               )}
             >
               <tr>
@@ -688,8 +499,8 @@ export default function AdminPostsPage() {
                     key={post.id}
                     className={cn(
                       "transition-colors hover:bg-paper/60 dark:hover:bg-white/5",
-                      tableStyle.bordered && "border-t border-ink/10 dark:border-white/10",
-                      tableStyle.zebra && rowIndex % 2 === 1 && "bg-paper/40 dark:bg-white/[0.03]",
+                      tableSettings.bordered && "border-t border-ink/10 dark:border-white/10",
+                      tableSettings.striped && rowIndex % 2 === 1 && "bg-paper/40 dark:bg-white/[0.03]",
                     )}
                   >
                     <td className={cn("text-center", tableCellPadding)}>
@@ -743,7 +554,7 @@ export default function AdminPostsPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void deletePosts([post.id])}
+                            onClick={() => openDeletePosts([post.id], post.title)}
                             className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
                             aria-label="删除"
                             title="删除"
@@ -850,6 +661,14 @@ export default function AdminPostsPage() {
         tags={tags}
         onClose={() => setModal(null)}
         onSaved={(message) => void handleSaved(message)}
+      />
+      <DeleteConfirmDialog
+        open={Boolean(deleteState)}
+        description={deleteDescription()}
+        error={deleteError}
+        loading={deleting}
+        onClose={closeDeleteDialog}
+        onConfirm={() => void confirmDeletePosts()}
       />
     </>
   );

@@ -1,10 +1,17 @@
 "use client";
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Edit, Minus, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit, Minus, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import {
+  DataTableToolbar,
+  type TableSettings,
+  tableDensityCellClass,
+  useTableSettings,
+} from "@/components/admin/DataTableToolbar";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -18,6 +25,11 @@ type CategoryFormState = {
   sort_order: number;
 };
 
+type DeleteState =
+  | { type: "single"; ids: number[]; name: string }
+  | { type: "batch"; ids: number[] }
+  | null;
+
 const emptyPage: CategoryPage = {
   items: [],
   total: 0,
@@ -27,6 +39,14 @@ const emptyPage: CategoryPage = {
 };
 
 const pageSizeOptions = [10, 20, 50];
+const categoryTableSettingsKey = "admin-table-settings:content-categories";
+const defaultCategoryTableSettings: TableSettings = {
+  bordered: true,
+  striped: false,
+  headerBackground: true,
+  density: "default",
+  visibleColumns: ["name", "articleCount", "sortOrder", "createdAt", "actions"],
+};
 
 function normalizePage(data: CategoryPage | Category[], page: number, pageSize: number): CategoryPage {
   if (!Array.isArray(data)) return data;
@@ -43,8 +63,24 @@ function getArticleCount(item: Category) {
   return item.article_count ?? item.post_count ?? 0;
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+    .format(new Date(value))
+    .replace(/\//g, "-");
+}
+
 export default function AdminCategoriesPage() {
   const [pageData, setPageData] = useState<CategoryPage>(emptyPage);
+  const [tableSettings, setTableSettings] = useTableSettings(categoryTableSettingsKey, defaultCategoryTableSettings);
   const [queryName, setQueryName] = useState("");
   const [appliedName, setAppliedName] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
@@ -52,7 +88,7 @@ export default function AdminCategoriesPage() {
   const [jumpPage, setJumpPage] = useState("1");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editing, setEditing] = useState<CategoryFormState | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -69,6 +105,7 @@ export default function AdminCategoriesPage() {
   }, [pageData.page, pageData.pages]);
 
   const allCurrentPageSelected = pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id));
+  const tableCellPadding = tableDensityCellClass[tableSettings.density];
 
   async function load(currentPage = pageNumber, currentPageSize = pageSize, currentName = appliedName) {
     setLoading(true);
@@ -151,8 +188,7 @@ export default function AdminCategoriesPage() {
       } else {
         await adminRequest("/admin/categories", { method: "POST", body: JSON.stringify(payload) });
         setNotice("分类已新增，列表已刷新。");
-        setPageNumber(1);
-        await load(1, pageSize, appliedName);
+        await load(pageNumber, pageSize, appliedName);
       }
       setEditing(null);
     } catch (err) {
@@ -162,16 +198,38 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  function openDeleteDialog(item: Category) {
+    setDeleteState({ type: "single", ids: [item.id], name: item.name });
+    setDeleteError("");
+  }
+
+  function openBatchDeleteDialog() {
+    if (!selectedIds.size) return;
+    setDeleteState({ type: "batch", ids: Array.from(selectedIds) });
+    setDeleteError("");
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteState(null);
+    setDeleteError("");
+  }
+
   async function confirmDelete() {
-    if (!deleteTarget) return;
+    if (!deleteState) return;
+    const ids = deleteState.ids;
     setDeleting(true);
     setDeleteError("");
     setNotice("");
     try {
-      await adminRequest(`/admin/categories/${deleteTarget.id}`, { method: "DELETE" });
-      setNotice("分类已删除，列表已刷新。");
-      setDeleteTarget(null);
-      const shouldGoBack = pageData.items.length <= 1 && pageNumber > 1;
+      for (const id of ids) {
+        await adminRequest(`/admin/categories/${id}`, { method: "DELETE" });
+      }
+      setNotice(deleteState.type === "single" ? "分类已删除，列表已刷新。" : "选中分类已删除，列表已刷新。");
+      setDeleteState(null);
+      setSelectedIds(new Set());
+      const remainingCurrentPageCount = pageData.items.filter((item) => !ids.includes(item.id)).length;
+      const shouldGoBack = remainingCurrentPageCount === 0 && pageNumber > 1;
       if (shouldGoBack) {
         setPageNumber((value) => Math.max(1, value - 1));
       } else {
@@ -182,6 +240,12 @@ export default function AdminCategoriesPage() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  function deleteDescription() {
+    if (!deleteState) return "确定删除该分类吗？";
+    if (deleteState.type === "single") return `确定删除分类「${deleteState.name}」吗？`;
+    return `确定删除选中的 ${deleteState.ids.length} 个分类吗？`;
   }
 
   function toggleSelect(id: number) {
@@ -248,74 +312,123 @@ export default function AdminCategoriesPage() {
 
       <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-white/10">
-          <Button type="button" onClick={openCreateModal}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            新增分类
-          </Button>
-          {loading ? <span className="text-sm font-bold text-ink/45 dark:text-slate-500">正在刷新...</span> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="ghost" onClick={openCreateModal}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              新增
+            </Button>
+            <Button type="button" variant="danger" disabled={!selectedIds.size} onClick={openBatchDeleteDialog}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              批量删除
+            </Button>
+          </div>
+          <DataTableToolbar
+            settings={tableSettings}
+            onSettingsChange={setTableSettings}
+            onRefresh={() => void load(pageNumber, pageSize, appliedName)}
+            refreshing={loading}
+            enableDensity={false}
+            enableColumns={false}
+            enableStyle
+          />
         </div>
 
         <div className="overflow-x-auto">
-          <table className="admin-table w-full min-w-[760px] table-fixed text-sm">
+          <table
+            className={cn(
+              "admin-table w-full min-w-[796px] table-fixed border-collapse text-sm",
+              tableSettings.bordered &&
+                "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
+            )}
+          >
             <colgroup>
               <col className="w-14" />
               <col />
-              <col className="w-32" />
-              <col className="w-28" />
-              <col className="w-44" />
+              <col className="w-[120px]" />
+              <col className="w-[100px]" />
+              <col className="w-[180px]" />
+              <col className="w-[160px]" />
             </colgroup>
-            <thead className="bg-paper text-left text-ink/60 dark:bg-slate-950/80 dark:text-slate-400">
+            <thead
+              className={cn(
+                "text-left text-ink/60 dark:text-slate-400",
+                tableSettings.headerBackground && "bg-paper dark:bg-slate-950/80",
+              )}
+            >
               <tr>
-                <th className="p-3 text-center">
+                <th className={cn("text-center", tableCellPadding)}>
                   <input type="checkbox" checked={allCurrentPageSelected} onChange={toggleCurrentPage} aria-label="选择当前页分类" />
                 </th>
-                <th className="p-3">分类名称</th>
-                <th className="p-3">文章数</th>
-                <th className="p-3">排序</th>
-                <th className="p-3 text-center">操作</th>
+                <th className={cn("min-w-[180px]", tableCellPadding)}>分类名称</th>
+                <th className={tableCellPadding}>文章数</th>
+                <th className={tableCellPadding}>排序</th>
+                <th className={tableCellPadding}>创建时间</th>
+                <th
+                  className={cn(
+                    "sticky right-0 z-10 text-right",
+                    tableCellPadding,
+                    tableSettings.headerBackground ? "bg-paper dark:bg-slate-950" : "bg-white dark:bg-slate-900",
+                  )}
+                >
+                  操作
+                </th>
               </tr>
             </thead>
             <tbody>
-              {pageData.items.map((item) => (
-                <tr key={item.id} className="border-t border-ink/10 transition-colors hover:bg-paper/60 dark:border-white/10 dark:hover:bg-white/5">
-                  <td className="p-3 text-center">
-                    <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} aria-label={`选择 ${item.name}`} />
-                  </td>
-                  <td className="p-3">
-                    <p className="truncate font-bold text-ink dark:text-slate-100" title={item.name}>{item.name}</p>
-                  </td>
-                  <td className="p-3 font-bold text-ink/65 dark:text-slate-300">{getArticleCount(item)}</td>
-                  <td className="p-3 font-bold text-ink/65 dark:text-slate-300">{item.sort_order}</td>
-                  <td className="p-3">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(item)}
-                        className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
-                        aria-label="编辑"
-                        title="编辑"
-                      >
-                        <Edit className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDeleteTarget(item);
-                          setDeleteError("");
-                        }}
-                        className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
-                        aria-label="删除"
-                        title="删除"
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {pageData.items.map((item, rowIndex) => {
+                const rowStriped = tableSettings.striped && rowIndex % 2 === 1;
+                return (
+                  <tr
+                    key={item.id}
+                    className={cn(
+                      "transition-colors hover:bg-paper/60 dark:hover:bg-white/5",
+                      tableSettings.bordered && "border-t border-ink/10 dark:border-white/10",
+                      rowStriped && "bg-paper/40 dark:bg-white/[0.03]",
+                    )}
+                  >
+                    <td className={cn("text-center", tableCellPadding)}>
+                      <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} aria-label={`选择 ${item.name}`} />
+                    </td>
+                    <td className={tableCellPadding}>
+                      <p className="truncate font-bold text-ink dark:text-slate-100" title={item.name}>{item.name}</p>
+                    </td>
+                    <td className={cn("font-bold text-ink/65 dark:text-slate-300", tableCellPadding)}>{getArticleCount(item)}</td>
+                    <td className={cn("font-bold text-ink/65 dark:text-slate-300", tableCellPadding)}>{item.sort_order}</td>
+                    <td className={cn("text-ink/65 dark:text-slate-400", tableCellPadding)}>{formatDateTime(item.created_at)}</td>
+                    <td
+                      className={cn(
+                        "sticky right-0",
+                        tableCellPadding,
+                        rowStriped ? "bg-paper dark:bg-slate-900" : "bg-white dark:bg-slate-900",
+                      )}
+                    >
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(item)}
+                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
+                          aria-label="编辑"
+                          title="编辑"
+                        >
+                          <Edit className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteDialog(item)}
+                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
+                          aria-label="删除"
+                          title="删除"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {!pageData.items.length && !loading ? (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
+                  <td colSpan={6} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
                     暂无分类数据
                   </td>
                 </tr>
@@ -446,34 +559,14 @@ export default function AdminCategoriesPage() {
         ) : null}
       </AdminModal>
 
-      <AdminModal
-        open={Boolean(deleteTarget)}
-        title="删除确认"
-        size="sm"
-        onClose={() => {
-          if (deleting) return;
-          setDeleteTarget(null);
-          setDeleteError("");
-        }}
-        footer={
-          <>
-            <Button type="button" variant="ghost" onClick={() => setDeleteTarget(null)} disabled={deleting}>取消</Button>
-            <Button type="button" variant="danger" onClick={() => void confirmDelete()} disabled={deleting}>{deleting ? "删除中..." : "确定"}</Button>
-          </>
-        }
-      >
-        <div className="grid gap-4">
-          <ModalError message={deleteError} />
-          <div className="flex items-center gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-rose-500/15 dark:text-rose-200">
-              <AlertTriangle className="h-6 w-6" aria-hidden="true" />
-            </span>
-            <p className="text-base font-black text-ink dark:text-slate-100">
-              {deleteTarget ? `确定删除分类「${deleteTarget.name}」吗？` : "确定删除该分类吗？"}
-            </p>
-          </div>
-        </div>
-      </AdminModal>
+      <DeleteConfirmDialog
+        open={Boolean(deleteState)}
+        description={deleteDescription()}
+        error={deleteError}
+        loading={deleting}
+        onClose={closeDeleteDialog}
+        onConfirm={() => void confirmDelete()}
+      />
     </>
   );
 }
