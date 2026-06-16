@@ -1,3 +1,7 @@
+from math import ceil
+import re
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +21,7 @@ admin_router = APIRouter(
 
 
 def _category_row(category: Category, post_count: int) -> dict:
+    post_count = int(post_count or 0)
     return {
         "id": category.id,
         "name": category.name,
@@ -26,7 +31,29 @@ def _category_row(category: Category, post_count: int) -> dict:
         "created_at": category.created_at,
         "updated_at": category.updated_at,
         "post_count": post_count,
+        "article_count": post_count,
     }
+
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug or f"category-{uuid4().hex[:8]}"
+
+
+def _unique_slug(db: Session, value: str, category_id: int | None = None) -> str:
+    base = _slugify(value)
+    candidate = base
+    suffix = 2
+    while True:
+        statement = select(Category.id).where(Category.slug == candidate)
+        if category_id:
+            statement = statement.where(Category.id != category_id)
+        exists = db.scalar(statement)
+        if not exists:
+            return candidate
+        candidate = f"{base}-{suffix}"
+        suffix += 1
 
 
 @router.get("")
@@ -67,19 +94,56 @@ def list_category_posts(
 
 
 @admin_router.get("")
-def admin_list_categories(db: Session = Depends(get_db)):
-    rows = db.execute(
-        select(Category, func.count(Post.id))
-        .outerjoin(Post, Post.category_id == Category.id)
-        .group_by(Category.id)
+def admin_list_categories(
+    page: int | None = None,
+    page_size: int | None = None,
+    name: str | None = None,
+    db: Session = Depends(get_db),
+):
+    post_counts = (
+        select(Post.category_id.label("category_id"), func.count(Post.id).label("post_count"))
+        .group_by(Post.category_id)
+        .subquery()
+    )
+    statement = (
+        select(Category, func.coalesce(post_counts.c.post_count, 0))
+        .outerjoin(post_counts, post_counts.c.category_id == Category.id)
         .order_by(Category.sort_order.asc(), Category.name.asc())
+    )
+    count_statement = select(func.count(Category.id))
+
+    keyword = name.strip() if name else ""
+    if keyword:
+        pattern = f"%{keyword}%"
+        statement = statement.where(Category.name.ilike(pattern))
+        count_statement = count_statement.where(Category.name.ilike(pattern))
+
+    if page is None and page_size is None and not keyword:
+        rows = db.execute(statement).all()
+        return ok([_category_row(category, count) for category, count in rows])
+
+    current_page = max(page or 1, 1)
+    current_page_size = min(max(page_size or 10, 1), 100)
+    total = db.scalar(count_statement) or 0
+    rows = db.execute(
+        statement.offset((current_page - 1) * current_page_size).limit(current_page_size)
     ).all()
-    return ok([_category_row(category, count) for category, count in rows])
+    return ok(
+        {
+            "items": [_category_row(category, count) for category, count in rows],
+            "total": total,
+            "page": current_page,
+            "page_size": current_page_size,
+            "pages": ceil(total / current_page_size) if total else 0,
+        }
+    )
 
 
 @admin_router.post("")
 def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
-    category = Category(**payload.model_dump())
+    data = payload.model_dump(exclude_unset=True)
+    data["slug"] = _unique_slug(db, data.get("slug") or data["name"])
+    category = Category(**data)
     db.add(category)
     try:
         db.commit()
@@ -96,6 +160,10 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     for field, value in payload.model_dump(exclude_unset=True).items():
+        if field == "slug" and value is None:
+            continue
+        if field == "slug" and value:
+            value = _unique_slug(db, value, category_id=category.id)
         setattr(category, field, value)
     try:
         db.commit()
