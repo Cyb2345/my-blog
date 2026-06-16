@@ -18,5 +18,5 @@ class User(TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(32), default="admin", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    mfa_secret: Mapped[str | None] = mapped_column(String(64))
+    mfa_secret: Mapped[str | None] = mapped_column(String(512))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

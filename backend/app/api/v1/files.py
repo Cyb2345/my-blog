@@ -1,25 +1,29 @@
 from __future__ import annotations
 
-import base64
-import hashlib
 from math import ceil
 
-from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.core.deps import get_db, require_admin
 from app.models.admin_system import FileStorageConfig
 from app.models.media import MediaAsset
 from app.schemas.admin_system import (
     BatchDeleteRequest,
     FileStorageConfigCreate,
-    FileStorageConfigRead,
     FileStorageConfigUpdate,
 )
 from app.schemas.site import MediaAssetRead
+from app.services.file_storage_config_service import (
+    apply_config_payload,
+    ensure_default_config,
+    encrypt_secret,
+    is_masked,
+    missing_r2_fields,
+    read_config,
+    resolve_storage_config,
+)
 from app.utils.response import ok
 
 router = APIRouter(
@@ -27,42 +31,6 @@ router = APIRouter(
     tags=["admin-files"],
     dependencies=[Depends(require_admin)],
 )
-
-ENCRYPTED_PREFIX = "enc:"
-MASKED_SECRET = "************"
-
-
-def _fernet() -> Fernet:
-    digest = hashlib.sha256(get_settings().SECRET_KEY.encode("utf-8")).digest()
-    return Fernet(base64.urlsafe_b64encode(digest))
-
-
-def _encrypt_secret(value: str) -> str:
-    return f"{ENCRYPTED_PREFIX}{_fernet().encrypt(value.encode('utf-8')).decode('ascii')}"
-
-
-def _decrypt_secret(value: str | None) -> str | None:
-    if not value:
-        return None
-    if not value.startswith(ENCRYPTED_PREFIX):
-        return value
-    try:
-        return _fernet().decrypt(value.removeprefix(ENCRYPTED_PREFIX).encode("ascii")).decode("utf-8")
-    except InvalidToken:
-        return None
-
-
-def _mask(value: str | None) -> str | None:
-    if not value:
-        return None
-    if len(value) <= 8:
-        return "****"
-    return f"{value[:4]}****{value[-4:]}"
-
-
-def _is_masked(value: str | None) -> bool:
-    return not value or "****" in value.strip()
-
 
 def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
     return {
@@ -73,73 +41,9 @@ def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
     }
 
 
-def _ensure_default_config(db: Session) -> None:
-    if db.scalar(select(func.count(FileStorageConfig.id))) != 0:
-        return
-    settings = get_settings()
-    db.add(
-        FileStorageConfig(
-            name="Cloudflare R2",
-            storage_type="r2",
-            is_primary=True,
-            status="active" if settings.R2_ENABLED else "inactive",
-            bucket=settings.R2_BUCKET_NAME,
-            endpoint=settings.R2_ENDPOINT,
-            public_base_url=settings.R2_PUBLIC_BASE_URL,
-            object_prefix=settings.R2_OBJECT_PREFIX,
-            access_key_id=settings.R2_ACCESS_KEY_ID,
-            secret_access_key_encrypted=None,
-            max_upload_size_mb=settings.MAX_UPLOAD_IMAGE_SIZE_MB,
-            allowed_file_types="image/jpeg,image/png,image/webp",
-            remark="敏感密钥优先从 backend/.env 读取，接口只返回脱敏状态。",
-        )
-    )
-    db.commit()
-
-
-def _read_config(config: FileStorageConfig) -> FileStorageConfigRead:
-    settings = get_settings()
-    access_key_id = config.access_key_id or settings.R2_ACCESS_KEY_ID
-    has_secret = bool(config.secret_access_key_encrypted or settings.R2_SECRET_ACCESS_KEY)
-    data = {
-        "id": config.id,
-        "name": config.name,
-        "storage_type": config.storage_type,
-        "is_primary": config.is_primary,
-        "status": config.status,
-        "bucket": config.bucket or settings.R2_BUCKET_NAME,
-        "endpoint": config.endpoint or settings.R2_ENDPOINT,
-        "public_base_url": config.public_base_url or settings.R2_PUBLIC_BASE_URL,
-        "object_prefix": config.object_prefix or settings.R2_OBJECT_PREFIX,
-        "access_key_id": _mask(access_key_id),
-        "secret_access_key": MASKED_SECRET if has_secret else None,
-        "max_upload_size_mb": config.max_upload_size_mb,
-        "allowed_file_types": config.allowed_file_types,
-        "remark": config.remark,
-        "created_at": config.created_at,
-        "updated_at": config.updated_at,
-    }
-    return FileStorageConfigRead(**data)
-
-
-def _apply_config_payload(
-    config: FileStorageConfig,
-    payload: FileStorageConfigCreate | FileStorageConfigUpdate,
-) -> None:
-    data = payload.model_dump(exclude_unset=True)
-    secret = data.pop("secret_access_key", None)
-    access_key_id = data.get("access_key_id")
-    if _is_masked(access_key_id):
-        data.pop("access_key_id", None)
-    for field, value in data.items():
-        setattr(config, field, value)
-    if secret and not _is_masked(secret):
-        config.secret_access_key_encrypted = _encrypt_secret(secret)
-
-
 @router.get("/configs")
 def list_configs(page: int = 1, page_size: int = 20, db: Session = Depends(get_db)):
-    _ensure_default_config(db)
+    ensure_default_config(db)
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
     total = db.scalar(select(func.count(FileStorageConfig.id))) or 0
@@ -149,7 +53,7 @@ def list_configs(page: int = 1, page_size: int = 20, db: Session = Depends(get_d
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
-    return ok({"items": [_read_config(item) for item in configs], **_paginate(total, page, page_size)})
+    return ok({"items": [read_config(item) for item in configs], **_paginate(total, page, page_size)})
 
 
 @router.post("/configs")
@@ -168,23 +72,23 @@ def create_config(payload: FileStorageConfigCreate, db: Session = Depends(get_db
         allowed_file_types=payload.allowed_file_types,
         remark=payload.remark,
     )
-    if payload.secret_access_key and not _is_masked(payload.secret_access_key):
-        config.secret_access_key_encrypted = _encrypt_secret(payload.secret_access_key)
+    if payload.secret_access_key and not is_masked(payload.secret_access_key):
+        config.secret_access_key_encrypted = encrypt_secret(payload.secret_access_key)
     if config.is_primary:
         db.query(FileStorageConfig).update({FileStorageConfig.is_primary: False})
     db.add(config)
     db.commit()
     db.refresh(config)
-    return ok(_read_config(config))
+    return ok(read_config(config))
 
 
 @router.get("/configs/{config_id}")
 def get_config(config_id: int, db: Session = Depends(get_db)):
-    _ensure_default_config(db)
+    ensure_default_config(db)
     config = db.get(FileStorageConfig, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="文件配置不存在")
-    return ok(_read_config(config))
+    return ok(read_config(config))
 
 
 @router.put("/configs/{config_id}")
@@ -192,14 +96,14 @@ def update_config(config_id: int, payload: FileStorageConfigUpdate, db: Session 
     config = db.get(FileStorageConfig, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="文件配置不存在")
-    _apply_config_payload(config, payload)
+    apply_config_payload(config, payload)
     if payload.is_primary:
         db.query(FileStorageConfig).filter(FileStorageConfig.id != config.id).update(
             {FileStorageConfig.is_primary: False}
         )
     db.commit()
     db.refresh(config)
-    return ok(_read_config(config))
+    return ok(read_config(config))
 
 
 @router.delete("/configs/{config_id}")
@@ -223,7 +127,7 @@ def set_primary_config(config_id: int, db: Session = Depends(get_db)):
     config.is_primary = True
     db.commit()
     db.refresh(config)
-    return ok(_read_config(config))
+    return ok(read_config(config))
 
 
 @router.post("/configs/{config_id}/test")
@@ -231,23 +135,12 @@ def test_config(config_id: int, db: Session = Depends(get_db)):
     config = db.get(FileStorageConfig, config_id)
     if not config:
         raise HTTPException(status_code=404, detail="文件配置不存在")
-    settings = get_settings()
-    secret = settings.R2_SECRET_ACCESS_KEY or _decrypt_secret(config.secret_access_key_encrypted)
-    if config.storage_type == "r2":
-        missing = [
-            label
-            for label, value in {
-                "bucket": config.bucket or settings.R2_BUCKET_NAME,
-                "endpoint": config.endpoint or settings.R2_ENDPOINT,
-                "public_base_url": config.public_base_url or settings.R2_PUBLIC_BASE_URL,
-                "access_key_id": config.access_key_id or settings.R2_ACCESS_KEY_ID,
-                "secret_access_key": secret,
-            }.items()
-            if not value
-        ]
+    resolved = resolve_storage_config(config)
+    if resolved.storage_type == "r2":
+        missing = missing_r2_fields(resolved)
         if missing:
             raise HTTPException(status_code=400, detail=f"配置不完整：{', '.join(missing)}")
-    return ok({"status": "ok", "message": "配置字段检查通过，真实上传仍以 backend 环境变量为准。"})
+    return ok({"status": "ok", "message": "配置字段检查通过，上传将使用当前主文件配置。"})
 
 
 @router.get("")

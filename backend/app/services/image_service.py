@@ -63,19 +63,23 @@ def _safe_stem(filename: str | None) -> str:
     return stem[:48] or "image"
 
 
-def _object_prefix() -> str:
-    prefix = get_settings().R2_OBJECT_PREFIX.strip("/")
+def _object_prefix(value: str | None = None) -> str:
+    prefix = (value if value is not None else get_settings().R2_OBJECT_PREFIX).strip("/")
     if prefix != "images":
         raise HTTPException(status_code=500, detail="R2_OBJECT_PREFIX 必须配置为 images")
     return prefix
 
 
-def _build_object_key(usage_type: str, original_name: str | None) -> tuple[str, str]:
+def _build_object_key(
+    usage_type: str,
+    original_name: str | None,
+    object_prefix: str | None = None,
+) -> tuple[str, str]:
     now = datetime.now(timezone.utc)
     filename = f"{_safe_stem(original_name)}_{uuid4().hex[:10]}.webp"
     object_key = "/".join(
         [
-            _object_prefix(),
+            _object_prefix(object_prefix),
             USAGE_FOLDERS[usage_type],
             now.strftime("%Y"),
             now.strftime("%m"),
@@ -85,17 +89,24 @@ def _build_object_key(usage_type: str, original_name: str | None) -> tuple[str, 
     return object_key, filename
 
 
-def process_upload_image(file: UploadFile, usage_type: str) -> ProcessedImage:
+def process_upload_image(
+    file: UploadFile,
+    usage_type: str,
+    *,
+    max_size_mb: int | None = None,
+    object_prefix: str | None = None,
+) -> ProcessedImage:
     usage_type = validate_usage_type(usage_type)
     settings = get_settings()
-    max_size = settings.MAX_UPLOAD_IMAGE_SIZE_MB * 1024 * 1024
+    upload_limit_mb = max_size_mb or settings.MAX_UPLOAD_IMAGE_SIZE_MB
+    max_size = upload_limit_mb * 1024 * 1024
     original_name = file.filename or "image"
 
     content = file.file.read()
     if len(content) > max_size:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"图片大小不能超过 {settings.MAX_UPLOAD_IMAGE_SIZE_MB}MB",
+            detail=f"图片大小不能超过 {upload_limit_mb}MB",
         )
 
     if file.content_type not in ALLOWED_IMAGE_TYPES:
@@ -129,7 +140,7 @@ def process_upload_image(file: UploadFile, usage_type: str) -> ProcessedImage:
     output = BytesIO()
     image.save(output, format="WEBP", quality=82, method=6)
     processed = output.getvalue()
-    object_key, filename = _build_object_key(usage_type, original_name)
+    object_key, filename = _build_object_key(usage_type, original_name, object_prefix)
 
     return ProcessedImage(
         content=processed,

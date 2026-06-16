@@ -19,7 +19,7 @@ def upload_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    data = upload_image_to_storage(file, usage_type)
+    data = upload_image_to_storage(file, usage_type, db)
     asset = MediaAsset(**data, is_active=True, created_by_id=current_user.id)
     db.add(asset)
     db.commit()

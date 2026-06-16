@@ -13,6 +13,7 @@ import {
   Gamepad2,
   Hexagon,
   Home,
+  Info,
   LayoutGrid,
   Link as LinkIcon,
   LogIn,
@@ -36,8 +37,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { clearToken, getToken } from "@/lib/auth";
+import { adminRequest, clearToken, getToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import type { AdminMenuItem } from "@/types/blog";
 
 type AdminLink = {
   label: string;
@@ -52,7 +54,7 @@ type AdminSection = {
   children: AdminLink[];
 };
 
-const sections: AdminSection[] = [
+const fallbackSections: AdminSection[] = [
   {
     label: "仪表盘",
     href: "/admin/dashboard",
@@ -124,6 +126,63 @@ const sections: AdminSection[] = [
   },
 ];
 
+const iconMap: Record<string, LucideIcon> = {
+  BarChart3,
+  BookOpen,
+  Cloud,
+  Eye,
+  FileText,
+  Files,
+  Folder,
+  FolderOpen,
+  Gamepad2,
+  Hexagon,
+  Home,
+  Info,
+  LayoutGrid,
+  Link: LinkIcon,
+  LogIn,
+  MessageSquare,
+  Monitor,
+  MonitorCog,
+  Navigation,
+  Settings,
+  Settings2,
+  Tags,
+  Ticket,
+  User,
+  Users,
+};
+
+function resolveIcon(icon?: string | null) {
+  return icon ? iconMap[icon] ?? LayoutGrid : LayoutGrid;
+}
+
+function menuToLink(item: AdminMenuItem): AdminLink {
+  return {
+    label: item.name,
+    href: item.route || "/admin/dashboard",
+    icon: resolveIcon(item.icon),
+  };
+}
+
+function menuTreeToSections(items: AdminMenuItem[]): AdminSection[] {
+  return items
+    .filter((item) => item.is_active && item.type !== "button")
+    .map((item) => {
+      const children = (item.children ?? [])
+        .filter((child) => child.is_active && child.type !== "button" && child.route)
+        .map(menuToLink);
+      return {
+        label: item.name,
+        href: children.length ? undefined : item.route ?? undefined,
+        icon: resolveIcon(item.icon),
+        children,
+      };
+    })
+    .filter((item) => item.href || item.children.length);
+}
+
 function normalizeAdminPath(pathname: string) {
   if (pathname === "/admin") return "/admin/dashboard";
   if (pathname.startsWith("/admin/posts")) return "/admin/content/posts";
@@ -142,7 +201,7 @@ function isActivePath(current: string, href: string) {
   return current === href || current.startsWith(`${href}/`);
 }
 
-function findBreadcrumb(current: string) {
+function findBreadcrumb(current: string, sections: AdminSection[]) {
   for (const section of sections) {
     if (section.href && isActivePath(current, section.href)) return [section.label];
     const child = section.children.find((item) => isActivePath(current, item.href));
@@ -151,7 +210,7 @@ function findBreadcrumb(current: string) {
   return ["管理员工作台"];
 }
 
-function allLinks() {
+function allLinks(sections: AdminSection[]) {
   return sections.flatMap((section) =>
     section.href ? [{ label: section.label, href: section.href, icon: section.icon }] : section.children,
   );
@@ -162,10 +221,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const current = normalizeAdminPath(pathname);
   const [ready, setReady] = useState(() => Boolean(getToken()));
+  const [sections, setSections] = useState<AdminSection[]>(fallbackSections);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
-  const breadcrumb = useMemo(() => findBreadcrumb(current), [current]);
-  const mobileLinks = useMemo(() => allLinks(), []);
+  const breadcrumb = useMemo(() => findBreadcrumb(current, sections), [current, sections]);
+  const mobileLinks = useMemo(() => allLinks(sections), [sections]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -176,13 +236,32 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [ready, router]);
 
   useEffect(() => {
+    if (!ready || !getToken()) return;
+    let cancelled = false;
+
+    adminRequest<AdminMenuItem[]>("/admin/menus")
+      .then((items) => {
+        if (cancelled) return;
+        const nextSections = menuTreeToSections(items);
+        setSections(nextSections.length ? nextSections : fallbackSections);
+      })
+      .catch(() => {
+        if (!cancelled) setSections(fallbackSections);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  useEffect(() => {
     const activeSection = sections.find((section) =>
       section.children.some((item) => isActivePath(current, item.href)),
     );
     if (activeSection) {
       setOpenSections((state) => ({ ...state, [activeSection.label]: true }));
     }
-  }, [current]);
+  }, [current, sections]);
 
   function logout() {
     clearToken();
