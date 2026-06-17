@@ -30,6 +30,7 @@ export type Tag = {
   slug: string;
   description?: string | null;
   post_count?: number;
+  article_count?: number;
   created_at: string;
   updated_at: string;
 };
