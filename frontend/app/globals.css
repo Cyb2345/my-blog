@@ -47,6 +47,16 @@ body {
   width: 100%;
 }
 
+.home-hero {
+  min-height: 100svh;
+}
+
+@supports (height: 100dvh) {
+  .home-hero {
+    min-height: 100dvh;
+  }
+}
+
 .site-shell {
   width: 100%;
   max-width: 72rem;

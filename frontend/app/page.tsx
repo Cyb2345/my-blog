@@ -45,7 +45,7 @@ export default async function HomePage() {
 
   return (
     <div className="home-page">
-      <section className="relative isolate flex min-h-[92svh] items-center overflow-hidden bg-slate-950 px-4 py-24 text-white md:py-28">
+      <section className="home-hero relative isolate flex items-center overflow-hidden bg-slate-950 px-4 py-24 text-white md:py-28">
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-20 bg-center bg-no-repeat"
@@ -96,7 +96,7 @@ export default async function HomePage() {
         ) : null}
       </section>
 
-      <section id="home-content" className="bg-white/50 py-8 dark:bg-slate-950/25">
+      <section id="home-content" className="bg-white/50 pb-8 pt-0 dark:bg-slate-950/25">
         <div className="mx-auto grid max-w-6xl gap-4 px-4 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <p className="text-sm font-black text-ocean dark:text-sky-300">Welcome</p>
