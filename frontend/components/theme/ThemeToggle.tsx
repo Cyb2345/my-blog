@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,8 @@ type ThemeAnimationOptions = KeyframeAnimationOptions & {
 };
 
 const THEME_STORAGE_KEY = "personal-blog-theme";
-const THEME_TRANSITION_MS = 650;
+const THEME_TRANSITION_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
+const THEME_TRANSITION_MS = 1200;
 
 function applyTheme(nextTheme: ThemeMode, setTheme: (theme: string) => void) {
   const root = document.documentElement;
@@ -46,6 +47,12 @@ function createFallbackMask(nextTheme: ThemeMode, x: number, y: number) {
   return mask;
 }
 
+function getThemeTransitionOrigin(nextTheme: ThemeMode) {
+  return nextTheme === "light"
+    ? { x: window.innerWidth, y: 0 }
+    : { x: 0, y: window.innerHeight };
+}
+
 export function ThemeToggle({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -58,12 +65,12 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
   const Icon = isDark ? Sun : Moon;
   const label = isDark ? "切换到白天模式" : "切换到黑夜模式";
 
-  async function toggleThemeWithTransition(event: MouseEvent<HTMLButtonElement>) {
+  async function toggleThemeWithTransition() {
     if (!mounted || transitioningRef.current) return;
 
     const currentTheme: ThemeMode = resolvedTheme === "dark" ? "dark" : "light";
     const nextTheme: ThemeMode = currentTheme === "dark" ? "light" : "dark";
-    const { clientX: x, clientY: y } = event;
+    const { x, y } = getThemeTransitionOrigin(nextTheme);
     const root = document.documentElement;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -108,7 +115,7 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
         },
         {
           duration: THEME_TRANSITION_MS,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          easing: THEME_TRANSITION_EASING,
           pseudoElement: "::view-transition-new(root)",
         } as ThemeAnimationOptions,
       );
