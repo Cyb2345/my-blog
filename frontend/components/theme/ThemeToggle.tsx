@@ -1,94 +1,140 @@
 "use client";
 
-import { Check, Laptop, Moon, Sun, type LucideIcon } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-type ThemeOption = {
-  value: "light" | "dark" | "system";
-  label: string;
-  icon: LucideIcon;
+type ThemeMode = "light" | "dark";
+
+type ViewTransition = {
+  finished: Promise<void>;
+  ready: Promise<void>;
+  skipTransition: () => void;
+  updateCallbackDone: Promise<void>;
 };
 
-const options: ThemeOption[] = [
-  { value: "light", label: "白天模式", icon: Sun },
-  { value: "dark", label: "黑夜模式", icon: Moon },
-  { value: "system", label: "跟随系统", icon: Laptop },
-];
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => void | Promise<void>) => ViewTransition;
+};
+
+type ThemeAnimationOptions = KeyframeAnimationOptions & {
+  pseudoElement?: string;
+};
+
+const THEME_STORAGE_KEY = "personal-blog-theme";
+const THEME_TRANSITION_MS = 650;
+
+function applyTheme(nextTheme: ThemeMode, setTheme: (theme: string) => void) {
+  const root = document.documentElement;
+
+  root.classList.remove("light", "dark");
+  root.classList.add(nextTheme);
+  root.style.colorScheme = nextTheme;
+  window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  setTheme(nextTheme);
+}
+
+function createFallbackMask(nextTheme: ThemeMode, x: number, y: number) {
+  const mask = document.createElement("div");
+  mask.className = `theme-transition-mask theme-transition-mask--${nextTheme}`;
+  mask.style.setProperty("--x", `${x}px`);
+  mask.style.setProperty("--y", `${y}px`);
+  document.body.appendChild(mask);
+  window.requestAnimationFrame(() => mask.classList.add("active"));
+  return mask;
+}
 
 export function ThemeToggle({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [transitioning, setTransitioning] = useState(false);
+  const transitioningRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    if (!open) return;
+  const isDark = mounted && resolvedTheme === "dark";
+  const Icon = isDark ? Sun : Moon;
+  const label = isDark ? "切换到白天模式" : "切换到黑夜模式";
 
-    function closeOnOutsideClick(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
+  async function toggleThemeWithTransition(event: MouseEvent<HTMLButtonElement>) {
+    if (!mounted || transitioningRef.current) return;
 
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
+    const currentTheme: ThemeMode = resolvedTheme === "dark" ? "dark" : "light";
+    const nextTheme: ThemeMode = currentTheme === "dark" ? "light" : "dark";
+    const { clientX: x, clientY: y } = event;
+    const root = document.documentElement;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
+    const finishTransition = () => {
+      root.classList.remove("theme-transitioning");
+      transitioningRef.current = false;
+      setTransitioning(false);
     };
-  }, [open]);
 
-  const currentTheme = (theme ?? "system") as ThemeOption["value"];
-  const CurrentIcon = !mounted ? Laptop : resolvedTheme === "dark" ? Moon : resolvedTheme === "light" ? Sun : Laptop;
+    transitioningRef.current = true;
+    setTransitioning(true);
+    root.classList.add("theme-transitioning");
+
+    if (reducedMotion) {
+      applyTheme(nextTheme, setTheme);
+      window.setTimeout(finishTransition, 80);
+      return;
+    }
+
+    const transitionDocument = document as ViewTransitionDocument;
+    if (!transitionDocument.startViewTransition) {
+      const mask = createFallbackMask(nextTheme, x, y);
+      window.setTimeout(() => applyTheme(nextTheme, setTheme), THEME_TRANSITION_MS * 0.42);
+      window.setTimeout(() => {
+        mask.remove();
+        finishTransition();
+      }, THEME_TRANSITION_MS + 80);
+      return;
+    }
+
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+    const transition = transitionDocument.startViewTransition(() => applyTheme(nextTheme, setTheme));
+
+    try {
+      await transition.ready;
+      const animation = document.documentElement.animate(
+        {
+          clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
+        },
+        {
+          duration: THEME_TRANSITION_MS,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          pseudoElement: "::view-transition-new(root)",
+        } as ThemeAnimationOptions,
+      );
+      await animation.finished;
+      await transition.finished;
+    } finally {
+      finishTransition();
+    }
+  }
 
   return (
-    <div className="theme-toggle" ref={rootRef}>
+    <div className="theme-toggle">
       <button
         type="button"
         className={cn(
-          "interactive grid h-10 w-10 place-items-center rounded-md bg-white/80 text-ink shadow-sm ring-1 ring-ink/10 hover:text-ocean dark:bg-white/10 dark:text-slate-200 dark:ring-white/10 dark:hover:text-sky-300",
+          "interactive grid h-10 w-10 place-items-center rounded-md bg-white/80 text-ink shadow-sm ring-1 ring-ink/10 hover:text-ocean disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10 dark:hover:text-sky-300",
           hero && "bg-white/10 text-white ring-white/20 hover:bg-white/20 hover:text-white dark:bg-white/10 dark:text-white dark:ring-white/20 dark:hover:text-white",
           !compact && "md:h-10 md:w-10",
         )}
-        onClick={() => setOpen((value) => !value)}
-        aria-label="切换主题模式"
-        aria-expanded={open}
-        title="切换主题模式"
+        onClick={toggleThemeWithTransition}
+        disabled={!mounted || transitioning}
+        aria-label={label}
+        title={label}
       >
-        <CurrentIcon className="h-4 w-4" aria-hidden="true" />
+        <Icon className="h-4 w-4" aria-hidden="true" />
       </button>
-      {open ? (
-        <div className="theme-menu motion-surface" role="menu">
-          {options.map((option) => {
-            const Icon = option.icon;
-            const active = mounted && currentTheme === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                className={cn("theme-menu__item", active && "theme-menu__item--active")}
-                onClick={() => {
-                  setTheme(option.value);
-                  setOpen(false);
-                }}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span>{option.label}</span>
-                {active ? <Check className="ml-auto h-4 w-4" aria-hidden="true" /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
     </div>
   );
 }

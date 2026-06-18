@@ -734,6 +734,59 @@ select:focus {
   position: relative;
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+}
+
+.theme-transition-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  clip-path: circle(0 at var(--x) var(--y));
+  transition: clip-path 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: clip-path;
+}
+
+.theme-transition-mask--light {
+  background: #fffaf3;
+}
+
+.theme-transition-mask--dark {
+  background: #0f172a;
+}
+
+.theme-transition-mask.active {
+  clip-path: circle(150vmax at var(--x) var(--y));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+
+  .theme-transition-mask {
+    transition-duration: 1ms;
+  }
+}
+
 .theme-menu {
   position: absolute;
   right: 0;
@@ -748,25 +801,6 @@ select:focus {
   padding: 0.35rem;
   box-shadow: 0 18px 45px rgba(31, 41, 51, 0.14);
   backdrop-filter: blur(18px);
-}
-
-.theme-menu__item {
-  display: flex;
-  min-height: 2.35rem;
-  align-items: center;
-  gap: 0.55rem;
-  border-radius: 0.4rem;
-  padding: 0 0.65rem;
-  color: rgba(31, 41, 51, 0.68);
-  font-size: 0.86rem;
-  font-weight: 800;
-  text-align: left;
-}
-
-.theme-menu__item:hover,
-.theme-menu__item--active {
-  background: rgba(68, 112, 143, 0.1);
-  color: #1f2933;
 }
 
 .mobile-menu-shell {
@@ -835,16 +869,6 @@ select:focus {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(15, 23, 42, 0.94);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.38);
-}
-
-.dark .theme-menu__item {
-  color: rgba(203, 213, 225, 0.78);
-}
-
-.dark .theme-menu__item:hover,
-.dark .theme-menu__item--active {
-  background: rgba(56, 189, 248, 0.13);
-  color: #e0f2fe;
 }
 
 .dark .reading {
