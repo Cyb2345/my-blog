@@ -227,15 +227,6 @@ const configItems: ConfigItem[] = [
   },
 ];
 
-const typeLabels: Record<ConfigFieldType, string> = {
-  text: "文本",
-  textarea: "多行文本",
-  url: "URL",
-  select: "下拉选择",
-  switch: "开关",
-  image: "图片选择",
-};
-
 const usageLabels: Record<MediaAsset["usage_type"], string> = {
   general: "通用",
   post_cover: "文章封面",
@@ -716,12 +707,12 @@ function ConfigItemRow({
   onEdit: () => void;
 }) {
   return (
-    <div className="grid gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(12rem,1.1fr)_minmax(0,2fr)_7rem_5rem] md:items-center">
-      <div>
+    <div className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(12rem,1.05fr)_minmax(0,2fr)_2.5rem] md:items-center">
+      <div className="min-w-0">
         <p className="font-black text-ink dark:text-slate-100">{item.label}</p>
         <p className="mt-1 text-xs font-bold leading-5 text-ink/45 dark:text-slate-500">{item.description}</p>
       </div>
-      <div className="min-w-0">
+      <div className="col-span-2 min-w-0 md:col-span-1">
         {image ? (
           <div className="flex min-w-0 items-center gap-3 rounded-md bg-paper px-3 py-2 dark:bg-slate-950">
             <img src={getAssetUrl(image.url)} alt={assetLabel(image)} className="h-12 w-16 shrink-0 rounded-md object-cover ring-1 ring-ink/10 dark:ring-white/10" />
@@ -736,13 +727,15 @@ function ConfigItemRow({
           </p>
         )}
       </div>
-      <span className="w-fit rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200">
-        {typeLabels[item.type]}
-      </span>
-      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3 md:justify-self-end" onClick={onEdit}>
+      <button
+        type="button"
+        className="interactive row-start-1 grid h-10 w-10 place-items-center justify-self-end rounded-md bg-white/70 text-ocean ring-1 ring-ink/10 hover:bg-white dark:bg-white/10 dark:text-sky-200 dark:ring-white/10 dark:hover:bg-white/15 md:row-auto"
+        onClick={onEdit}
+        aria-label={`编辑${item.label}`}
+        title="编辑"
+      >
         <Edit className="h-4 w-4" aria-hidden="true" />
-        编辑
-      </Button>
+      </button>
     </div>
   );
 }
