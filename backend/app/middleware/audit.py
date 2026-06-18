@@ -12,50 +12,10 @@ from app.core.security import decode_access_token
 from app.db.session import SessionLocal
 from app.models.admin_system import AccessLog, OperationLog
 from app.models.user import User
+from app.services.access_log_service import get_client_ip, parse_browser, parse_os, resolve_ip_location
 
 
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
-
-
-def _client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",", 1)[0].strip()
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
-    return request.client.host if request.client else None
-
-
-def _browser(user_agent: str) -> str:
-    ua = user_agent.lower()
-    if "edg/" in ua:
-        return "Edge"
-    if "chrome" in ua or "chromium" in ua:
-        return "Chrome"
-    if "firefox" in ua:
-        return "Firefox"
-    if "safari" in ua:
-        return "Safari"
-    if "curl" in ua:
-        return "curl"
-    return "Unknown"
-
-
-def _os(user_agent: str) -> str:
-    ua = user_agent.lower()
-    if "android" in ua:
-        return "Android"
-    if "iphone" in ua or "ipad" in ua:
-        return "iOS"
-    if "mac os" in ua or "macintosh" in ua:
-        return "Mac OS"
-    if "windows" in ua:
-        return "Windows"
-    if "linux" in ua:
-        return "Linux"
-    return "Unknown"
-
 
 def _api_name(path: str, method: str) -> str:
     rules = [
@@ -150,6 +110,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         operator_id, username = _operator_from_token(request)
         path = request.url.path
         with SessionLocal() as db:
+            ip = get_client_ip(request)
             db.add(
                 OperationLog(
                     operator_id=operator_id,
@@ -157,8 +118,8 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     request_path=path,
                     request_method=request.method.upper(),
                     api_name=_api_name(path, request.method.upper()),
-                    ip=_client_ip(request),
-                    ip_location=None,
+                    ip=ip,
+                    ip_location=resolve_ip_location(db, ip),
                     duration_ms=duration_ms,
                     request_body=None,
                     response_code=status_code,
@@ -169,12 +130,13 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
     def _write_access_log(self, request: Request) -> None:
         user_agent = request.headers.get("user-agent", "")
         with SessionLocal() as db:
+            ip = get_client_ip(request)
             db.add(
                 AccessLog(
-                    ip=_client_ip(request),
-                    ip_location=None,
-                    browser=_browser(user_agent),
-                    os=_os(user_agent),
+                    ip=ip,
+                    ip_location=resolve_ip_location(db, ip),
+                    browser=parse_browser(user_agent),
+                    os=parse_os(user_agent),
                     path=request.url.path,
                     referer=request.headers.get("referer"),
                     user_agent=user_agent[:1000],

@@ -1,3 +1,4 @@
+from datetime import datetime
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,6 +24,15 @@ def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
         "page_size": page_size,
         "pages": ceil(total / page_size) if total else 1,
     }
+
+
+def _parse_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 @router.get("/operation")
@@ -84,9 +94,12 @@ def batch_delete_operation_logs(payload: BatchDeleteRequest, db: Session = Depen
 @router.get("/access")
 def list_access_logs(
     ip: str | None = None,
+    location: str | None = None,
     browser: str | None = None,
     os: str | None = None,
     path: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
     page: int = 1,
     page_size: int = 10,
     db: Session = Depends(get_db),
@@ -98,12 +111,20 @@ def list_access_logs(
     conditions = []
     if ip:
         conditions.append(AccessLog.ip.ilike(f"%{ip.strip()}%"))
+    if location:
+        conditions.append(AccessLog.ip_location.ilike(f"%{location.strip()}%"))
     if browser:
         conditions.append(AccessLog.browser.ilike(f"%{browser.strip()}%"))
     if os:
         conditions.append(AccessLog.os.ilike(f"%{os.strip()}%"))
     if path:
         conditions.append(AccessLog.path.ilike(f"%{path.strip()}%"))
+    parsed_start = _parse_datetime(start_time)
+    parsed_end = _parse_datetime(end_time)
+    if parsed_start:
+        conditions.append(AccessLog.created_at >= parsed_start)
+    if parsed_end:
+        conditions.append(AccessLog.created_at <= parsed_end)
     for condition in conditions:
         statement = statement.where(condition)
         count_statement = count_statement.where(condition)
