@@ -5,6 +5,11 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 import { inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
@@ -894,35 +899,32 @@ function NavigationConfigTable({
                   </span>
                 </td>
                 <td className="p-3">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
+                  <AdminTableActions>
+                    <AdminTableActionButton
+                      variant="success"
                       onClick={() => onToggle(item)}
-                      className="interactive grid h-9 w-9 place-items-center rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20"
                       aria-label={item.is_visible ? "禁用" : "启用"}
                       title={item.is_visible ? "禁用" : "启用"}
                     >
-                      {item.is_visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
-                    </button>
-                    <button
-                      type="button"
+                      {item.is_visible ? <EyeOff className={adminTableActionIconClass} aria-hidden="true" /> : <Eye className={adminTableActionIconClass} aria-hidden="true" />}
+                    </AdminTableActionButton>
+                    <AdminTableActionButton
+                      variant="edit"
                       onClick={() => onEdit(item)}
-                      className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
                       aria-label="编辑"
                       title="编辑"
                     >
-                      <Edit className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
+                      <Edit className={adminTableActionIconClass} aria-hidden="true" />
+                    </AdminTableActionButton>
+                    <AdminTableActionButton
+                      variant="delete"
                       onClick={() => onDelete(item)}
-                      className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
                       aria-label="删除"
                       title="删除"
                     >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
+                      <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                    </AdminTableActionButton>
+                  </AdminTableActions>
                 </td>
               </tr>
             ))}
@@ -1081,24 +1083,22 @@ function BackgroundResourceList({
                       <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" disabled={!canSetLogin} onClick={() => onSetLogin(item)}>
                         设为登录
                       </Button>
-                      <button
-                        type="button"
+                      <AdminTableActionButton
+                        variant="neutral"
                         onClick={() => onCopy(item)}
-                        className="interactive grid h-9 w-9 place-items-center rounded-md bg-paper text-ink/60 ring-1 ring-ink/10 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:ring-white/10"
                         aria-label="复制 URL"
                         title="复制 URL"
                       >
-                        <Copy className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
+                        <Copy className={adminTableActionIconClass} aria-hidden="true" />
+                      </AdminTableActionButton>
+                      <AdminTableActionButton
+                        variant="delete"
                         onClick={() => onDelete(item)}
-                        className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
                         aria-label="删除"
                         title="删除"
                       >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                        <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                      </AdminTableActionButton>
                     </div>
                   </td>
                 </tr>

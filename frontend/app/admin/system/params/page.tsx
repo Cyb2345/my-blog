@@ -6,6 +6,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
+import {
   DataTableToolbar,
   type TableSettings,
   tableDensityCellClass,
@@ -112,7 +117,7 @@ function getEffectHint(key: string) {
   if (hotUpdateKeys.has(key)) return { label: "立即生效", className: "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20" };
   if (restartKeys.has(key)) return { label: "重启后生效", className: "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20" };
   if (frontendReservedKeys.has(key)) return { label: "需前端接入", className: "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20" };
-  if (featureReservedKeys.has(key)) return { label: "预留配置", className: "bg-sky-50 text-sky-700 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20" };
+  if (featureReservedKeys.has(key)) return { label: "预留配置", className: "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]" };
   return { label: "保存后生效", className: "bg-paper text-ink/60 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]" };
 }
 
@@ -518,32 +523,26 @@ export default function AdminParamsPage() {
                         rowStriped ? "bg-paper dark:bg-[var(--surface)]" : "bg-white dark:bg-[var(--surface)]",
                       )}
                     >
-                      <div className="flex justify-center gap-2">
-                        <button
-                          type="button"
+                      <AdminTableActions>
+                        <AdminTableActionButton
+                          variant="edit"
                           onClick={() => openModal({ mode: "edit", item: param })}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-ocean text-white ring-1 ring-ocean/30 hover:bg-ocean/90 dark:bg-[var(--primary)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_45%,transparent)]"
                           aria-label="编辑"
                           title="编辑"
                         >
-                          <Edit className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
+                          <Edit className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                        <AdminTableActionButton
+                          variant="delete"
                           onClick={() => openSingleDelete(param)}
                           disabled={param.is_system}
-                          className={cn(
-                            "interactive grid h-9 w-9 place-items-center rounded-md ring-1 disabled:cursor-not-allowed disabled:hover:translate-y-0",
-                            param.is_system
-                              ? "bg-slate-100 text-slate-400 ring-slate-200 dark:bg-white/5 dark:text-[var(--text-muted)] dark:ring-[var(--border-soft)]"
-                              : "bg-red-100 text-red-700 ring-red-200 hover:bg-red-200 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-400/40 dark:hover:bg-rose-500/30",
-                          )}
+                          className={param.is_system ? "bg-slate-100 text-slate-400 ring-slate-200 dark:bg-white/5 dark:text-[var(--text-muted)] dark:ring-[var(--border-soft)]" : undefined}
                           aria-label={param.is_system ? "系统内置参数不允许删除" : "删除"}
                           title={param.is_system ? "系统内置参数不允许删除" : "删除"}
                         >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
+                          <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                      </AdminTableActions>
                     </td>
                   </tr>
                 );

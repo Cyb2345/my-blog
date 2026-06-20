@@ -182,7 +182,7 @@ export default function AdminFileListPage() {
                   <td className="max-w-[180px] truncate p-3 text-ink/65 dark:text-slate-400">{item.url}</td>
                   <td className="max-w-[220px] truncate p-3 text-ink/65 dark:text-slate-400">{item.object_key}</td>
                   <td className="p-3">
-                    <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-black text-blue-600 dark:bg-sky-400/10 dark:text-sky-200">
+                    <span className="rounded-md bg-blue-100 px-2 py-1 text-xs font-black text-blue-800 ring-1 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]">
                       {item.storage_type === "r2" ? "R2服务器" : item.storage_type}
                     </span>
                   </td>

@@ -9,6 +9,11 @@ import {
   tableDensityCellClass,
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
+import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
 import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
@@ -542,35 +547,32 @@ export default function AdminPostsPage() {
                     {visibleColumns.createdAt ? <td className={cn("text-ink/65 dark:text-slate-400", tableCellPadding)}>{formatDateTime(post.created_at)}</td> : null}
                     {visibleColumns.actions ? (
                       <td className={tableCellPadding}>
-                        <div className="flex justify-center gap-2">
-                          <button
-                            type="button"
+                        <AdminTableActions>
+                          <AdminTableActionButton
+                            variant="edit"
                             onClick={() => setModal({ mode: "edit", post })}
-                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
                             aria-label="编辑"
                             title="编辑"
                           >
-                            <Edit className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
+                            <Edit className={adminTableActionIconClass} aria-hidden="true" />
+                          </AdminTableActionButton>
+                          <AdminTableActionButton
+                            variant="delete"
                             onClick={() => openDeletePosts([post.id], post.title)}
-                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
                             aria-label="删除"
                             title="删除"
                           >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
+                            <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                          </AdminTableActionButton>
+                          <AdminTableActionButton
+                            variant="success"
                             onClick={() => void togglePublish(post)}
-                            className="interactive grid h-9 w-9 place-items-center rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20"
                             aria-label={post.status === "published" ? "下架" : "上架"}
                             title={post.status === "published" ? "下架" : "上架"}
                           >
-                            {post.status === "published" ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Send className="h-4 w-4" aria-hidden="true" />}
-                          </button>
-                        </div>
+                            {post.status === "published" ? <EyeOff className={adminTableActionIconClass} aria-hidden="true" /> : <Send className={adminTableActionIconClass} aria-hidden="true" />}
+                          </AdminTableActionButton>
+                        </AdminTableActions>
                       </td>
                     ) : null}
                   </tr>

@@ -185,7 +185,7 @@ export default function AdminFileConfigPage() {
                 <tr key={config.id} className="border-t border-ink/10 dark:border-white/10">
                   <td className="p-3 font-black text-ink dark:text-slate-100">{config.name}</td>
                   <td className="p-3">
-                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs font-black text-blue-600 dark:bg-sky-400/10 dark:text-sky-200">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-black text-blue-800 ring-1 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]">
                       <Server className="h-3.5 w-3.5" aria-hidden="true" />
                       {config.storage_type === "r2" ? "R2服务器" : config.storage_type}
                     </span>

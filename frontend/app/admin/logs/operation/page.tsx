@@ -116,7 +116,7 @@ export default function AdminOperationLogsPage() {
                   </td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{item.api_name || "-"}</td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{item.ip || "-"}</td>
-                  <td className="p-3"><span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-black text-blue-600 dark:bg-sky-400/10 dark:text-sky-200">{item.duration_ms} ms</span></td>
+                  <td className="p-3"><span className="rounded-md bg-blue-100 px-2 py-1 text-xs font-black text-blue-800 ring-1 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]">{item.duration_ms} ms</span></td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{item.response_code || "-"}</td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{formatDate(item.created_at)}</td>
                   <td className="p-3">

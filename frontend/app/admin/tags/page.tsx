@@ -6,6 +6,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
+import {
   DataTableToolbar,
   type TableSettings,
   tableDensityCellClass,
@@ -391,26 +396,24 @@ export default function AdminTagsPage() {
                         rowStriped ? "bg-paper dark:bg-slate-900" : "bg-white dark:bg-slate-900",
                       )}
                     >
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
+                      <AdminTableActions>
+                        <AdminTableActionButton
+                          variant="edit"
                           onClick={() => openEditModal(item)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
                           aria-label="编辑"
                           title="编辑"
                         >
-                          <Edit className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
+                          <Edit className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                        <AdminTableActionButton
+                          variant="delete"
                           onClick={() => openDeleteDialog(item)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
                           aria-label="删除"
                           title="删除"
                         >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
+                          <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                      </AdminTableActions>
                     </td>
                   </tr>
                 );

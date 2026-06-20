@@ -18,6 +18,11 @@ import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "reac
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
+import {
   DataTableToolbar,
   type TableSettings,
   tableDensityCellClass,
@@ -840,7 +845,7 @@ export default function AdminUsersPage() {
                       <span className="block truncate" title={user.nickname || "-"}>{user.nickname || "-"}</span>
                     </td>
                     <td className={tableCellPadding}>
-                      <span className="inline-flex rounded-md bg-sky-50 px-2 py-1 text-xs font-black text-sky-700 ring-1 ring-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20">
+                      <span className="inline-flex rounded-md bg-blue-100 px-2 py-1 text-xs font-black text-blue-800 ring-1 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]">
                         {loginMethodLabel}
                       </span>
                     </td>
@@ -871,35 +876,32 @@ export default function AdminUsersPage() {
                         rowStriped ? "bg-paper dark:bg-[var(--surface)]" : "bg-white dark:bg-[var(--surface)]",
                       )}
                     >
-                      <div className="flex justify-center gap-2">
-                        <button
-                          type="button"
+                      <AdminTableActions>
+                        <AdminTableActionButton
+                          variant="warning"
                           onClick={() => openPasswordModal(user)}
-                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-amber-100 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-200 dark:bg-amber-400/20 dark:text-amber-100 dark:ring-amber-300/40 dark:hover:bg-amber-400/30"
                           aria-label="密码重置"
                           title="密码重置"
                         >
-                          <KeyRound className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
+                          <KeyRound className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                        <AdminTableActionButton
+                          variant="edit"
                           onClick={() => openUserModal("edit", user)}
-                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-ocean text-white ring-1 ring-ocean/30 hover:bg-ocean/90 dark:bg-[var(--primary)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_45%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--primary)_84%,white)]"
                           aria-label="编辑"
                           title="编辑"
                         >
-                          <Edit className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
+                          <Edit className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                        <AdminTableActionButton
+                          variant="delete"
                           onClick={() => openSingleDelete(user)}
-                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-red-100 text-red-700 ring-1 ring-red-200 hover:bg-red-200 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-400/40 dark:hover:bg-rose-500/30"
                           aria-label="删除"
                           title="删除"
                         >
-                          <Trash2 className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                      </div>
+                          <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
+                        </AdminTableActionButton>
+                      </AdminTableActions>
                     </td>
                   </tr>
                 );
