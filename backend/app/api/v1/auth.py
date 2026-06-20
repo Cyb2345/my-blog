@@ -16,13 +16,15 @@ from app.services.login_security_service import login_security
 from app.services.system_param_service import (
     get_bool_param,
     get_cached_int_param,
+    get_cached_param,
     reload_params_cache,
 )
 from app.services.totp_service import decrypt_totp_secret, verify_totp
 from app.utils.response import ok
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-LOGIN_FAILED_DETAIL = "登录失败，请检查账号、密码、验证码或动态验证码"
+LOGIN_FAILED_DETAIL = "登录失败，请检查账号信息"
+SUPPORTED_CAPTCHA_TYPES = {"none", "image", "slider", "turnstile"}
 
 
 def authenticate_user_by_username(db: Session, username: str) -> User | None:
@@ -31,6 +33,24 @@ def authenticate_user_by_username(db: Session, username: str) -> User | None:
 
 def is_system_mfa_enabled(db: Session) -> bool:
     return get_bool_param(db, "sys_mfa_enabled", False)
+
+
+def get_system_captcha_type() -> str:
+    captcha_type = (get_cached_param("sys_captcha_type", "image") or "image").strip().lower()
+    if captcha_type not in SUPPORTED_CAPTCHA_TYPES:
+        return "image"
+    return captcha_type
+
+
+@router.get("/login-options")
+def login_options(db: Session = Depends(get_db)):
+    reload_params_cache(db)
+    return ok(
+        {
+            "captcha_type": get_system_captcha_type(),
+            "mfa_enabled": is_system_mfa_enabled(db),
+        }
+    )
 
 
 @router.get("/captcha")
@@ -51,6 +71,7 @@ def captcha(request: Request, db: Session = Depends(get_db)):
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     settings = get_settings()
     reload_params_cache(db)
+    captcha_type = get_system_captcha_type()
     ip = get_client_ip(request)
     rate_limiter.check(
         key=f"login:ip:{ip}",
@@ -60,9 +81,11 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     )
     login_security.ensure_login_allowed(ip, payload.username)
 
-    if not validate_captcha(payload.captcha_id, payload.captcha_code):
+    if captcha_type == "image" and not validate_captcha(payload.captcha_id, payload.captcha_code):
         login_security.record_login_failure(ip, payload.username)
         raise HTTPException(status_code=400, detail=LOGIN_FAILED_DETAIL)
+    if captcha_type in {"slider", "turnstile"}:
+        raise HTTPException(status_code=400, detail="当前验证码类型暂未接入，请联系管理员")
 
     user = authenticate_user(db, payload.username, payload.password)
     if not user:

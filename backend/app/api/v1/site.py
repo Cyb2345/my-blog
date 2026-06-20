@@ -192,7 +192,7 @@ def public_login_background(db: Session = Depends(get_db)):
     return ok(
         {
             "mode": mode,
-            "image_url": selected.url if selected else config.get("hero_image", "/images/blog-hero.png"),
+            "image_url": selected.url if selected else "",
             "media": MediaAssetRead.model_validate(selected) if selected else None,
         }
     )
