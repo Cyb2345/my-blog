@@ -804,7 +804,7 @@ export default function AdminUsersPage() {
                 <th className={tableCellPadding}>创建时间</th>
                 <th
                   className={cn(
-                    "sticky right-0 z-10 text-right",
+                    "sticky right-0 z-10 text-center",
                     tableCellPadding,
                     tableSettings.headerBackground ? "bg-paper dark:bg-[var(--bg-soft)]" : "bg-white dark:bg-[var(--surface)]",
                   )}
@@ -871,33 +871,33 @@ export default function AdminUsersPage() {
                         rowStriped ? "bg-paper dark:bg-[var(--surface)]" : "bg-white dark:bg-[var(--surface)]",
                       )}
                     >
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => openPasswordModal(user)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-amber-50 text-amber-700 ring-1 ring-amber-100 hover:bg-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20"
+                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-amber-100 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-200 dark:bg-amber-400/20 dark:text-amber-100 dark:ring-amber-300/40 dark:hover:bg-amber-400/30"
                           aria-label="密码重置"
                           title="密码重置"
                         >
-                          <KeyRound className="h-4 w-4" aria-hidden="true" />
+                          <KeyRound className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
                           onClick={() => openUserModal("edit", user)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-sky-50 text-sky-600 ring-1 ring-sky-100 hover:bg-sky-100 dark:bg-sky-400/10 dark:text-sky-200 dark:ring-sky-400/20"
+                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-ocean text-white ring-1 ring-ocean/30 hover:bg-ocean/90 dark:bg-[var(--primary)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_45%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--primary)_84%,white)]"
                           aria-label="编辑"
                           title="编辑"
                         >
-                          <Edit className="h-4 w-4" aria-hidden="true" />
+                          <Edit className="h-5 w-5" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
                           onClick={() => openSingleDelete(user)}
-                          className="interactive grid h-9 w-9 place-items-center rounded-md bg-red-50 text-red-600 ring-1 ring-red-100 hover:bg-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20"
+                          className="interactive grid h-10 w-10 place-items-center rounded-md bg-red-100 text-red-700 ring-1 ring-red-200 hover:bg-red-200 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-400/40 dark:hover:bg-rose-500/30"
                           aria-label="删除"
                           title="删除"
                         >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          <Trash2 className="h-5 w-5" aria-hidden="true" />
                         </button>
                       </div>
                     </td>
