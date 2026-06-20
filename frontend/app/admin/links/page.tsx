@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { CustomSelect } from "@/components/admin/CustomSelect";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { getAssetUrl } from "@/lib/utils";
@@ -24,6 +26,8 @@ export default function AdminLinksPage() {
   const [saving, setSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("/images/blog-hero.png");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [modalStatus, setModalStatus] = useState("active");
 
   async function load() {
     try {
@@ -40,6 +44,8 @@ export default function AdminLinksPage() {
   function openModal(next: LinkModalState) {
     setModalError("");
     setAvatarUrl(next.item?.avatar ?? "/images/blog-hero.png");
+    setAvatarUploadProgress(null);
+    setModalStatus(next.item?.status ?? "active");
     setModal(next);
   }
 
@@ -48,22 +54,30 @@ export default function AdminLinksPage() {
     setModal(null);
     setModalError("");
     setAvatarUrl("/images/blog-hero.png");
+    setAvatarUploadProgress(null);
+    setModalStatus("active");
   }
 
   async function uploadAvatar(file: File | null) {
     if (!file) return;
     setUploadingAvatar(true);
+    setAvatarUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setModalError("");
     setNotice("");
     const payload = new FormData();
     payload.append("file", file);
     payload.append("usage_type", "link_avatar");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
+        onProgress: (progress) => setAvatarUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       setAvatarUrl(asset.url);
       setNotice("友链头像已上传。");
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "头像上传失败");
+      const message = err instanceof Error ? err.message : "头像上传失败";
+      setModalError(message);
+      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingAvatar(false);
     }
@@ -191,10 +205,15 @@ export default function AdminLinksPage() {
               <input name="url" type="url" required defaultValue={modal?.item?.url ?? ""} className={inputClass} />
             </AdminField>
             <AdminField label="状态">
-              <select name="status" defaultValue={modal?.item?.status ?? "active"} className={inputClass}>
-                <option value="active">启用</option>
-                <option value="inactive">禁用</option>
-              </select>
+              <CustomSelect
+                name="status"
+                value={modalStatus}
+                onChange={setModalStatus}
+                options={[
+                  { label: "启用", value: "active" },
+                  { label: "禁用", value: "inactive" },
+                ]}
+              />
             </AdminField>
             <AdminField label="排序">
               <input name="sort_order" type="number" defaultValue={modal?.item?.sort_order ?? 0} className={inputClass} />
@@ -214,6 +233,7 @@ export default function AdminLinksPage() {
                   disabled={uploadingAvatar}
                 />
               </label>
+              <UploadProgress item={avatarUploadProgress} />
               {avatarUrl ? (
                 <img src={getAssetUrl(avatarUrl)} alt="友链头像预览" className="h-16 w-16 rounded-md object-cover ring-1 ring-ink/10 dark:ring-white/10" />
               ) : null}

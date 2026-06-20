@@ -17,6 +17,7 @@ import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "reac
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import {
   AdminTableActionButton,
   AdminTableActions,
@@ -29,6 +30,7 @@ import {
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
@@ -309,6 +311,8 @@ export default function AdminUsersPage() {
   const [deleting, setDeleting] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [modalStatus, setModalStatus] = useState("active");
 
   const tableCellPadding = tableDensityCellClass[tableSettings.density];
   const pageNumbers = useMemo(() => getPageNumbers(pageData.page, pageData.pages), [pageData.page, pageData.pages]);
@@ -388,7 +392,9 @@ export default function AdminUsersPage() {
     setModalError("");
     setNotice("");
     setAvatarUrl(user?.avatar ?? "");
+    setAvatarUploadProgress(null);
     setSelectedRole(user?.role ?? roles[0]?.code ?? "");
+    setModalStatus(user?.is_active === false ? "inactive" : "active");
     setModal({ type: "user", mode, user });
   }
 
@@ -404,22 +410,29 @@ export default function AdminUsersPage() {
     setModalError("");
     setMfaSetup(null);
     setAvatarUrl("");
+    setAvatarUploadProgress(null);
   }
 
   async function uploadAvatar(file: File | null) {
     if (!file) return;
     setUploadingAvatar(true);
+    setAvatarUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setModalError("");
     setNotice("");
     const payload = new FormData();
     payload.append("file", file);
     payload.append("usage_type", "avatar");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
+        onProgress: (progress) => setAvatarUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       setAvatarUrl(asset.url);
       setNotice("用户头像已上传。");
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "头像上传失败");
+      const message = err instanceof Error ? err.message : "头像上传失败";
+      setModalError(message);
+      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingAvatar(false);
     }
@@ -706,29 +719,19 @@ export default function AdminUsersPage() {
           </label>
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
             登录方式
-            <select
+            <CustomSelect
               value={filters.login_method}
-              onChange={(event) => setFilters((current) => ({ ...current, login_method: event.target.value }))}
-              className={inputClass}
-            >
-              <option value="">请选择登录方式</option>
-              {loginMethodOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((current) => ({ ...current, login_method: value }))}
+              options={[{ label: "请选择登录方式", value: "" }, ...loginMethodOptions]}
+            />
           </label>
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
             状态
-            <select
+            <CustomSelect
               value={filters.status}
-              onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-              className={inputClass}
-            >
-              <option value="">请选择状态</option>
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((current) => ({ ...current, status: value }))}
+              options={[{ label: "请选择状态", value: "" }, ...statusOptions]}
+            />
           </label>
         </div>
         <div className="flex flex-wrap items-end gap-2 xl:justify-end">
@@ -919,18 +922,15 @@ export default function AdminUsersPage() {
 
         <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-[var(--border-soft)] dark:text-[var(--text-secondary)]">
           <span>共 {pageData.total} 条</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <CustomSelect
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
               setPageNumber(1);
             }}
-            className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 outline-none dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)]"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>{size}条/页</option>
-            ))}
-          </select>
+            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
+            className="w-32"
+          />
           <button
             type="button"
             disabled={pageData.page <= 1}
@@ -1006,11 +1006,16 @@ export default function AdminUsersPage() {
                 <input name="email" type="email" defaultValue={modal.user?.email ?? ""} placeholder="请输入邮箱" className={inputClass} />
               </AdminField>
               <AdminField label="性别">
-                <select disabled defaultValue="secret" className={cn(inputClass, "disabled:cursor-not-allowed disabled:opacity-70")}>
-                  <option value="male">男</option>
-                  <option value="female">女</option>
-                  <option value="secret">保密</option>
-                </select>
+                <CustomSelect
+                  value="secret"
+                  onChange={() => undefined}
+                  disabled
+                  options={[
+                    { label: "男", value: "male" },
+                    { label: "女", value: "female" },
+                    { label: "保密", value: "secret" },
+                  ]}
+                />
               </AdminField>
               <AdminField label="角色 *">
                 <RoleSelector
@@ -1022,11 +1027,7 @@ export default function AdminUsersPage() {
                 />
               </AdminField>
               <AdminField label="状态 *">
-                <select name="status" defaultValue={modal.user?.is_active === false ? "inactive" : "active"} className={inputClass}>
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+                <CustomSelect name="status" value={modalStatus} onChange={setModalStatus} options={statusOptions} />
               </AdminField>
               <AdminField label="是否启用 MFA">
                 <div className="grid gap-2">
@@ -1074,6 +1075,7 @@ export default function AdminUsersPage() {
                     />
                   </label>
                 </div>
+                <UploadProgress item={avatarUploadProgress} />
                 {avatarUrl ? (
                   <img src={getAssetUrl(avatarUrl)} alt="用户头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-ink/10 dark:ring-[var(--border-soft)]" />
                 ) : null}

@@ -33,7 +33,9 @@ import { FormEvent, type UIEvent, useEffect, useMemo, useRef, useState } from "r
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import { PostCategorySelect, PostTagEditorSelect } from "@/components/admin/PostSelectControls";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { MarkdownView } from "@/components/blog/MarkdownView";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
@@ -159,6 +161,8 @@ export function PostModalEditor({
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [coverUploadProgress, setCoverUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [imageUploadProgress, setImageUploadProgress] = useState<UploadProgressItem | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [syncScroll, setSyncScroll] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
@@ -361,16 +365,22 @@ export function PostModalEditor({
   async function uploadArticleImage(file: File | null) {
     if (!file) return;
     setUploadingImage(true);
+    setImageUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setError("");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("usage_type", "article_image");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData, {
+        onProgress: (progress) => setImageUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setImageUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       const alt = asset.original_name?.replace(/\.[^.]+$/, "") || "图片";
       insertMarkdown(`![${alt}](`, ")", asset.url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "正文图片上传失败，请重试");
+      const message = err instanceof Error ? err.message : "正文图片上传失败，请重试";
+      setError(message);
+      setImageUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingImage(false);
     }
@@ -379,16 +389,22 @@ export function PostModalEditor({
   async function uploadCover(file: File | null) {
     if (!file) return;
     setUploadingCover(true);
+    setCoverUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setError("");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("usage_type", "post_cover");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData, {
+        onProgress: (progress) => setCoverUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setCoverUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       updateField("cover_image", asset.url);
       setCoverMenuOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "封面上传失败，请重试");
+      const message = err instanceof Error ? err.message : "封面上传失败，请重试";
+      setError(message);
+      setCoverUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingCover(false);
     }
@@ -565,10 +581,14 @@ export function PostModalEditor({
               />
             </div>
             <AdminField label="上架状态">
-              <select value={form.status} onChange={(event) => updateField("status", event.target.value as PostFormState["status"])} className={inputClass}>
-                <option value="draft">草稿</option>
-                <option value="published">上架</option>
-              </select>
+              <CustomSelect
+                value={form.status}
+                onChange={(value) => updateField("status", value as PostFormState["status"])}
+                options={[
+                  { label: "草稿", value: "draft" },
+                  { label: "上架", value: "published" },
+                ]}
+              />
             </AdminField>
           </div>
         </section>
@@ -667,6 +687,7 @@ export function PostModalEditor({
               </div>
             </div>
           )}
+          <UploadProgress item={coverUploadProgress} />
         </section>
 
         <section className="grid gap-3 rounded-lg border border-ink/10 bg-white p-4 dark:border-white/10 dark:bg-slate-950/40">
@@ -766,6 +787,7 @@ export function PostModalEditor({
                 {fullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
               </button>
             </div>
+            <UploadProgress item={imageUploadProgress} />
             <div className={cn("grid", showPreview && "lg:grid-cols-2", fullscreen && "min-h-0 flex-1")}>
               <textarea
                 ref={textareaRef}

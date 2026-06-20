@@ -20,9 +20,9 @@ type AdminLoginFormProps = {
 };
 
 const fieldClass =
-  "h-11 w-full rounded-md border border-ink/15 bg-white/95 px-3 text-sm font-medium text-ink outline-none ring-ocean/15 placeholder:text-ink/40 focus:border-ocean focus:ring-4 dark:border-[var(--border)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)] dark:placeholder:text-[var(--text-muted)] dark:focus:border-[var(--primary)] dark:focus:ring-[color-mix(in_srgb,var(--primary)_24%,transparent)]";
+  "h-11 w-full rounded-md border border-white/12 bg-black/28 px-3 text-sm font-medium text-white outline-none ring-[color-mix(in_srgb,var(--primary)_24%,transparent)] placeholder:text-white/42 focus:border-[var(--primary)] focus:ring-4";
 
-const labelClass = "grid gap-2 text-sm font-semibold text-ink/75 dark:text-[var(--text-secondary)]";
+const labelClass = "grid gap-2 text-sm font-semibold text-white/78";
 
 function getFormString(form: FormData, key: string) {
   const value = form.get(key);
@@ -126,8 +126,8 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
   }
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-[var(--bg)] px-4 py-5 text-ink dark:text-[var(--text)] sm:px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(68,112,143,0.18),transparent_28rem)] dark:bg-[radial-gradient(circle_at_20%_10%,rgba(79,124,255,0.16),transparent_28rem)]" aria-hidden="true" />
+    <main className="relative min-h-[100svh] overflow-hidden bg-[#0b0b0c] px-4 py-5 text-white sm:px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(79,124,255,0.16),transparent_28rem)]" aria-hidden="true" />
       {backgroundUrl ? (
         <div
           className={cn(
@@ -138,12 +138,12 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
           aria-hidden="true"
         />
       ) : null}
-      <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] dark:bg-black/48" aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" aria-hidden="true" />
 
       <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between">
         <Link
           href="/"
-          className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-white/80 px-3 py-2 text-sm font-semibold text-ink shadow-sm ring-1 ring-ink/10 backdrop-blur hover:text-ocean dark:bg-[color-mix(in_srgb,var(--surface-soft)_86%,transparent)] dark:text-[var(--text)] dark:ring-[var(--border-soft)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]"
+          className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-black/34 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-white/15 backdrop-blur hover:bg-black/46"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           返回首页
@@ -152,13 +152,13 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
       </div>
 
       <section className="relative z-10 grid min-h-[calc(100svh-4.5rem)] place-items-center py-8">
-        <div className="motion-surface w-full max-w-[460px] rounded-lg border border-ink/10 bg-white/92 p-6 text-ink shadow-2xl backdrop-blur-xl dark:border-[var(--border)] dark:bg-[color-mix(in_srgb,var(--surface-card)_92%,transparent)] dark:text-[var(--text)] sm:p-8">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-md bg-ink text-white shadow-soft dark:bg-[var(--primary)] dark:text-[var(--bg)]">
+        <div className="motion-surface w-full max-w-[460px] rounded-lg border border-white/12 bg-[color-mix(in_srgb,var(--surface-card)_88%,transparent)] p-6 text-[var(--text)] shadow-2xl backdrop-blur-xl sm:p-8">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-md bg-[var(--primary)] text-white shadow-soft">
             <LockKeyhole className="h-7 w-7" aria-hidden="true" />
           </div>
           <div className="mt-5 text-center">
             <h1 className="text-2xl font-black">后台登录</h1>
-            <p className="mt-2 text-sm font-medium text-ink/58 dark:text-[var(--text-muted)]">请输入账号信息进入管理后台</p>
+            <p className="mt-2 text-sm font-medium text-[var(--text-muted)]">请输入账号信息进入管理后台</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-7 grid gap-4">
@@ -185,7 +185,7 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
                   <button
                     type="button"
                     onClick={() => void loadCaptcha()}
-                    className="interactive grid h-11 place-items-center overflow-hidden rounded-md border border-ink/15 bg-white/90 text-sm font-semibold text-ink shadow-sm ring-ocean/15 hover:border-ocean dark:border-[var(--border)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)] dark:hover:border-[var(--primary)]"
+                    className="interactive grid h-11 place-items-center overflow-hidden rounded-md border border-white/12 bg-black/28 text-sm font-semibold text-white shadow-sm ring-[color-mix(in_srgb,var(--primary)_24%,transparent)] hover:border-[var(--primary)]"
                     aria-label="刷新验证码"
                     title="刷新验证码"
                   >

@@ -64,19 +64,42 @@ export async function adminRequest<T>(path: string, init?: RequestInit): Promise
   return body as T;
 }
 
-export async function adminUpload<T>(path: string, formData: FormData): Promise<T> {
-  const token = getToken();
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-    body: formData,
+export async function adminUpload<T>(
+  path: string,
+  formData: FormData,
+  options?: {
+    onProgress?: (progress: number) => void;
+  },
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const token = getToken();
+    xhr.open("POST", `${API_BASE_URL}${path}`);
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !options?.onProgress) return;
+      options.onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      let body: Envelope<T> | ApiErrorBody | null = null;
+      try {
+        body = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {
+        body = null;
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(body ? formatApiError(body) : "上传失败"));
+        return;
+      }
+      options?.onProgress?.(100);
+      if (body && "code" in body) resolve(body.data);
+      else resolve(body as T);
+    };
+
+    xhr.onerror = () => reject(new Error("网络请求失败"));
+    xhr.onabort = () => reject(new Error("上传已取消"));
+    xhr.send(formData);
   });
-  const body = (await response.json()) as Envelope<T> | ApiErrorBody;
-  if (!response.ok) {
-    throw new Error(formatApiError(body));
-  }
-  if ("code" in body) return body.data;
-  return body as T;
 }

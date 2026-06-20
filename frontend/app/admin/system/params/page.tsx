@@ -10,6 +10,7 @@ import {
   AdminTableActions,
   adminTableActionIconClass,
 } from "@/components/admin/AdminTableActionButton";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import {
   DataTableToolbar,
   type TableSettings,
@@ -17,10 +18,11 @@ import {
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { ParamValueField } from "@/components/admin/ParamValueField";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import type { Paginated, SystemParam } from "@/types/blog";
+import type { MediaAsset, Paginated, SystemParam } from "@/types/blog";
 
 type ParamPage = Paginated<SystemParam>;
 type ParamFilters = {
@@ -40,6 +42,11 @@ type DeleteState =
 const emptyPage: ParamPage = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
 const emptyFilters: ParamFilters = { name: "", key: "", is_system: "" };
 const pageSizeOptions = [10, 20, 50];
+const systemFilterOptions = [
+  { label: "全部", value: "" },
+  { label: "是", value: "true" },
+  { label: "否", value: "false" },
+];
 const paramTableSettingsKey = "admin-table-settings:system-params";
 const defaultParamTableSettings: TableSettings = {
   bordered: true,
@@ -132,6 +139,7 @@ export default function AdminParamsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<ParamModalState | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [modalError, setModalError] = useState("");
@@ -173,6 +181,12 @@ export default function AdminParamsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNumber, pageSize, appliedFilters]);
 
+  useEffect(() => {
+    adminRequest<MediaAsset[]>("/admin/media")
+      .then((items) => setMediaAssets(items.filter((item) => item.is_active)))
+      .catch(() => setMediaAssets([]));
+  }, []);
+
   function handleQuery(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAppliedFilters({ ...filters });
@@ -207,7 +221,7 @@ export default function AdminParamsPage() {
       key: String(form.get("key") ?? target?.key ?? "").trim(),
       value: String(form.get("value") ?? ""),
       is_system: target ? target.is_system : form.get("is_system") === "on",
-      remark: String(form.get("remark") ?? ""),
+      remark: target?.remark ?? "",
     };
 
     if (!payload.name || !payload.key) {
@@ -377,15 +391,11 @@ export default function AdminParamsPage() {
           </label>
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
             系统内置
-            <select
+            <CustomSelect
               value={filters.is_system}
-              onChange={(event) => setFilters((current) => ({ ...current, is_system: event.target.value }))}
-              className={inputClass}
-            >
-              <option value="">全部</option>
-              <option value="true">是</option>
-              <option value="false">否</option>
-            </select>
+              onChange={(value) => setFilters((current) => ({ ...current, is_system: value }))}
+              options={systemFilterOptions}
+            />
           </label>
         </div>
         <div className="flex flex-wrap items-end gap-2 xl:justify-end">
@@ -560,18 +570,15 @@ export default function AdminParamsPage() {
 
         <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-[var(--border-soft)] dark:text-[var(--text-secondary)]">
           <span>共 {pageData.total} 条</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <CustomSelect
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
               setPageNumber(1);
             }}
-            className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 outline-none dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)]"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>{size}条/页</option>
-            ))}
-          </select>
+            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
+            className="w-32"
+          />
           <button
             type="button"
             disabled={pageData.page <= 1}
@@ -645,12 +652,13 @@ export default function AdminParamsPage() {
             />
           </AdminField>
           <AdminField label="参数键值">
-            <textarea
-              name="value"
-              rows={4}
-              defaultValue={modalSensitive ? "" : modalItem?.value ?? ""}
-              placeholder={modalSensitive ? "留空表示不修改，重新输入才更新" : "请输入参数键值"}
-              className={inputClass}
+            <ParamValueField
+              key={`${modalItem?.id ?? "new"}-${modalItem?.key ?? ""}`}
+              paramKey={modalItem?.key}
+              paramName={modalItem?.name}
+              initialValue={modalItem?.value ?? ""}
+              sensitive={modalSensitive}
+              assets={mediaAssets}
             />
           </AdminField>
           <AdminField label="系统内置">
@@ -658,9 +666,6 @@ export default function AdminParamsPage() {
               <input name="is_system" type="checkbox" disabled={Boolean(modalItem)} defaultChecked={modalItem?.is_system ?? false} className="h-4 w-4 accent-blue-500" />
               {modalItem ? "编辑时不可修改" : "设为系统内置"}
             </label>
-          </AdminField>
-          <AdminField label="备注">
-            <textarea name="remark" rows={3} defaultValue={modalItem?.remark ?? ""} placeholder="请输入备注" className={inputClass} />
           </AdminField>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>

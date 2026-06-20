@@ -10,7 +10,10 @@ import {
   AdminTableActions,
   adminTableActionIconClass,
 } from "@/components/admin/AdminTableActionButton";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { ImagePicker } from "@/components/admin/ImagePicker";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
@@ -286,6 +289,7 @@ export default function AdminSiteConfigPage() {
   const [modalError, setModalError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -349,7 +353,7 @@ export default function AdminSiteConfigPage() {
     if (!configEdit) return;
     const form = new FormData(event.currentTarget);
     const item = configEdit.item;
-    const nextValue = item.type === "switch" ? String(form.get("value") === "on") : String(form.get("value") ?? "");
+    const nextValue = String(form.get("value") ?? "");
     setSaving(true);
     setModalError("");
     setNotice("");
@@ -508,12 +512,14 @@ export default function AdminSiteConfigPage() {
   function openUploadDialog(usage: "site_hero" | "login_background") {
     setUploadState({ usage });
     setUploadError("");
+    setUploadProgress(null);
   }
 
   function closeUploadDialog() {
     if (uploading) return;
     setUploadState(null);
     setUploadError("");
+    setUploadProgress(null);
   }
 
   async function uploadBackground(event: FormEvent<HTMLFormElement>) {
@@ -528,22 +534,31 @@ export default function AdminSiteConfigPage() {
     }
     setUploading(true);
     setUploadError("");
+    setUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setNotice("");
     try {
       const payload = new FormData();
       payload.append("file", file);
       payload.append("usage_type", uploadState.usage);
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
+        onProgress: (progress) => setUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       if (uploadState.usage === "site_hero") {
         setHomeBackgrounds((current) => [asset, ...current]);
       } else {
         setLoginBackgrounds((current) => [asset, ...current]);
       }
       setNotice(uploadState.usage === "site_hero" ? "首页背景已上传。" : "登录背景已上传。");
-      setUploadState(null);
+      window.setTimeout(() => {
+        setUploadState(null);
+        setUploadProgress(null);
+      }, 900);
       formElement.reset();
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "上传失败");
+      const message = err instanceof Error ? err.message : "上传失败";
+      setUploadError(message);
+      setUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploading(false);
     }
@@ -684,6 +699,7 @@ export default function AdminSiteConfigPage() {
         state={uploadState}
         error={uploadError}
         uploading={uploading}
+        progress={uploadProgress}
         onClose={closeUploadDialog}
         onSubmit={uploadBackground}
       />
@@ -795,36 +811,33 @@ function ConfigEditDialog({
               className={inputClass}
             />
           ) : item.type === "select" ? (
-            <select name="value" value={value || item.options?.[0]?.value || ""} onChange={(event) => onValueChange(event.target.value)} className={inputClass}>
-              {item.options?.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              name="value"
+              value={value || item.options?.[0]?.value || ""}
+              onChange={onValueChange}
+              options={(item.options ?? []).map((option) => ({ ...option, description: option.value }))}
+            />
           ) : item.type === "switch" ? (
-            <label className="flex items-center justify-between gap-4 rounded-md border border-ink/10 bg-paper px-4 py-3 text-sm font-black text-ink dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
-              {value === "true" ? "开启" : "关闭"}
-              <input
-                name="value"
-                type="checkbox"
-                checked={value === "true"}
-                onChange={(event) => onValueChange(String(event.target.checked))}
-                className="h-5 w-5 accent-blue-500"
-              />
-            </label>
-          ) : item.type === "image" ? (
-            <div className="grid gap-3">
-              <select name="value" value={value} onChange={(event) => onValueChange(event.target.value)} className={inputClass}>
-                <option value="">未选择</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>{assetLabel(asset)}</option>
-                ))}
-              </select>
-              {value ? (
-                <p className="rounded-md bg-paper px-3 py-2 text-xs font-bold text-ink/50 dark:bg-slate-950 dark:text-slate-500">
-                  已选择资源 ID：{value}
-                </p>
-              ) : null}
+            <div className="grid gap-2">
+              <input type="hidden" name="value" value={value === "true" ? "true" : "false"} />
+              <button
+                type="button"
+                onClick={() => onValueChange(value === "true" ? "false" : "true")}
+                className={cn(
+                  "interactive flex min-h-11 items-center justify-between rounded-md border px-4 text-sm font-black",
+                  value === "true"
+                    ? "border-ocean/30 bg-ocean/10 text-ocean dark:border-[color-mix(in_srgb,var(--primary)_44%,transparent)] dark:bg-[color-mix(in_srgb,var(--primary)_18%,transparent)] dark:text-white"
+                    : "border-ink/10 bg-paper text-ink/55 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text-muted)]",
+                )}
+              >
+                <span>{value === "true" ? "开启" : "关闭"}</span>
+                <span className={cn("relative h-6 w-11 rounded-full transition-colors", value === "true" ? "bg-ocean dark:bg-[var(--primary)]" : "bg-ink/18 dark:bg-[var(--surface-soft)]")}>
+                  <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform", value === "true" ? "translate-x-6" : "translate-x-1")} />
+                </span>
+              </button>
             </div>
+          ) : item.type === "image" ? (
+            <ImagePicker name="value" value={value} assets={assets} onChange={onValueChange} />
           ) : (
             <input
               name="value"
@@ -953,6 +966,12 @@ function NavigationEditDialog({
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const [target, setTarget] = useState("self");
+
+  useEffect(() => {
+    if (state) setTarget(state.item?.target ?? "self");
+  }, [state]);
+
   return (
     <AdminModal
       open={Boolean(state)}
@@ -984,10 +1003,15 @@ function NavigationEditDialog({
             </label>
             <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
               打开方式
-              <select name="target" defaultValue={state.item?.target ?? "self"} className={inputClass}>
-                <option value="self">当前页</option>
-                <option value="blank">新窗口</option>
-              </select>
+              <CustomSelect
+                name="target"
+                value={target}
+                onChange={setTarget}
+                options={[
+                  { label: "当前页", value: "self" },
+                  { label: "新窗口", value: "blank" },
+                ]}
+              />
             </label>
             <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
               图标标识
@@ -1120,12 +1144,14 @@ function BackgroundUploadDialog({
   state,
   error,
   uploading,
+  progress,
   onClose,
   onSubmit,
 }: {
   state: UploadState;
   error: string;
   uploading: boolean;
+  progress: UploadProgressItem | null;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
@@ -1149,6 +1175,7 @@ function BackgroundUploadDialog({
             背景图片
             <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
           </label>
+          <UploadProgress item={progress} />
           <p className="rounded-md bg-paper px-3 py-2 text-xs font-bold text-ink/50 dark:bg-slate-950 dark:text-slate-500">
             支持 JPG、PNG、WebP。上传后会进入背景资源列表。
           </p>

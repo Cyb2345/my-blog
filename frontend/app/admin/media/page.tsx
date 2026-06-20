@@ -4,6 +4,8 @@ import { Image as ImageIcon, Upload, XCircle } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { CustomSelect } from "@/components/admin/CustomSelect";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
@@ -31,6 +33,8 @@ export default function AdminMediaPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [usageType, setUsageType] = useState<MediaAsset["usage_type"]>("general");
 
   async function load() {
     try {
@@ -54,18 +58,24 @@ export default function AdminMediaPage() {
       return;
     }
     setUploading(true);
+    setUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setError("");
     setNotice("");
     try {
       const payload = new FormData();
       payload.append("file", file);
-      payload.append("usage_type", String(form.get("usage_type") || "general"));
-      await adminUpload<MediaAsset>("/admin/uploads/image", payload);
+      payload.append("usage_type", usageType);
+      await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
+        onProgress: (progress) => setUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       formElement.reset();
       await load();
       setNotice("图片已上传，媒体库已刷新。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "上传失败");
+      const message = err instanceof Error ? err.message : "上传失败";
+      setError(message);
+      setUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploading(false);
     }
@@ -99,14 +109,13 @@ export default function AdminMediaPage() {
             <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
           </AdminField>
           <AdminField label="用途">
-            <select name="usage_type" defaultValue="general" className={inputClass}>
-              {Object.entries(usageLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              value={usageType}
+              onChange={(value) => setUsageType(value as MediaAsset["usage_type"])}
+              options={Object.entries(usageLabels).map(([value, label]) => ({ value, label }))}
+            />
           </AdminField>
+          <UploadProgress item={uploadProgress} />
           <Button type="submit" disabled={uploading}>
             <Upload className="h-4 w-4" aria-hidden="true" />
             {uploading ? "上传中..." : "上传图片"}

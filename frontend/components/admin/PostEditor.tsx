@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { CustomSelect } from "@/components/admin/CustomSelect";
+import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { MarkdownView } from "@/components/blog/MarkdownView";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
@@ -45,8 +47,12 @@ export function PostEditor({ postId }: Props) {
   const [contentDraft, setContentDraft] = useState("");
   const [editorMode, setEditorMode] = useState<EditorMode>("split");
   const [coverImage, setCoverImage] = useState("/images/blog-hero.png");
+  const [categoryId, setCategoryId] = useState("");
+  const [status, setStatus] = useState("draft");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingArticleImage, setUploadingArticleImage] = useState(false);
+  const [coverUploadProgress, setCoverUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [articleUploadProgress, setArticleUploadProgress] = useState<UploadProgressItem | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -65,20 +71,28 @@ export function PostEditor({ postId }: Props) {
   useEffect(() => {
     setContentDraft(post?.content ?? "");
     setCoverImage(post?.cover_image ?? "/images/blog-hero.png");
+    setCategoryId(post?.category_id ? String(post.category_id) : "");
+    setStatus(post?.status ?? "draft");
   }, [post]);
 
   async function uploadCover(file: File | null) {
     if (!file) return;
     setUploadingCover(true);
+    setCoverUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setError("");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("usage_type", "post_cover");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData, {
+        onProgress: (progress) => setCoverUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setCoverUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       setCoverImage(asset.url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "封面上传失败");
+      const message = err instanceof Error ? err.message : "封面上传失败";
+      setError(message);
+      setCoverUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingCover(false);
     }
@@ -87,16 +101,22 @@ export function PostEditor({ postId }: Props) {
   async function uploadArticleImage(file: File | null) {
     if (!file) return;
     setUploadingArticleImage(true);
+    setArticleUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
     setError("");
     const formData = new FormData();
     formData.append("file", file);
     formData.append("usage_type", "article_image");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData);
+      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", formData, {
+        onProgress: (progress) => setArticleUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      });
+      setArticleUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       const alt = asset.original_name?.replace(/\.[^.]+$/, "") || "图片";
       setContentDraft((value) => `${value}${value.endsWith("\n") || !value ? "" : "\n\n"}![${alt}](${asset.url})\n`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "正文图片上传失败");
+      const message = err instanceof Error ? err.message : "正文图片上传失败";
+      setError(message);
+      setArticleUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
     } finally {
       setUploadingArticleImage(false);
     }
@@ -193,6 +213,7 @@ export function PostEditor({ postId }: Props) {
                 </button>
               ) : null}
             </div>
+            <UploadProgress item={coverUploadProgress} />
             {coverImage ? (
               <div className="overflow-hidden rounded-md border border-ink/10 bg-paper dark:border-white/10 dark:bg-slate-950">
                 <img src={resolveAssetUrl(coverImage)} alt="文章封面预览" className="aspect-[16/9] w-full object-cover" />
@@ -205,20 +226,26 @@ export function PostEditor({ postId }: Props) {
           </div>
         </AdminField>
         <AdminField label="分类">
-          <select name="category_id" defaultValue={post?.category_id ?? ""} className={inputClass}>
-            <option value="">未分类</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            name="category_id"
+            value={categoryId}
+            onChange={setCategoryId}
+            options={[
+              { label: "未分类", value: "" },
+              ...categories.map((category) => ({ label: category.name, value: String(category.id) })),
+            ]}
+          />
         </AdminField>
         <AdminField label="状态">
-          <select name="status" defaultValue={post?.status ?? "draft"} className={inputClass}>
-            <option value="draft">草稿</option>
-            <option value="published">发布</option>
-          </select>
+          <CustomSelect
+            name="status"
+            value={status}
+            onChange={setStatus}
+            options={[
+              { label: "草稿", value: "draft" },
+              { label: "发布", value: "published" },
+            ]}
+          />
         </AdminField>
       </div>
       <div>
@@ -278,6 +305,7 @@ export function PostEditor({ postId }: Props) {
               <span className="text-xs font-bold text-ink/45">{contentDraft.length} 字符</span>
             </div>
           </div>
+          <UploadProgress item={articleUploadProgress} />
           <div
             className={cn(
               "grid gap-0 overflow-hidden",
