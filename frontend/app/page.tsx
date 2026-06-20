@@ -45,7 +45,7 @@ export default async function HomePage() {
 
   return (
     <div className="home-page">
-      <section className="home-hero relative isolate flex items-center overflow-hidden bg-slate-950 px-4 py-24 text-white md:py-28">
+      <section className="home-hero relative isolate flex items-center overflow-hidden bg-[var(--bg)] px-4 py-24 text-white md:py-28">
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-20 bg-center bg-no-repeat"
@@ -56,7 +56,7 @@ export default async function HomePage() {
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(8,14,24,0.42),rgba(8,14,24,0.58)_48%,rgba(8,14,24,0.86)),radial-gradient(circle_at_50%_42%,rgba(20,184,166,0.24),transparent_30rem)]"
+          className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(11,11,12,0.38),rgba(11,11,12,0.58)_48%,rgba(11,11,12,0.92))]"
         />
         <div className="mx-auto grid w-full max-w-6xl justify-items-center text-center">
           <p className="mb-5 inline-flex rounded-md border border-white/20 bg-white/10 px-3 py-1 text-sm font-black text-white/90 shadow-sm backdrop-blur-md">
@@ -96,16 +96,16 @@ export default async function HomePage() {
         ) : null}
       </section>
 
-      <section id="home-content" className="bg-white/50 pb-8 pt-0 dark:bg-slate-950/25">
+      <section id="home-content" className="bg-white/50 pb-8 pt-0 dark:bg-[var(--bg)]">
         <div className="mx-auto grid max-w-6xl gap-4 px-4 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-sm font-black text-ocean dark:text-sky-300">Welcome</p>
-            <p className="mt-2 max-w-3xl text-base font-semibold leading-8 text-ink/70 dark:text-slate-300">
+            <p className="text-sm font-black text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]">Welcome</p>
+            <p className="mt-2 max-w-3xl text-base font-semibold leading-8 text-ink/70 dark:text-[var(--text-secondary)]">
               {config.home_notice_text ||
                 "欢迎来到技术札记。这里把排障现场、部署经验、自动化脚本和后端学习沉淀成可复用的个人知识库。"}
             </p>
           </div>
-          <Link href="/about" className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white hover:bg-ocean dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300">
+          <Link href="/about" className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white hover:bg-ocean dark:bg-[var(--primary)] dark:text-[var(--bg)]">
             关于本站
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
@@ -123,10 +123,10 @@ export default async function HomePage() {
             ].map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.label} className="rounded-lg border border-ink/10 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/70">
-                  <Icon className="h-5 w-5 text-ocean dark:text-sky-300" aria-hidden="true" />
-                  <p className="mt-4 text-3xl font-black text-ink dark:text-slate-100">{item.value}</p>
-                  <p className="mt-1 text-sm font-bold text-ink/55 dark:text-slate-400">{item.label}</p>
+                <div key={item.label} className="rounded-lg border border-ink/10 bg-white/80 p-5 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]">
+                  <Icon className="h-5 w-5 text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" aria-hidden="true" />
+                  <p className="mt-4 text-3xl font-black text-ink dark:text-[var(--text)]">{item.value}</p>
+                  <p className="mt-1 text-sm font-bold text-ink/55 dark:text-[var(--text-muted)]">{item.label}</p>
                 </div>
               );
             })}
@@ -134,12 +134,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white/45 py-12 dark:bg-slate-950/20">
+      <section className="bg-white/45 py-12 dark:bg-[var(--bg-soft)]">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 lg:grid-cols-[1fr_0.82fr]">
           <div>
             <div className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black text-ink dark:text-slate-100">最新文章</h2>
-              <Link href="/posts" className="text-sm font-bold text-ocean hover:text-ink dark:text-sky-300 dark:hover:text-white">
+              <h2 className="text-2xl font-black text-ink dark:text-[var(--text)]">最新文章</h2>
+              <Link href="/posts" className="text-sm font-bold text-ocean hover:text-ink dark:text-[color-mix(in_srgb,var(--primary)_78%,white)] dark:hover:text-[var(--text)]">
                 查看全部
               </Link>
             </div>
@@ -152,8 +152,8 @@ export default async function HomePage() {
 
           <div>
             <div className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black text-ink dark:text-slate-100">最新知识库</h2>
-              <Link href="/docs" className="text-sm font-bold text-ocean hover:text-ink dark:text-sky-300 dark:hover:text-white">
+              <h2 className="text-2xl font-black text-ink dark:text-[var(--text)]">最新知识库</h2>
+              <Link href="/docs" className="text-sm font-bold text-ocean hover:text-ink dark:text-[color-mix(in_srgb,var(--primary)_78%,white)] dark:hover:text-[var(--text)]">
                 进入知识库
               </Link>
             </div>
@@ -162,12 +162,12 @@ export default async function HomePage() {
                 <Link
                   key={post.id}
                   href={`/docs/${post.slug}`}
-                  className="interactive-card rounded-lg border border-ink/10 bg-white/80 p-5 shadow-sm hover:shadow-soft dark:border-white/10 dark:bg-slate-950/70"
+                  className="interactive-card rounded-lg border border-ink/10 bg-white/80 p-5 shadow-sm hover:shadow-soft dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]"
                 >
-                  <p className="text-xs font-black text-ocean dark:text-sky-300">{post.category?.name ?? "未分类"}</p>
-                  <h3 className="mt-2 line-clamp-2 text-lg font-black leading-snug text-ink dark:text-slate-100">{post.title}</h3>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink/60 dark:text-slate-300">{post.summary}</p>
-                  <p className="mt-4 text-xs font-bold text-ink/45 dark:text-slate-500">更新于 {formatDate(post.updated_at)}</p>
+                  <p className="text-xs font-black text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]">{post.category?.name ?? "未分类"}</p>
+                  <h3 className="mt-2 line-clamp-2 text-lg font-black leading-snug text-ink dark:text-[var(--text)]">{post.title}</h3>
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink/60 dark:text-[var(--text-secondary)]">{post.summary}</p>
+                  <p className="mt-4 text-xs font-bold text-ink/45 dark:text-[var(--text-muted)]">更新于 {formatDate(post.updated_at)}</p>
                 </Link>
               ))}
             </div>
@@ -178,7 +178,7 @@ export default async function HomePage() {
       <section className="py-12">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 lg:grid-cols-[1fr_1fr]">
           <div>
-            <h2 className="mb-5 flex items-center gap-2 text-2xl font-black text-ink dark:text-slate-100">
+            <h2 className="mb-5 flex items-center gap-2 text-2xl font-black text-ink dark:text-[var(--text)]">
               <Folder className="h-6 w-6 text-moss" aria-hidden="true" />
               分类入口
             </h2>
@@ -187,24 +187,24 @@ export default async function HomePage() {
                 <Link
                   key={category.id}
                   href={`/categories/${category.slug}`}
-                  className="interactive-card rounded-lg border border-ink/10 bg-white/80 p-4 shadow-sm hover:shadow-soft dark:border-white/10 dark:bg-slate-950/70"
+                  className="interactive-card rounded-lg border border-ink/10 bg-white/80 p-4 shadow-sm hover:shadow-soft dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]"
                 >
                   <span className="flex items-center justify-between gap-3">
-                    <span className="font-black text-ink dark:text-slate-100">{category.name}</span>
-                    <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/45 dark:bg-white/10 dark:text-slate-400">{category.post_count ?? 0}</span>
+                    <span className="font-black text-ink dark:text-[var(--text)]">{category.name}</span>
+                    <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/45 dark:bg-[var(--surface-soft)] dark:text-[var(--text-muted)]">{category.post_count ?? 0}</span>
                   </span>
-                  {category.description ? <span className="mt-2 block line-clamp-2 text-sm leading-6 text-ink/60 dark:text-slate-300">{category.description}</span> : null}
+                  {category.description ? <span className="mt-2 block line-clamp-2 text-sm leading-6 text-ink/60 dark:text-[var(--text-secondary)]">{category.description}</span> : null}
                 </Link>
               ))}
             </div>
           </div>
 
           <div>
-            <h2 className="mb-5 flex items-center gap-2 text-2xl font-black text-ink dark:text-slate-100">
+            <h2 className="mb-5 flex items-center gap-2 text-2xl font-black text-ink dark:text-[var(--text)]">
               <Database className="h-6 w-6 text-clay dark:text-amber-300" aria-hidden="true" />
               知识库入口
             </h2>
-            <div className="rounded-lg border border-ink/10 bg-ink p-6 text-white shadow-soft dark:border-white/10 dark:bg-slate-950">
+            <div className="rounded-lg border border-ink/10 bg-ink p-6 text-white shadow-soft dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]">
               <p className="text-sm font-bold text-white/62">Docs</p>
               <h3 className="mt-2 text-2xl font-black">按主题连续阅读和回查</h3>
               <p className="mt-4 leading-8 text-white/70">

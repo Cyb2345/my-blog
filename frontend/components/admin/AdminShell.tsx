@@ -276,17 +276,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-screen place-items-center bg-paper text-ink dark:bg-slate-950 dark:text-slate-200">
+      <div className="grid min-h-screen place-items-center bg-paper text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]">
         正在检查登录状态...
       </div>
     );
   }
 
   return (
-    <div className="admin-shell min-h-screen bg-[#f5f7fb] text-ink dark:bg-slate-950 dark:text-slate-200">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto border-r border-ink/10 bg-white dark:border-white/10 dark:bg-slate-900 md:block">
-        <Link href="/admin/dashboard" className="interactive flex h-[72px] items-center gap-3 border-b border-ink/10 px-5 font-black dark:border-white/10">
-          <span className="grid h-10 w-10 place-items-center rounded-md bg-ocean text-white dark:bg-sky-400 dark:text-slate-950">B</span>
+    <div className="admin-shell min-h-screen bg-[#f5f7fb] text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto border-r border-ink/10 bg-white dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
+        <Link href="/admin/dashboard" className="interactive flex h-[72px] items-center gap-3 border-b border-ink/10 px-5 font-black dark:border-[var(--border-soft)]">
+          <span className="grid h-10 w-10 place-items-center rounded-md bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]">B</span>
           <span>博客管理系统</span>
         </Link>
         <nav className="py-3">
@@ -304,8 +304,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   href={section.href}
                   aria-current={activeSection ? "page" : undefined}
                   className={cn(
-                    "interactive mx-2 flex min-h-12 items-center gap-3 rounded-md px-4 text-sm font-bold text-ink/75 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-sky-200",
-                    activeSection && "bg-[#eef3ff] text-blue-600 dark:bg-sky-400/10 dark:text-sky-200",
+                    "interactive mx-2 flex min-h-12 items-center gap-3 rounded-md px-4 text-sm font-bold text-ink/75 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                    activeSection && "bg-[#eef3ff] text-blue-600 dark:bg-[var(--active)] dark:text-[var(--text)]",
                   )}
                 >
                   <SectionIcon className="h-5 w-5" aria-hidden="true" />
@@ -320,8 +320,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   type="button"
                   onClick={() => setOpenSections((state) => ({ ...state, [section.label]: !open }))}
                   className={cn(
-                    "interactive mx-2 flex min-h-12 w-[calc(100%-1rem)] items-center gap-3 rounded-md px-4 text-left text-sm font-bold text-ink/75 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-sky-200",
-                    activeSection && "bg-[#eef3ff] text-blue-600 dark:bg-sky-400/10 dark:text-sky-200",
+                    "interactive mx-2 flex min-h-12 w-[calc(100%-1rem)] items-center gap-3 rounded-md px-4 text-left text-sm font-bold text-ink/75 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                    activeSection && "bg-[#eef3ff] text-blue-600 dark:bg-[var(--active)] dark:text-[var(--text)]",
                   )}
                   aria-expanded={open}
                 >
@@ -350,8 +350,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
                               href={item.href}
                               aria-current={active ? "page" : undefined}
                               className={cn(
-                                "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-bold text-ink/65 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-sky-200",
-                                active && "bg-blue-50 text-blue-600 dark:bg-sky-400/10 dark:text-sky-200",
+                                "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-bold text-ink/65 hover:bg-[#eef3ff] hover:text-blue-600 dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                                active && "bg-blue-50 text-blue-600 dark:bg-[var(--active)] dark:text-[var(--text)]",
                               )}
                             >
                               <ItemIcon className="h-4 w-4" aria-hidden="true" />
@@ -369,14 +369,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </nav>
       </aside>
       <div className="md:pl-64">
-        <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
+        <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/90 backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_92%,transparent)]">
           <div className="flex h-[72px] items-center justify-between gap-3 px-4 md:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <Menu className="h-5 w-5 shrink-0 text-ink/50 dark:text-slate-400 md:hidden" aria-hidden="true" />
-              <RefreshCw className="hidden h-5 w-5 shrink-0 text-ink/45 dark:text-slate-500 md:block" aria-hidden="true" />
-              <div className="hidden min-w-0 items-center gap-2 text-sm font-bold text-ink/65 dark:text-slate-400 md:flex">
+              <Menu className="h-5 w-5 shrink-0 text-ink/50 dark:text-[var(--text-muted)] md:hidden" aria-hidden="true" />
+              <RefreshCw className="hidden h-5 w-5 shrink-0 text-ink/45 dark:text-[var(--text-muted)] md:block" aria-hidden="true" />
+              <div className="hidden min-w-0 items-center gap-2 text-sm font-bold text-ink/65 dark:text-[var(--text-muted)] md:flex">
                 {breadcrumb.map((item, index) => (
-                  <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "truncate text-ink dark:text-slate-200" : "text-ink/55 dark:text-slate-500"}>
+                  <span key={`${item}-${index}`} className={index === breadcrumb.length - 1 ? "truncate text-ink dark:text-[var(--text)]" : "text-ink/55 dark:text-[var(--text-muted)]"}>
                     {index ? " / " : ""}
                     {item}
                   </span>
@@ -393,7 +393,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "interactive whitespace-nowrap rounded-md px-3 py-2 text-sm font-bold",
-                      active ? "bg-ink text-white dark:bg-sky-400 dark:text-slate-950" : "bg-paper text-ink/65 dark:bg-white/10 dark:text-slate-300",
+                      active ? "bg-ink text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]" : "bg-paper text-ink/65 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
                     )}
                   >
                     {label}
@@ -404,7 +404,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div className="ml-auto flex items-center gap-2">
               <Link
                 href="/"
-                className="interactive hidden min-h-10 items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15 sm:inline-flex"
+                className="interactive hidden min-h-10 items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink hover:bg-white dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:hover:bg-[var(--hover)] sm:inline-flex"
               >
                 <Home className="h-4 w-4" aria-hidden="true" />
                 返回首页
@@ -413,7 +413,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={logout}
-                className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink hover:bg-ink hover:text-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-sky-400 dark:hover:text-slate-950"
+                className="interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink hover:bg-ink hover:text-white dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:hover:bg-[var(--primary)] dark:hover:text-[var(--bg)]"
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 退出

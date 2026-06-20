@@ -8,9 +8,9 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  primary: "bg-ink text-white hover:bg-ocean dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300",
-  ghost: "bg-white/70 text-ink ring-1 ring-ink/10 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:ring-white/10 dark:hover:bg-white/10",
-  danger: "bg-clay text-white hover:bg-red-700 dark:bg-rose-500 dark:hover:bg-rose-400",
+  primary: "bg-ink text-white hover:bg-ocean dark:bg-[var(--primary)] dark:text-[var(--bg)] dark:hover:bg-[color-mix(in_srgb,var(--primary)_84%,white)]",
+  ghost: "bg-white/70 text-ink ring-1 ring-ink/10 hover:bg-white dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:ring-[var(--border-soft)] dark:hover:bg-[var(--hover)]",
+  danger: "bg-clay text-white hover:bg-red-700 dark:bg-[var(--danger)] dark:text-white dark:hover:bg-[color-mix(in_srgb,var(--danger)_84%,white)]",
 };
 
 export function Button({ className, variant = "primary", type = "button", ...props }: ButtonProps) {

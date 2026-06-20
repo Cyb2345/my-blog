@@ -158,17 +158,17 @@ export function DateTimePicker({
         className={cn(
           "flex min-h-10 w-full items-center justify-between gap-3 rounded-md border border-ink/10 bg-white px-3 py-2 text-left text-sm font-bold text-ink outline-none transition-colors duration-150",
           "hover:border-ocean/40 focus-visible:border-ocean focus-visible:ring-2 focus-visible:ring-ocean/20",
-          "disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-sky-300/40",
-          !value && "text-ink/45 dark:text-slate-500",
+          "disabled:cursor-not-allowed disabled:opacity-60 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)] dark:hover:border-[var(--border)]",
+          !value && "text-ink/45 dark:text-[var(--text-muted)]",
         )}
       >
         <span className="truncate">{displayValue(value) || placeholder}</span>
-        <CalendarDays className="h-4 w-4 shrink-0 text-ink/45 dark:text-slate-400" aria-hidden="true" />
+        <CalendarDays className="h-4 w-4 shrink-0 text-ink/45 dark:text-[var(--text-muted)]" aria-hidden="true" />
       </button>
 
       <div
         className={cn(
-          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(22rem,calc(100vw-2rem))] origin-top-left rounded-lg border border-ink/10 bg-white p-3 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(22rem,calc(100vw-2rem))] origin-top-left rounded-lg border border-ink/10 bg-white p-3 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
           open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
       >
@@ -176,25 +176,25 @@ export function DateTimePicker({
           <button
             type="button"
             onClick={() => updateMonth(-1)}
-            className="interactive grid h-9 w-9 place-items-center rounded-md bg-paper text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+            className="interactive grid h-9 w-9 place-items-center rounded-md bg-paper text-ink/65 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             aria-label="上个月"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
-          <div className="text-sm font-black text-ink dark:text-slate-100">
+          <div className="text-sm font-black text-ink dark:text-[var(--text)]">
             {viewYear} 年 {viewMonth} 月
           </div>
           <button
             type="button"
             onClick={() => updateMonth(1)}
-            className="interactive grid h-9 w-9 place-items-center rounded-md bg-paper text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+            className="interactive grid h-9 w-9 place-items-center rounded-md bg-paper text-ink/65 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             aria-label="下个月"
           >
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-black text-ink/45 dark:text-slate-500">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-black text-ink/45 dark:text-[var(--text-muted)]">
           {weekDays.map((item) => (
             <span key={item} className="py-1">{item}</span>
           ))}
@@ -210,8 +210,8 @@ export function DateTimePicker({
                 className={cn(
                   "interactive h-9 rounded-md text-sm font-black transition-colors duration-150",
                   active
-                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
-                    : "bg-paper/60 text-ink/70 hover:bg-ocean/10 hover:text-ocean dark:bg-white/5 dark:text-slate-300 dark:hover:bg-sky-400/10 dark:hover:text-sky-200",
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+                    : "bg-paper/60 text-ink/70 hover:bg-ocean/10 hover:text-ocean dark:bg-[var(--surface)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
                 )}
               >
                 {day}
@@ -222,8 +222,8 @@ export function DateTimePicker({
           })}
         </div>
 
-        <div className="mt-3 grid gap-2 rounded-md bg-paper p-3 dark:bg-slate-950">
-          <div className="flex items-center gap-2 text-xs font-black text-ink/50 dark:text-slate-500">
+        <div className="mt-3 grid gap-2 rounded-md bg-paper p-3 dark:bg-[var(--bg-soft)]">
+          <div className="flex items-center gap-2 text-xs font-black text-ink/50 dark:text-[var(--text-muted)]">
             <Clock className="h-4 w-4" aria-hidden="true" />
             时间
           </div>
@@ -233,12 +233,12 @@ export function DateTimePicker({
               ["minute", "分", minuteOptions],
               ["second", "秒", minuteOptions],
             ].map(([key, label, options]) => (
-              <label key={key as string} className="grid gap-1 text-xs font-bold text-ink/50 dark:text-slate-400">
+              <label key={key as string} className="grid gap-1 text-xs font-bold text-ink/50 dark:text-[var(--text-muted)]">
                 {label as string}
                 <select
                   value={(selected ?? base)[key as keyof Pick<DateParts, "hour" | "minute" | "second">]}
                   onChange={(event) => updateParts({ [key as string]: Number(event.target.value) } as Partial<DateParts>)}
-                  className="h-9 rounded-md border border-ink/10 bg-white px-2 text-sm font-bold text-ink outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                  className="h-9 rounded-md border border-ink/10 bg-white px-2 text-sm font-bold text-ink outline-none dark:border-[var(--border-soft)] dark:bg-[var(--surface)] dark:text-[var(--text)]"
                 >
                   {(options as number[]).map((option) => (
                     <option key={option} value={option}>{pad(option)}</option>
@@ -253,7 +253,7 @@ export function DateTimePicker({
           <button
             type="button"
             onClick={selectToday}
-            className="interactive min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+            className="interactive min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
           >
             此刻
           </button>
@@ -261,7 +261,7 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={() => onChange("")}
-              className="interactive inline-flex min-h-9 items-center gap-1 rounded-md bg-paper px-3 text-sm font-black text-ink/55 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+              className="interactive inline-flex min-h-9 items-center gap-1 rounded-md bg-paper px-3 text-sm font-black text-ink/55 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             >
               <X className="h-4 w-4" aria-hidden="true" />
               清空
@@ -269,7 +269,7 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="interactive min-h-9 rounded-md bg-ocean px-3 text-sm font-black text-white dark:bg-sky-400 dark:text-slate-950"
+              className="interactive min-h-9 rounded-md bg-ocean px-3 text-sm font-black text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
             >
               完成
             </button>

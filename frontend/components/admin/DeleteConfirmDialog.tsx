@@ -53,7 +53,7 @@ export function DeleteConfirmDialog({
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-rose-500/15 dark:text-rose-200">
             <AlertTriangle className="h-6 w-6" aria-hidden="true" />
           </span>
-          <p className="text-base font-black text-ink dark:text-slate-100">{description}</p>
+          <p className="text-base font-black text-ink dark:text-[var(--text)]">{description}</p>
         </div>
       </div>
     </AdminModal>

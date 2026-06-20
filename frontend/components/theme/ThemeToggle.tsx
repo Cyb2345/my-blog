@@ -131,7 +131,7 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
       <button
         type="button"
         className={cn(
-          "interactive grid h-10 w-10 place-items-center rounded-md bg-white/80 text-ink shadow-sm ring-1 ring-ink/10 hover:text-ocean disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:bg-white/10 dark:text-slate-200 dark:ring-white/10 dark:hover:text-sky-300",
+          "interactive grid h-10 w-10 place-items-center rounded-md bg-white/80 text-ink shadow-sm ring-1 ring-ink/10 hover:text-ocean disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:ring-[var(--border-soft)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
           hero && "bg-white/10 text-white ring-white/20 hover:bg-white/20 hover:text-white dark:bg-white/10 dark:text-white dark:ring-white/20 dark:hover:text-white",
           !compact && "md:h-10 md:w-10",
         )}

@@ -120,7 +120,7 @@ function ToolPopover({
   return (
     <div
       className={cn(
-        "absolute right-0 top-[calc(100%+0.5rem)] z-40 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
+        "absolute right-0 top-[calc(100%+0.5rem)] z-40 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
         open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         className,
       )}
@@ -148,8 +148,8 @@ function ToolIconButton({
       className={cn(
         "interactive grid h-10 w-10 place-items-center rounded-md transition-all duration-200",
         active
-          ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
-          : "bg-paper text-ink/55 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
+          ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+          : "bg-paper text-ink/55 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:hover:text-[var(--text)]",
       )}
       aria-label={label}
       title={label}
@@ -180,7 +180,7 @@ export function TableDensitySelector({
           }}
           className={cn(
             "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-            settings.density === option.value ? "bg-ocean/10 text-ocean dark:bg-sky-400/15 dark:text-sky-200" : "text-ink/65 dark:text-slate-300",
+            settings.density === option.value ? "bg-ocean/10 text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/65 dark:text-[var(--text-secondary)]",
           )}
         >
           {option.label}
@@ -209,7 +209,7 @@ export function ColumnVisibilityPopover({
             key={column.key}
             className={cn(
               "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-              checked ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
+              checked ? "text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/60 dark:text-[var(--text-muted)]",
               column.locked && "opacity-80",
             )}
           >
@@ -235,7 +235,7 @@ export function ColumnVisibilityPopover({
       <button
         type="button"
         onClick={() => onSettingsChange((current) => ({ ...current, visibleColumns: columns.map((column) => column.key) }))}
-        className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-white/10 dark:text-slate-300"
+        className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
       >
         恢复默认列
       </button>
@@ -261,7 +261,7 @@ export function TableStyleSettings({
           key={option.key}
           className={cn(
             "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-            settings[option.key] ? "text-ocean dark:text-sky-200" : "text-ink/60 dark:text-slate-400",
+            settings[option.key] ? "text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/60 dark:text-[var(--text-muted)]",
           )}
         >
           <input

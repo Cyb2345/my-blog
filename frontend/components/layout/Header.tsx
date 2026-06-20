@@ -112,7 +112,7 @@ export function Header() {
           type="button"
           onClick={() => setUserMenuOpen((value) => !value)}
           className={cn(
-            "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-ink shadow-sm dark:bg-white/10 dark:text-slate-200",
+            "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-ink shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
             isHome && "bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 dark:bg-white/10 dark:text-white",
           )}
           aria-label="打开用户菜单"
@@ -126,7 +126,7 @@ export function Header() {
             <Link
               href="/admin"
               onClick={() => setUserMenuOpen(false)}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold text-ink/70 hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold text-ink/70 hover:bg-paper dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)]"
             >
               <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
               进入后台
@@ -134,7 +134,7 @@ export function Header() {
             <button
               type="button"
               onClick={logout}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-bold text-ink/70 hover:bg-paper dark:text-slate-300 dark:hover:bg-white/10"
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-bold text-ink/70 hover:bg-paper dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)]"
             >
               <LogOut className="h-4 w-4" aria-hidden="true" />
               退出登录
@@ -146,7 +146,7 @@ export function Header() {
       <Link
         href="/admin/login"
         className={cn(
-          "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-ink shadow-sm hover:text-ocean dark:bg-white/10 dark:text-slate-200 dark:hover:text-sky-300",
+          "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-ink shadow-sm hover:text-ocean dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
           isHome && "bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 hover:text-white dark:bg-white/10 dark:text-white dark:hover:text-white",
         )}
       >
@@ -160,15 +160,15 @@ export function Header() {
     <header className={cn(
       "site-header top-0 z-50 border-b backdrop-blur-xl",
       isHome
-        ? "fixed border-white/20 bg-slate-950/20 text-white"
-        : "sticky border-ink/10 bg-paper/85 dark:border-white/10 dark:bg-slate-950/80",
+        ? "fixed border-white/20 bg-black/25 text-white"
+        : "sticky border-ink/10 bg-paper/85 dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--bg-soft)_88%,transparent)]",
     )}>
       <div className="site-shell flex items-center justify-between py-3">
-        <Link href="/" className={cn("interactive flex items-center gap-3 font-black text-ink dark:text-slate-100", isHome && "text-white dark:text-white")}>
-          <span className={cn("grid h-10 w-10 place-items-center rounded-md bg-ink text-white dark:bg-sky-400 dark:text-slate-950", isHome && "bg-white/10 text-white ring-1 ring-white/20 dark:bg-white/10 dark:text-white")}>B</span>
+        <Link href="/" className={cn("interactive flex items-center gap-3 font-black text-ink dark:text-[var(--text)]", isHome && "text-white dark:text-white")}>
+          <span className={cn("grid h-10 w-10 place-items-center rounded-md bg-ink text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]", isHome && "bg-white/10 text-white ring-1 ring-white/20 dark:bg-white/10 dark:text-white")}>B</span>
           <span className="leading-tight">
             {siteConfig.site_name ?? "技术札记"}
-            <span className={cn("block text-xs font-medium text-ink/55 dark:text-slate-400", isHome && "text-white/65 dark:text-white/65")}>{siteConfig.site_subtitle ?? "Ops, DevOps, Python"}</span>
+            <span className={cn("block text-xs font-medium text-ink/55 dark:text-[var(--text-muted)]", isHome && "text-white/65 dark:text-white/65")}>{siteConfig.site_subtitle ?? "Ops, DevOps, Python"}</span>
           </span>
         </Link>
 
@@ -184,8 +184,8 @@ export function Header() {
                 target={item.target === "blank" ? "_blank" : undefined}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "interactive rounded-md px-3 py-2 text-sm font-semibold text-ink/70 hover:bg-white hover:text-ink dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
-                  active && "bg-white text-ink shadow-sm dark:bg-white/10 dark:text-white",
+                  "interactive rounded-md px-3 py-2 text-sm font-semibold text-ink/70 hover:bg-white hover:text-ink dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                  active && "bg-white text-ink shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
                   isHome && "text-white/80 hover:bg-white/10 hover:text-white dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white",
                   isHome && active && "bg-white/10 text-white shadow-sm dark:bg-white/10 dark:text-white",
                 )}
@@ -197,7 +197,7 @@ export function Header() {
           <Link
             href="/search"
             className={cn(
-              "interactive ml-2 grid h-10 w-10 place-items-center rounded-md bg-white text-ink/70 shadow-sm hover:text-ocean dark:bg-white/10 dark:text-slate-300 dark:hover:text-sky-300",
+              "interactive ml-2 grid h-10 w-10 place-items-center rounded-md bg-white text-ink/70 shadow-sm hover:text-ocean dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
               isHome && "bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 hover:text-white dark:bg-white/10 dark:text-white dark:hover:text-white",
             )}
             aria-label="搜索"
@@ -215,7 +215,7 @@ export function Header() {
           <button
             type="button"
             className={cn(
-              "interactive grid h-10 w-10 place-items-center rounded-md bg-white text-ink shadow-sm dark:bg-white/10 dark:text-slate-200",
+              "interactive grid h-10 w-10 place-items-center rounded-md bg-white text-ink shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
               isHome && "bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 dark:bg-white/10 dark:text-white",
             )}
             onClick={() => setOpen((value) => !value)}
@@ -228,7 +228,7 @@ export function Header() {
       </div>
 
       <div className={cn("mobile-menu-shell md:hidden", open && "mobile-menu-shell--open")}>
-        <nav className="border-t border-ink/10 bg-paper py-3 dark:border-white/10 dark:bg-slate-950">
+        <nav className="border-t border-ink/10 bg-paper py-3 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
           <div className="motion-list site-shell grid grid-cols-2 gap-2">
             {navItems.map((item) => {
               const { label, href } = item;
@@ -242,8 +242,8 @@ export function Header() {
                   aria-current={active ? "page" : undefined}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "interactive rounded-md bg-white/70 px-3 py-3 text-sm font-semibold text-ink/75 dark:bg-white/10 dark:text-slate-300",
-                    active && "bg-ink text-white dark:bg-sky-400 dark:text-slate-950",
+                    "interactive rounded-md bg-white/70 px-3 py-3 text-sm font-semibold text-ink/75 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
+                    active && "bg-ink text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]",
                   )}
                 >
                   {label}
@@ -253,7 +253,7 @@ export function Header() {
             <Link
               href="/search"
               onClick={() => setOpen(false)}
-              className="interactive rounded-md bg-white/70 px-3 py-3 text-sm font-semibold text-ink/75 dark:bg-white/10 dark:text-slate-300"
+              className="interactive rounded-md bg-white/70 px-3 py-3 text-sm font-semibold text-ink/75 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             >
               搜索
             </Link>
