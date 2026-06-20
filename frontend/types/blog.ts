@@ -104,9 +104,16 @@ export type AdminUser = {
   email?: string | null;
   nickname: string;
   avatar?: string | null;
-  role: "admin" | "editor";
+  role: string;
   is_active: boolean;
   mfa_enabled: boolean;
+  login_method?: string | null;
+  login_ip?: string | null;
+  last_login_ip?: string | null;
+  login_location?: string | null;
+  last_login_location?: string | null;
+  phone?: string | null;
+  gender?: string | null;
   last_login_at?: string | null;
   created_at: string;
   updated_at: string;

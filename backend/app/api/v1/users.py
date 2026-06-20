@@ -1,5 +1,8 @@
+from math import ceil
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_, select
+from pydantic import BaseModel, Field
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -29,8 +32,21 @@ router = APIRouter(
 )
 
 
+class BatchDeleteUsersRequest(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+
+
 def _read(user: User) -> AdminUserRead:
     return AdminUserRead.model_validate(user)
+
+
+def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": ceil(total / page_size) if total else 1,
+    }
 
 
 def _password_or_400(password: str) -> None:
@@ -41,9 +57,51 @@ def _password_or_400(password: str) -> None:
 
 
 @router.get("")
-def list_users(db: Session = Depends(get_db)):
-    users = db.scalars(select(User).order_by(User.created_at.desc(), User.id.desc())).all()
-    return ok([_read(user) for user in users])
+def list_users(
+    username: str | None = None,
+    login_method: str | None = None,
+    status: str | None = None,
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+):
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    statement = select(User)
+    count_statement = select(func.count(User.id))
+    conditions = []
+    if username:
+        pattern = f"%{username.strip()}%"
+        conditions.append(
+            or_(
+                User.username.ilike(pattern),
+                User.nickname.ilike(pattern),
+                User.email.ilike(pattern),
+            )
+        )
+    if login_method and login_method not in {"local", "local_account", "本地账号"}:
+        conditions.append(User.id == -1)
+    if status in {"active", "enabled", "启用", "true", "1"}:
+        conditions.append(User.is_active.is_(True))
+    elif status in {"inactive", "disabled", "禁用", "false", "0"}:
+        conditions.append(User.is_active.is_(False))
+    for condition in conditions:
+        statement = statement.where(condition)
+        count_statement = count_statement.where(condition)
+    total = db.scalar(count_statement) or 0
+    pages = ceil(total / page_size) if total else 1
+    page = min(page, pages)
+    users = db.scalars(
+        statement.order_by(User.created_at.desc(), User.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return ok(
+        {
+            "items": [_read(user) for user in users],
+            **_paginate(total, page, page_size),
+        }
+    )
 
 
 @router.post("")
@@ -94,6 +152,49 @@ def update_user(user_id: int, payload: AdminUserUpdate, db: Session = Depends(ge
     return ok(_read(user))
 
 
+def _guard_user_delete(db: Session, current_user: User, users: list[User]) -> None:
+    if any(user.id == current_user.id for user in users):
+        raise HTTPException(status_code=400, detail="不允许删除当前登录用户")
+    admin_ids = [user.id for user in users if user.role == "admin"]
+    if not admin_ids:
+        return
+    admin_count = db.scalar(select(func.count(User.id)).where(User.role == "admin")) or 0
+    if admin_count <= len(set(admin_ids)):
+        raise HTTPException(status_code=400, detail="至少需要保留一个管理员账号")
+
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    _guard_user_delete(db, current_user, [user])
+    db.delete(user)
+    db.commit()
+    return ok({"deleted": 1})
+
+
+@router.post("/batch-delete")
+def batch_delete_users(
+    payload: BatchDeleteUsersRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    ids = sorted({item for item in payload.ids if item > 0})
+    if not ids:
+        raise HTTPException(status_code=400, detail="请选择要删除的用户")
+    users = db.scalars(select(User).where(User.id.in_(ids))).all()
+    _guard_user_delete(db, current_user, list(users))
+    for user in users:
+        db.delete(user)
+    db.commit()
+    return ok({"deleted": len(users)})
+
+
 @router.post("/{user_id}/enable")
 def enable_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
@@ -140,8 +241,6 @@ def setup_mfa(user_id: int, db: Session = Depends(get_db)):
     uri = provisioning_uri(secret, user.username)
     return ok(
         MfaSetupResponse(
-            secret=secret,
-            provisioning_uri=uri,
             qr_code_data_url=qr_code_data_url(uri),
         )
     )

@@ -47,6 +47,4 @@ class MfaCodeRequest(BaseModel):
 
 
 class MfaSetupResponse(BaseModel):
-    secret: str
-    provisioning_uri: str
     qr_code_data_url: str
