@@ -8,12 +8,16 @@ from app.core.config import get_settings
 from app.core.deps import get_current_user, get_db
 from app.core.rate_limit import get_client_ip, rate_limiter
 from app.core.security import create_access_token
-from app.models.admin_system import SystemParam
 from app.models.user import User
 from app.schemas.auth import LoginRequest, MfaVerifyRequest, UserRead
 from app.services.auth_service import authenticate_user
 from app.services.captcha_service import create_captcha, validate_captcha
 from app.services.login_security_service import login_security
+from app.services.system_param_service import (
+    get_bool_param,
+    get_cached_int_param,
+    reload_params_cache,
+)
 from app.services.totp_service import decrypt_totp_secret, verify_totp
 from app.utils.response import ok
 
@@ -26,17 +30,17 @@ def authenticate_user_by_username(db: Session, username: str) -> User | None:
 
 
 def is_system_mfa_enabled(db: Session) -> bool:
-    value = db.scalar(select(SystemParam.value).where(SystemParam.key == "sys_mfa_enabled"))
-    return str(value or "N").strip().lower() in {"1", "true", "yes", "y", "on"}
+    return get_bool_param(db, "sys_mfa_enabled", False)
 
 
 @router.get("/captcha")
-def captcha(request: Request):
+def captcha(request: Request, db: Session = Depends(get_db)):
     settings = get_settings()
+    reload_params_cache(db)
     ip = get_client_ip(request)
     rate_limiter.check(
         key=f"captcha:ip:{ip}",
-        limit=settings.CAPTCHA_RATE_LIMIT_PER_MINUTE,
+        limit=get_cached_int_param("captcha_rate_limit_per_minute", settings.CAPTCHA_RATE_LIMIT_PER_MINUTE),
         window_seconds=60,
         message="验证码请求过于频繁，请稍后再试",
     )
@@ -46,10 +50,11 @@ def captcha(request: Request):
 @router.post("/login")
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     settings = get_settings()
+    reload_params_cache(db)
     ip = get_client_ip(request)
     rate_limiter.check(
         key=f"login:ip:{ip}",
-        limit=settings.LOGIN_RATE_LIMIT_PER_MINUTE,
+        limit=get_cached_int_param("login_rate_limit_per_minute", settings.LOGIN_RATE_LIMIT_PER_MINUTE),
         window_seconds=60,
         message="登录请求过于频繁，请稍后再试",
     )
@@ -87,12 +92,13 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 
 
 @router.post("/mfa/verify")
-def verify_mfa(payload: MfaVerifyRequest, request: Request):
+def verify_mfa(payload: MfaVerifyRequest, request: Request, db: Session = Depends(get_db)):
     settings = get_settings()
+    reload_params_cache(db)
     ip = get_client_ip(request)
     rate_limiter.check(
         key=f"mfa:ip:{ip}",
-        limit=settings.MFA_RATE_LIMIT_PER_MINUTE,
+        limit=get_cached_int_param("mfa_rate_limit_per_minute", settings.MFA_RATE_LIMIT_PER_MINUTE),
         window_seconds=60,
         message="MFA 验证请求过于频繁，请稍后再试",
     )

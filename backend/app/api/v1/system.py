@@ -10,10 +10,17 @@ from app.core.deps import get_db, require_admin
 from app.models.admin_system import SystemParam
 from app.models.user import User
 from app.schemas.admin_system import (
+    BatchDeleteRequest,
     RoleRead,
     SystemParamCreate,
     SystemParamRead,
     SystemParamUpdate,
+)
+from app.services.system_param_service import (
+    MASKED_VALUE,
+    is_sensitive_param_key,
+    mask_param_value,
+    reload_params_cache,
 )
 from app.utils.response import ok
 
@@ -135,6 +142,12 @@ def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
     }
 
 
+def _read_param(param: SystemParam) -> SystemParamRead:
+    return SystemParamRead.model_validate(param).model_copy(
+        update={"value": mask_param_value(param.key, param.value)}
+    )
+
+
 @router.get("/roles")
 def list_roles(db: Session = Depends(get_db)):
     counts = dict(
@@ -164,8 +177,11 @@ def list_roles(db: Session = Depends(get_db)):
 @router.get("/params")
 def list_params(
     keyword: str | None = None,
+    name: str | None = None,
+    key: str | None = None,
+    is_system: bool | None = None,
     page: int = 1,
-    page_size: int = 20,
+    page_size: int = 10,
     db: Session = Depends(get_db),
 ):
     _ensure_params(db)
@@ -183,7 +199,23 @@ def list_params(
         )
         statement = statement.where(condition)
         count_statement = count_statement.where(condition)
+    if name:
+        pattern = f"%{name.strip()}%"
+        condition = SystemParam.name.ilike(pattern)
+        statement = statement.where(condition)
+        count_statement = count_statement.where(condition)
+    if key:
+        pattern = f"%{key.strip()}%"
+        condition = SystemParam.key.ilike(pattern)
+        statement = statement.where(condition)
+        count_statement = count_statement.where(condition)
+    if is_system is not None:
+        condition = SystemParam.is_system.is_(is_system)
+        statement = statement.where(condition)
+        count_statement = count_statement.where(condition)
     total = db.scalar(count_statement) or 0
+    pages = ceil(total / page_size) if total else 1
+    page = min(page, pages)
     items = db.scalars(
         statement.order_by(SystemParam.is_system.desc(), SystemParam.id.asc())
         .offset((page - 1) * page_size)
@@ -191,7 +223,7 @@ def list_params(
     ).all()
     return ok(
         {
-            "items": [SystemParamRead.model_validate(item) for item in items],
+            "items": [_read_param(item) for item in items],
             **_paginate(total, page, page_size),
         }
     )
@@ -207,7 +239,8 @@ def create_param(payload: SystemParamCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail="参数键名已存在") from exc
     db.refresh(param)
-    return ok(SystemParamRead.model_validate(param))
+    reload_params_cache(db)
+    return ok(_read_param(param))
 
 
 @router.get("/params/{param_id}")
@@ -215,7 +248,7 @@ def get_param(param_id: int, db: Session = Depends(get_db)):
     param = db.get(SystemParam, param_id)
     if not param:
         raise HTTPException(status_code=404, detail="参数不存在")
-    return ok(SystemParamRead.model_validate(param))
+    return ok(_read_param(param))
 
 
 @router.put("/params/{param_id}")
@@ -224,11 +257,18 @@ def update_param(param_id: int, payload: SystemParamUpdate, db: Session = Depend
     if not param:
         raise HTTPException(status_code=404, detail="参数不存在")
     data = payload.model_dump(exclude_unset=True)
+    if (
+        "value" in data
+        and is_sensitive_param_key(param.key)
+        and str(data["value"] or "").strip() in {"", MASKED_VALUE}
+    ):
+        data.pop("value")
     for field, value in data.items():
         setattr(param, field, value)
     db.commit()
     db.refresh(param)
-    return ok(SystemParamRead.model_validate(param))
+    reload_params_cache(db)
+    return ok(_read_param(param))
 
 
 @router.delete("/params/{param_id}")
@@ -240,4 +280,20 @@ def delete_param(param_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="系统内置参数不允许删除")
     db.delete(param)
     db.commit()
+    reload_params_cache(db)
     return ok(True)
+
+
+@router.post("/params/batch-delete")
+def batch_delete_params(payload: BatchDeleteRequest, db: Session = Depends(get_db)):
+    ids = sorted({item for item in payload.ids if item > 0})
+    if not ids:
+        raise HTTPException(status_code=400, detail="请选择要删除的参数")
+    params = db.scalars(select(SystemParam).where(SystemParam.id.in_(ids))).all()
+    if any(param.is_system for param in params):
+        raise HTTPException(status_code=400, detail="系统内置参数不允许删除")
+    for param in params:
+        db.delete(param)
+    db.commit()
+    reload_params_cache(db)
+    return ok({"deleted": len(params)})

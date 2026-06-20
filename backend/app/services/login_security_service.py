@@ -5,6 +5,7 @@ from time import time
 from fastapi import HTTPException
 
 from app.core.config import get_settings
+from app.services.system_param_service import get_cached_int_param
 
 MFA_LOCK_DETAIL = "MFA 验证请求过于频繁，请稍后再试"
 
@@ -23,13 +24,23 @@ class LoginSecurityService:
         self._lock = RLock()
 
     def _lock_seconds(self) -> int:
-        return get_settings().LOGIN_FAILURE_LOCK_MINUTES * 60
+        return get_cached_int_param(
+            "password_lock_minutes",
+            get_settings().LOGIN_FAILURE_LOCK_MINUTES,
+        ) * 60
 
     def _login_lock_detail(self) -> str:
-        return f"登录失败次数过多，请 {get_settings().LOGIN_FAILURE_LOCK_MINUTES} 分钟后再试"
+        minutes = get_cached_int_param(
+            "password_lock_minutes",
+            get_settings().LOGIN_FAILURE_LOCK_MINUTES,
+        )
+        return f"登录失败次数过多，请 {minutes} 分钟后再试"
 
     def _threshold(self) -> int:
-        return get_settings().LOGIN_FAILURE_LOCK_THRESHOLD
+        return get_cached_int_param(
+            "password_error_count",
+            get_settings().LOGIN_FAILURE_LOCK_THRESHOLD,
+        )
 
     def _normalize_username(self, username: str) -> str:
         return username.strip().lower()
