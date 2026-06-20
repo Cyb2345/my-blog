@@ -10,6 +10,7 @@ import {
   tableDensityCellClass,
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
+import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
@@ -21,6 +22,7 @@ type AccessLogQuery = {
   ip: string;
   location: string;
   browser: string;
+  os: string;
   start_time: string;
   end_time: string;
 };
@@ -30,7 +32,7 @@ type DeleteState =
   | null;
 
 const emptyPage: AccessLogPage = { items: [], total: 0, page: 1, page_size: 10, pages: 0 };
-const emptyQuery: AccessLogQuery = { ip: "", location: "", browser: "", start_time: "", end_time: "" };
+const emptyQuery: AccessLogQuery = { ip: "", location: "", browser: "", os: "", start_time: "", end_time: "" };
 const pageSizeOptions = [10, 20, 50];
 const accessLogTableSettingsKey = "admin-table-settings:logs-access";
 const defaultAccessLogTableSettings: TableSettings = {
@@ -38,7 +40,7 @@ const defaultAccessLogTableSettings: TableSettings = {
   striped: true,
   headerBackground: true,
   density: "default",
-  visibleColumns: ["ip", "location", "browser", "createdAt", "actions"],
+  visibleColumns: ["ip", "location", "browser", "os", "createdAt", "actions"],
 };
 
 function formatDateTime(value?: string | null) {
@@ -100,6 +102,7 @@ export default function AdminAccessLogsPage() {
       if (currentFilters.ip.trim()) params.set("ip", currentFilters.ip.trim());
       if (currentFilters.location.trim()) params.set("location", currentFilters.location.trim());
       if (currentFilters.browser.trim()) params.set("browser", currentFilters.browser.trim());
+      if (currentFilters.os.trim()) params.set("os", currentFilters.os.trim());
       if (currentFilters.start_time) params.set("start_time", toApiDateTime(currentFilters.start_time));
       if (currentFilters.end_time) params.set("end_time", toApiDateTime(currentFilters.end_time));
 
@@ -221,9 +224,9 @@ export default function AdminAccessLogsPage() {
 
       <form
         onSubmit={handleQuery}
-        className="mb-4 grid gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 xl:grid-cols-[1fr_auto]"
+        className="mb-4 grid gap-4 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 xl:grid-cols-[minmax(0,1fr)_auto]"
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
             IP 地址
             <input
@@ -251,26 +254,33 @@ export default function AdminAccessLogsPage() {
               className={inputClass}
             />
           </label>
-          <div className="grid gap-2 sm:grid-cols-2 md:col-span-2 xl:col-span-1">
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
-              开始时间
-              <input
-                type="datetime-local"
-                value={filters.start_time}
-                onChange={(event) => setFilters((current) => ({ ...current, start_time: event.target.value }))}
-                className={inputClass}
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
-              结束时间
-              <input
-                type="datetime-local"
-                value={filters.end_time}
-                onChange={(event) => setFilters((current) => ({ ...current, end_time: event.target.value }))}
-                className={inputClass}
-              />
-            </label>
-          </div>
+          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            操作系统
+            <input
+              value={filters.os}
+              onChange={(event) => setFilters((current) => ({ ...current, os: event.target.value }))}
+              placeholder="请输入操作系统"
+              className={inputClass}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            开始时间
+            <DateTimePicker
+              value={filters.start_time}
+              onChange={(value) => setFilters((current) => ({ ...current, start_time: value }))}
+              placeholder="请选择开始时间"
+              disabled={loading}
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            结束时间
+            <DateTimePicker
+              value={filters.end_time}
+              onChange={(value) => setFilters((current) => ({ ...current, end_time: value }))}
+              placeholder="请选择结束时间"
+              disabled={loading}
+            />
+          </label>
         </div>
         <div className="flex flex-wrap items-end gap-2 xl:justify-end">
           <Button type="submit" disabled={loading} className="min-h-10 px-4">
@@ -307,7 +317,7 @@ export default function AdminAccessLogsPage() {
         <div className="overflow-x-auto">
           <table
             className={cn(
-              "admin-table w-full min-w-[900px] table-fixed border-collapse text-sm",
+              "admin-table w-full min-w-[1060px] table-fixed border-collapse text-sm",
               tableSettings.bordered &&
                 "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-white/10 dark:[&_th]:border-white/10",
             )}
@@ -317,7 +327,8 @@ export default function AdminAccessLogsPage() {
               <col className="w-[180px]" />
               <col />
               <col className="w-[160px]" />
-              <col className="w-[220px]" />
+              <col className="w-[160px]" />
+              <col className="w-[210px]" />
               <col className="w-[120px]" />
             </colgroup>
             <thead
@@ -333,6 +344,7 @@ export default function AdminAccessLogsPage() {
                 <th className={tableCellPadding}>访问 IP</th>
                 <th className={tableCellPadding}>IP 归属地</th>
                 <th className={tableCellPadding}>浏览器</th>
+                <th className={tableCellPadding}>操作系统</th>
                 <th className={tableCellPadding}>访问时间</th>
                 <th
                   className={cn(
@@ -367,6 +379,9 @@ export default function AdminAccessLogsPage() {
                       <span className="block truncate" title={item.ip_location || "-"}>{item.ip_location || "-"}</span>
                     </td>
                     <td className={cn("font-bold text-ink/65 dark:text-slate-300", tableCellPadding)}>{item.browser || "Unknown"}</td>
+                    <td className={cn("text-ink/65 dark:text-slate-400", tableCellPadding)}>
+                      <span className="block truncate" title={item.os || "-"}>{item.os || "Unknown"}</span>
+                    </td>
                     <td className={cn("text-ink/65 dark:text-slate-400", tableCellPadding)}>{formatDateTime(item.created_at)}</td>
                     <td
                       className={cn(
@@ -392,7 +407,7 @@ export default function AdminAccessLogsPage() {
               })}
               {!pageData.items.length && !loading ? (
                 <tr>
-                  <td colSpan={6} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
+                  <td colSpan={7} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
                     暂无访问日志
                   </td>
                 </tr>

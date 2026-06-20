@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import ipaddress
 import json
+from typing import Protocol
 from urllib.parse import quote
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
@@ -9,11 +11,14 @@ from urllib.request import urlopen
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
+from ua_parser import user_agent_parser
 
+from app.core.config import get_settings
 from app.models.admin_system import AccessLog
 
 _LOCATION_CACHE: dict[str, str] = {}
 _UNKNOWN_LOCATION = "未知"
+_UNKNOWN_UA = "Unknown"
 
 
 def get_client_ip(request: Request) -> str:
@@ -31,35 +36,14 @@ def get_client_ip(request: Request) -> str:
 
 
 def parse_browser(user_agent: str) -> str:
-    ua = user_agent.lower()
-    if "edg/" in ua or "edge/" in ua:
-        return "Edge"
-    if "opr/" in ua or "opera" in ua:
-        return "Opera"
-    if "firefox" in ua:
-        return "Firefox"
-    if "chrome" in ua or "chromium" in ua:
-        return "Chrome"
-    if "safari" in ua:
-        return "Safari"
-    if "curl" in ua:
-        return "curl"
-    return "Unknown"
+    parsed = _parse_user_agent(user_agent)
+    family = parsed.get("user_agent", {}).get("family")
+    return _clean_ua_family(family)
 
 
 def parse_os(user_agent: str) -> str:
-    ua = user_agent.lower()
-    if "android" in ua:
-        return "Android"
-    if "iphone" in ua or "ipad" in ua:
-        return "iOS"
-    if "mac os" in ua or "macintosh" in ua:
-        return "Mac OS"
-    if "windows" in ua:
-        return "Windows"
-    if "linux" in ua:
-        return "Linux"
-    return "Unknown"
+    parsed = _parse_user_agent(user_agent)
+    return _format_os(parsed.get("os", {}))
 
 
 def resolve_ip_location(db: Session, ip: str | None) -> str:
@@ -89,9 +73,120 @@ def resolve_ip_location(db: Session, ip: str | None) -> str:
         _LOCATION_CACHE[normalized] = cached
         return cached
 
-    location = _resolve_with_public_api(normalized)
+    location = get_ip_location_provider().resolve(normalized)
     _LOCATION_CACHE[normalized] = location
     return location
+
+
+def get_ip_location_provider() -> IpLocationProvider:
+    settings = get_settings()
+    provider = settings.IP_LOCATION_PROVIDER.strip().lower()
+    if provider == "ip2region":
+        return Ip2RegionProvider(settings.IP2REGION_DB_PATH)
+    if provider == "maxmind":
+        return MaxMindProvider(settings.MAXMIND_GEOIP_DB_PATH)
+    if provider == "ipinfo":
+        return IpInfoProvider(settings.IPINFO_TOKEN, settings.IP_LOCATION_TIMEOUT_SECONDS)
+    if provider == "ipapi":
+        return IpApiCoProvider(settings.IP_LOCATION_TIMEOUT_SECONDS)
+    return LocalOnlyProvider()
+
+
+class IpLocationProvider(Protocol):
+    def resolve(self, ip: str) -> str:
+        ...
+
+
+@dataclass(frozen=True)
+class LocalOnlyProvider:
+    def resolve(self, ip: str) -> str:
+        return _UNKNOWN_LOCATION
+
+
+@dataclass(frozen=True)
+class IpApiCoProvider:
+    timeout_seconds: float
+
+    def resolve(self, ip: str) -> str:
+        try:
+            request = UrlRequest(
+                f"https://ipapi.co/{quote(ip)}/json/",
+                headers={"User-Agent": "personal-tech-blog/1.0"},
+            )
+            with urlopen(request, timeout=self.timeout_seconds) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except Exception:
+            return _UNKNOWN_LOCATION
+        if body.get("error"):
+            return _UNKNOWN_LOCATION
+        return _format_location(
+            country=body.get("country_name"),
+            region=body.get("region"),
+            city=body.get("city"),
+            isp=body.get("org"),
+        )
+
+
+@dataclass(frozen=True)
+class IpInfoProvider:
+    token: str
+    timeout_seconds: float
+
+    def resolve(self, ip: str) -> str:
+        if not self.token:
+            return _UNKNOWN_LOCATION
+        try:
+            request = UrlRequest(
+                f"https://ipinfo.io/{quote(ip)}/json?token={quote(self.token)}",
+                headers={"User-Agent": "personal-tech-blog/1.0"},
+            )
+            with urlopen(request, timeout=self.timeout_seconds) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except Exception:
+            return _UNKNOWN_LOCATION
+        region = body.get("region")
+        city = body.get("city")
+        country = body.get("country")
+        org = body.get("org")
+        return _format_location(country=country, region=region, city=city, isp=org)
+
+
+@dataclass(frozen=True)
+class MaxMindProvider:
+    db_path: str
+
+    def resolve(self, ip: str) -> str:
+        if not self.db_path:
+            return _UNKNOWN_LOCATION
+        try:
+            import geoip2.database  # type: ignore[import-not-found]
+
+            with geoip2.database.Reader(self.db_path) as reader:
+                response = reader.city(ip)
+        except Exception:
+            return _UNKNOWN_LOCATION
+        country = response.country.names.get("zh-CN") or response.country.name
+        region = response.subdivisions.most_specific.names.get("zh-CN") or response.subdivisions.most_specific.name
+        city = response.city.names.get("zh-CN") or response.city.name
+        return _format_location(country=country, region=region, city=city, isp=None)
+
+
+@dataclass(frozen=True)
+class Ip2RegionProvider:
+    db_path: str
+
+    def resolve(self, ip: str) -> str:
+        if not self.db_path:
+            return _UNKNOWN_LOCATION
+        try:
+            from ip2region.xdbSearcher import XdbSearcher  # type: ignore[import-not-found]
+
+            content = XdbSearcher.loadContentFromFile(self.db_path)
+            searcher = XdbSearcher(contentBuff=content)
+            region = searcher.search(ip)
+        except Exception:
+            return _UNKNOWN_LOCATION
+        return _format_ip2region(region)
 
 
 def _normalize_ip(value: str | None) -> str | None:
@@ -124,33 +219,73 @@ def _local_ip_location(ip: str) -> str | None:
     return None
 
 
-def _resolve_with_public_api(ip: str) -> str:
+def _parse_user_agent(user_agent: str) -> dict:
+    if not user_agent.strip():
+        return {}
     try:
-        url = (
-            "http://ip-api.com/json/"
-            f"{quote(ip)}?lang=zh-CN&fields=status,country,regionName,city,isp,query"
-        )
-        request = UrlRequest(url, headers={"User-Agent": "personal-tech-blog/1.0"})
-        with urlopen(request, timeout=0.8) as response:
-            body = json.loads(response.read().decode("utf-8"))
+        return user_agent_parser.Parse(user_agent)
     except Exception:
-        return _UNKNOWN_LOCATION
-
-    if body.get("status") != "success":
-        return _UNKNOWN_LOCATION
-    return _format_location(body)
+        return {}
 
 
-def _format_location(body: dict) -> str:
-    country = str(body.get("country") or "").strip()
-    region = str(body.get("regionName") or "").strip()
-    city = str(body.get("city") or "").strip()
-    isp = str(body.get("isp") or "").strip()
+def _clean_ua_family(family: object) -> str:
+    value = str(family or "").strip()
+    if not value or value == "Other":
+        return _UNKNOWN_UA
+    return value
+
+
+def _format_os(os_info: object) -> str:
+    if not isinstance(os_info, dict):
+        return _UNKNOWN_UA
+    family = _clean_ua_family(os_info.get("family"))
+    if family == _UNKNOWN_UA:
+        return family
+    if family == "Mac OS X":
+        return "Mac OS X"
+    major = str(os_info.get("major") or "").strip()
+    minor = str(os_info.get("minor") or "").strip()
+    patch = str(os_info.get("patch") or "").strip()
+    if family == "Windows" and major:
+        return f"{family} {major}"
+    if family in {"Android", "iOS"} and major:
+        return f"{family} {major}"
+    if family in {"Ubuntu", "Fedora"} and major:
+        versions = ".".join(item for item in (major, minor, patch) if item)
+        return f"{family} {versions}" if versions else family
+    return family
+
+
+def _format_location(
+    country: object,
+    region: object,
+    city: object,
+    isp: object,
+) -> str:
+    country_value = str(country or "").strip()
+    region_value = str(region or "").strip()
+    city_value = str(city or "").strip()
+    isp_value = str(isp or "").strip()
 
     parts: list[str] = []
-    for item in (country, region, city):
+    for item in (country_value, region_value, city_value):
         if item and item not in parts:
             parts.append(item)
-    if country == "中国" and isp and isp not in parts:
-        parts.append(isp)
-    return "".join(parts) if country == "中国" else " ".join(parts) or _UNKNOWN_LOCATION
+    if country_value in {"中国", "China"} and isp_value and isp_value not in parts:
+        parts.append(isp_value)
+    if country_value in {"中国", "China"}:
+        return "".join(parts) or _UNKNOWN_LOCATION
+    return " ".join(parts) or _UNKNOWN_LOCATION
+
+
+def _format_ip2region(region: object) -> str:
+    if not region:
+        return _UNKNOWN_LOCATION
+    parts = [item for item in str(region).replace("|0", "").split("|") if item and item != "0"]
+    if not parts:
+        return _UNKNOWN_LOCATION
+    country = parts[0] if parts else ""
+    province = parts[2] if len(parts) > 2 else ""
+    city = parts[3] if len(parts) > 3 else ""
+    isp = parts[4] if len(parts) > 4 else ""
+    return _format_location(country=country, region=province, city=city, isp=isp)

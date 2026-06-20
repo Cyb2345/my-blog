@@ -3,6 +3,7 @@ boto3==1.35.99
 cryptography==45.0.4
 email-validator==2.2.0
 fastapi==0.115.12
+geoip2==5.1.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 Pillow==11.0.0
@@ -13,4 +14,6 @@ pydantic-settings==2.9.1
 python-multipart==0.0.20
 qrcode==8.2
 SQLAlchemy==2.0.41
+ua-parser==1.0.1
+ua-parser-builtins==202606
 uvicorn[standard]==0.34.3

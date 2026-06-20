@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     PROMETHEUS_TIMEOUT_SECONDS: int = 5
     PROMETHEUS_DEFAULT_RANGE_MINUTES: int = 5
 
+    IP_LOCATION_PROVIDER: str = "ipapi"
+    IP2REGION_DB_PATH: str = ""
+    MAXMIND_GEOIP_DB_PATH: str = ""
+    IPINFO_TOKEN: str = ""
+    IP_LOCATION_TIMEOUT_SECONDS: float = 0.8
+
 
 @lru_cache
 def get_settings() -> Settings:

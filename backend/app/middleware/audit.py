@@ -139,7 +139,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     os=parse_os(user_agent),
                     path=request.url.path,
                     referer=request.headers.get("referer"),
-                    user_agent=user_agent[:1000],
+                    user_agent=user_agent,
                 )
             )
             db.commit()
