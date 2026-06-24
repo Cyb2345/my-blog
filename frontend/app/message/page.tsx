@@ -6,7 +6,11 @@ import { formatDate } from "@/lib/utils";
 import type { CommentItem } from "@/types/blog";
 
 export default async function MessagePage() {
-  const comments = await safeApiFetch<CommentItem[]>("/comments", []);
+  const [comments, runtime] = await Promise.all([
+    safeApiFetch<CommentItem[]>("/comments", []),
+    safeApiFetch<{ open_message?: boolean }>("/site/runtime-options", { open_message: true }),
+  ]);
+  const enabled = runtime.open_message !== false;
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10">
@@ -16,7 +20,13 @@ export default async function MessagePage() {
         可以留下建议、问题或者只是打个招呼。邮箱只用于后台查看，不会在前台公开。
       </p>
       <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-        <MessageForm />
+        {enabled ? (
+          <MessageForm />
+        ) : (
+          <div className="rounded-lg border border-dashed border-ink/15 bg-white/55 p-8 text-center text-sm font-bold text-ink/55 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] dark:text-[var(--text-muted)]">
+            留言功能暂未开放
+          </div>
+        )}
         <div className="motion-list space-y-3">
           {comments.length ? (
             comments.map((comment) => (

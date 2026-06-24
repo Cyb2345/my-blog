@@ -7,7 +7,7 @@ import { type MutableRefObject, useEffect, useRef, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { API_BASE_URL, clearToken, getToken } from "@/lib/auth";
-import { cn } from "@/lib/utils";
+import { cn, getAssetUrl } from "@/lib/utils";
 import type { Envelope, NavigationItem, SiteConfig } from "@/types/blog";
 
 const fallbackNavItems: NavigationItem[] = [
@@ -28,6 +28,10 @@ type HeaderUser = {
   avatar?: string | null;
 };
 
+type RuntimeOptions = {
+  open_message?: boolean;
+};
+
 function isActivePath(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -42,6 +46,7 @@ export function Header() {
     site_name: "技术札记",
     site_subtitle: "Ops, DevOps, Python",
   });
+  const [openMessage, setOpenMessage] = useState(true);
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
@@ -58,6 +63,10 @@ export function Header() {
       .then((response) => response.json())
       .then((body: Envelope<SiteConfig>) => setSiteConfig((value) => ({ ...value, ...(body.data ?? {}) })))
       .catch(() => undefined);
+    fetch(`${API_BASE_URL}/site/runtime-options`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body: Envelope<RuntimeOptions>) => setOpenMessage(body.data?.open_message !== false))
+      .catch(() => setOpenMessage(true));
   }, []);
 
   useEffect(() => {
@@ -156,6 +165,9 @@ export function Header() {
     );
   }
 
+  const visibleNavItems = navItems.filter((item) => openMessage || item.href !== "/message");
+  const navLogo = siteConfig.frontend_nav_logo_url || siteConfig.site_logo_url;
+
   return (
     <header className={cn(
       "site-header top-0 z-50 border-b backdrop-blur-xl",
@@ -165,7 +177,9 @@ export function Header() {
     )}>
       <div className="site-shell flex items-center justify-between py-3">
         <Link href="/" className={cn("interactive flex items-center gap-3 font-black text-ink dark:text-[var(--text)]", isHome && "text-white dark:text-white")}>
-          <span className={cn("grid h-10 w-10 place-items-center rounded-md bg-ink text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]", isHome && "bg-white/10 text-white ring-1 ring-white/20 dark:bg-white/10 dark:text-white")}>B</span>
+          <span className={cn("grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-ink text-white dark:bg-[var(--primary)]", isHome && "bg-white/10 text-white ring-1 ring-white/20 dark:bg-white/10 dark:text-white")}>
+            {navLogo ? <img src={getAssetUrl(navLogo)} alt="" className="h-full w-full object-contain" /> : "B"}
+          </span>
           <span className="leading-tight">
             {siteConfig.site_name ?? "技术札记"}
             <span className={cn("block text-xs font-medium text-ink/55 dark:text-[var(--text-muted)]", isHome && "text-white/65 dark:text-white/65")}>{siteConfig.site_subtitle ?? "Ops, DevOps, Python"}</span>
@@ -173,7 +187,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const { label, href } = item;
             const active = isActivePath(pathname, href);
 
@@ -230,7 +244,7 @@ export function Header() {
       <div className={cn("mobile-menu-shell md:hidden", open && "mobile-menu-shell--open")}>
         <nav className="border-t border-ink/10 bg-paper py-3 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
           <div className="motion-list site-shell grid grid-cols-2 gap-2">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const { label, href } = item;
               const active = isActivePath(pathname, href);
 

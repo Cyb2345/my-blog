@@ -20,6 +20,8 @@ class MediaAssetRead(BaseModel):
     display_mode: str | None = None
     is_active: bool
     created_by_id: int | None = None
+    storage_config_id: int | None = None
+    storage_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

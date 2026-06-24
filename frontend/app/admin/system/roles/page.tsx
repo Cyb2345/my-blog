@@ -22,10 +22,6 @@ export default function AdminRolesPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">System / Roles</p>
-        <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">角色管理</h1>
-      </div>
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 

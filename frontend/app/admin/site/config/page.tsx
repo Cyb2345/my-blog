@@ -20,7 +20,7 @@ import { cn, getAssetUrl } from "@/lib/utils";
 import type { MediaAsset, NavigationItem, SiteConfig } from "@/types/blog";
 
 type ConfigFieldType = "text" | "textarea" | "url" | "select" | "switch" | "image";
-type ConfigGroupKey = "basic" | "hero" | "notice" | "navigation" | "homeBackground" | "loginBackground" | "resources";
+export type ConfigGroupKey = "basic" | "brand" | "hero" | "notice" | "navigation" | "homeBackground" | "loginBackground" | "resources";
 type ConfigSaveMode = "config" | "homeBackground" | "loginBackground";
 
 type ConfigOption = {
@@ -36,7 +36,7 @@ type ConfigItem = {
   group: Exclude<ConfigGroupKey, "navigation" | "resources">;
   kind?: ConfigSaveMode;
   options?: ConfigOption[];
-  assetUsage?: "site_hero" | "login_background";
+  assetUsage?: "site_hero" | "login_background" | "general";
   placeholder?: string;
 };
 
@@ -51,7 +51,7 @@ type NavModalState =
   | null;
 
 type UploadState = {
-  usage: "site_hero" | "login_background";
+  usage: "site_hero" | "login_background" | "general";
 } | null;
 
 type DeleteState =
@@ -61,6 +61,7 @@ type DeleteState =
 
 const groupTabs: Array<{ key: ConfigGroupKey; label: string; description: string }> = [
   { key: "basic", label: "基础信息", description: "站点名称、副标题和描述。" },
+  { key: "brand", label: "品牌设置", description: "前后台 Logo 与浏览器 Favicon。" },
   { key: "hero", label: "首页 Hero", description: "首页首屏文案、按钮和滚动提示。" },
   { key: "notice", label: "首页公告", description: "首页欢迎公告文案。" },
   { key: "navigation", label: "导航配置", description: "前台导航链接和显示状态。" },
@@ -79,6 +80,22 @@ const heroImageDisplayOptions: ConfigOption[] = [
   { label: "覆盖铺满", value: "cover" },
   { label: "完整显示", value: "contain" },
   { label: "原始尺寸", value: "auto" },
+];
+
+const backgroundPositionOptions: ConfigOption[] = [
+  { label: "居中", value: "center center" },
+  { label: "顶部居中", value: "center top" },
+  { label: "底部居中", value: "center bottom" },
+  { label: "左侧居中", value: "left center" },
+  { label: "右侧居中", value: "right center" },
+];
+
+const overlayOpacityOptions: ConfigOption[] = [
+  { label: "20%", value: "0.2" },
+  { label: "28%", value: "0.28" },
+  { label: "35%", value: "0.35" },
+  { label: "42%", value: "0.42" },
+  { label: "50%", value: "0.5" },
 ];
 
 const configItems: ConfigItem[] = [
@@ -105,6 +122,38 @@ const configItems: ConfigItem[] = [
     type: "textarea",
     group: "basic",
     placeholder: "请输入站点描述",
+  },
+  {
+    key: "site_logo_url",
+    label: "网站 Logo",
+    description: "站点通用品牌标识，未单独配置时供前后台共用。",
+    type: "image",
+    group: "brand",
+    assetUsage: "general",
+  },
+  {
+    key: "favicon_url",
+    label: "Favicon",
+    description: "浏览器标签页图标，支持导入 ICO、PNG 或 SVG。",
+    type: "image",
+    group: "brand",
+    assetUsage: "general",
+  },
+  {
+    key: "admin_logo_url",
+    label: "后台 Logo",
+    description: "后台左上角显示的品牌图标。",
+    type: "image",
+    group: "brand",
+    assetUsage: "general",
+  },
+  {
+    key: "frontend_nav_logo_url",
+    label: "前台导航 Logo",
+    description: "前台导航栏显示的品牌图标。",
+    type: "image",
+    group: "brand",
+    assetUsage: "general",
   },
   {
     key: "hero_badge",
@@ -233,6 +282,37 @@ const configItems: ConfigItem[] = [
     kind: "loginBackground",
     assetUsage: "login_background",
   },
+  {
+    key: "login_background_display",
+    label: "背景显示方式",
+    description: "覆盖铺满可能裁切，完整显示会保留原图比例，原始尺寸不会缩放。",
+    type: "select",
+    group: "loginBackground",
+    options: heroImageDisplayOptions,
+  },
+  {
+    key: "login_background_position",
+    label: "背景位置",
+    description: "控制背景图在登录首屏中的对齐位置。",
+    type: "select",
+    group: "loginBackground",
+    options: backgroundPositionOptions,
+  },
+  {
+    key: "login_background_overlay_enabled",
+    label: "启用深色遮罩",
+    description: "遮罩只用于增强登录卡片可读性，不会再叠加白色蒙层。",
+    type: "switch",
+    group: "loginBackground",
+  },
+  {
+    key: "login_background_overlay_opacity",
+    label: "遮罩透明度",
+    description: "数值越高背景越暗，建议 28% 至 42%。",
+    type: "select",
+    group: "loginBackground",
+    options: overlayOpacityOptions,
+  },
 ];
 
 const usageLabels: Record<MediaAsset["usage_type"], string> = {
@@ -274,12 +354,19 @@ function EmptyState({ children }: { children: ReactNode }) {
   );
 }
 
-export default function AdminSiteConfigPage() {
-  const [activeGroup, setActiveGroup] = useState<ConfigGroupKey>("basic");
+export function SiteConfigManager({
+  initialGroup = "basic",
+  allowedGroups = groupTabs.map((item) => item.key),
+}: {
+  initialGroup?: ConfigGroupKey;
+  allowedGroups?: ConfigGroupKey[];
+}) {
+  const [activeGroup, setActiveGroup] = useState<ConfigGroupKey>(initialGroup);
   const [config, setConfig] = useState<SiteConfig>({});
   const [navigation, setNavigation] = useState<NavigationItem[]>([]);
   const [loginBackgrounds, setLoginBackgrounds] = useState<MediaAsset[]>([]);
   const [homeBackgrounds, setHomeBackgrounds] = useState<MediaAsset[]>([]);
+  const [brandAssets, setBrandAssets] = useState<MediaAsset[]>([]);
   const [configEdit, setConfigEdit] = useState<ConfigEditState | null>(null);
   const [navModal, setNavModal] = useState<NavModalState>(null);
   const [uploadState, setUploadState] = useState<UploadState>(null);
@@ -295,7 +382,8 @@ export default function AdminSiteConfigPage() {
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const activeTab = groupTabs.find((item) => item.key === activeGroup) ?? groupTabs[0];
+  const visibleTabs = groupTabs.filter((item) => allowedGroups.includes(item.key));
+  const activeTab = visibleTabs.find((item) => item.key === activeGroup) ?? visibleTabs[0] ?? groupTabs[0];
   const activeConfigItems = configItems.filter((item) => item.group === activeGroup);
   const allBackgrounds = useMemo(() => [...homeBackgrounds, ...loginBackgrounds], [homeBackgrounds, loginBackgrounds]);
   const activeHomeBackgrounds = homeBackgrounds.filter((item) => item.is_active);
@@ -305,16 +393,18 @@ export default function AdminSiteConfigPage() {
     setLoading(true);
     setError("");
     try {
-      const [configData, navData, loginBgData, homeBgData] = await Promise.all([
+      const [configData, navData, loginBgData, homeBgData, brandData] = await Promise.all([
         adminRequest<SiteConfig>("/admin/site/config"),
         adminRequest<NavigationItem[]>("/admin/navigation"),
         adminRequest<MediaAsset[]>("/admin/site/login-backgrounds"),
         adminRequest<MediaAsset[]>("/admin/site/home-backgrounds"),
+        adminRequest<MediaAsset[]>("/admin/media?usage_type=general"),
       ]);
       setConfig(configData);
       setNavigation(sortNavigation(navData));
       setLoginBackgrounds(loginBgData);
       setHomeBackgrounds(homeBgData);
+      setBrandAssets(brandData.filter((item) => item.is_active));
     } catch (err) {
       setError(err instanceof Error ? err.message : "站点配置加载失败");
     } finally {
@@ -331,15 +421,21 @@ export default function AdminSiteConfigPage() {
   }
 
   function findAsset(item: ConfigItem, value = getConfigValue(item.key)) {
+    const source =
+      item.assetUsage === "login_background"
+        ? loginBackgrounds
+        : item.assetUsage === "general"
+          ? brandAssets
+          : homeBackgrounds;
     const mediaId = Number(value);
-    if (!Number.isFinite(mediaId) || !mediaId) return undefined;
-    const source = item.assetUsage === "login_background" ? loginBackgrounds : homeBackgrounds;
-    return source.find((asset) => asset.id === mediaId);
+    return source.find((asset) => asset.id === mediaId || asset.url === value);
   }
 
   function openConfigEdit(item: ConfigItem) {
     setModalError("");
-    setConfigEdit({ item, value: getConfigValue(item.key) });
+    const currentValue = getConfigValue(item.key);
+    const asset = item.type === "image" ? findAsset(item, currentValue) : undefined;
+    setConfigEdit({ item, value: asset ? String(asset.id) : currentValue });
   }
 
   function closeConfigEdit() {
@@ -381,12 +477,16 @@ export default function AdminSiteConfigPage() {
         });
         setConfig(nextConfig);
       } else {
-        const nextConfig = { ...config, [item.key]: nextValue };
+        const storedValue =
+          item.type === "image"
+            ? brandAssets.find((asset) => String(asset.id) === nextValue)?.url ?? ""
+            : nextValue;
+        const nextConfig = { ...config, [item.key]: storedValue };
         const saved = await adminRequest<SiteConfig>("/admin/site/config", {
           method: "PUT",
           body: JSON.stringify({ values: nextConfig }),
         });
-        setConfig((current) => ({ ...current, [item.key]: saved[item.key] ?? nextValue }));
+        setConfig((current) => ({ ...current, [item.key]: saved[item.key] ?? storedValue }));
       }
       setNotice(`「${item.label}」已保存。`);
       setConfigEdit(null);
@@ -509,7 +609,7 @@ export default function AdminSiteConfigPage() {
     return `确定删除背景资源「${assetLabel(deleteState.item)}」吗？`;
   }
 
-  function openUploadDialog(usage: "site_hero" | "login_background") {
+  function openUploadDialog(usage: "site_hero" | "login_background" | "general") {
     setUploadState({ usage });
     setUploadError("");
     setUploadProgress(null);
@@ -546,10 +646,18 @@ export default function AdminSiteConfigPage() {
       setUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       if (uploadState.usage === "site_hero") {
         setHomeBackgrounds((current) => [asset, ...current]);
-      } else {
+      } else if (uploadState.usage === "login_background") {
         setLoginBackgrounds((current) => [asset, ...current]);
+      } else {
+        setBrandAssets((current) => [asset, ...current]);
       }
-      setNotice(uploadState.usage === "site_hero" ? "首页背景已上传。" : "登录背景已上传。");
+      setNotice(
+        uploadState.usage === "site_hero"
+          ? "首页背景已上传。"
+          : uploadState.usage === "login_background"
+            ? "登录背景已上传。"
+            : "品牌资源已导入，可在配置项中选择。",
+      );
       window.setTimeout(() => {
         setUploadState(null);
         setUploadProgress(null);
@@ -607,10 +715,20 @@ export default function AdminSiteConfigPage() {
 
   function renderConfigGroup() {
     return (
-      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
         <div className="border-b border-ink/10 px-4 py-4 dark:border-white/10 sm:px-5">
-          <h2 className="text-lg font-black text-ink dark:text-slate-100">{activeTab.label}</h2>
-          <p className="mt-1 text-sm font-bold text-ink/50 dark:text-slate-400">{activeTab.description}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black text-ink dark:text-[var(--text)]">{activeTab.label}</h2>
+              <p className="mt-1 text-sm font-bold text-ink/50 dark:text-[var(--text-muted)]">{activeTab.description}</p>
+            </div>
+            {activeGroup === "brand" ? (
+              <Button type="button" variant="ghost" onClick={() => openUploadDialog("general")}>
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                导入品牌资源
+              </Button>
+            ) : null}
+          </div>
         </div>
         <div className="grid divide-y divide-ink/10 dark:divide-white/10">
           {activeConfigItems.map((item) => (
@@ -634,7 +752,7 @@ export default function AdminSiteConfigPage() {
 
       <div className="mb-4 overflow-x-auto">
         <div className="flex min-w-max gap-2 rounded-lg border border-ink/10 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-slate-900">
-          {groupTabs.map((group) => (
+          {visibleTabs.map((group) => (
             <button
               key={group.key}
               type="button"
@@ -642,7 +760,7 @@ export default function AdminSiteConfigPage() {
               className={cn(
                 "interactive rounded-md px-4 py-2 text-sm font-black transition-colors duration-150",
                 activeGroup === group.key
-                  ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                  ? "bg-ocean text-white dark:bg-sky-400 dark:text-white"
                   : "text-ink/60 hover:bg-paper hover:text-ink dark:text-slate-300 dark:hover:bg-white/10",
               )}
             >
@@ -679,7 +797,13 @@ export default function AdminSiteConfigPage() {
       <ConfigEditDialog
         state={configEdit}
         value={configEdit?.value ?? ""}
-        assets={configEdit?.item.assetUsage === "login_background" ? activeLoginBackgrounds : activeHomeBackgrounds}
+        assets={
+          configEdit?.item.assetUsage === "login_background"
+            ? activeLoginBackgrounds
+            : configEdit?.item.assetUsage === "general"
+              ? brandAssets
+              : activeHomeBackgrounds
+        }
         error={modalError}
         saving={saving}
         onValueChange={(value) => setConfigEdit((current) => current ? { ...current, value } : current)}
@@ -714,6 +838,10 @@ export default function AdminSiteConfigPage() {
       />
     </>
   );
+}
+
+export default function AdminSiteConfigPage() {
+  return <SiteConfigManager initialGroup="basic" allowedGroups={["basic", "brand"]} />;
 }
 
 function ConfigItemRow({
@@ -1158,7 +1286,13 @@ function BackgroundUploadDialog({
   return (
     <AdminModal
       open={Boolean(state)}
-      title={state?.usage === "site_hero" ? "上传首页背景" : "上传登录背景"}
+      title={
+        state?.usage === "site_hero"
+          ? "上传首页背景"
+          : state?.usage === "login_background"
+            ? "上传登录背景"
+            : "导入品牌资源"
+      }
       size="sm"
       onClose={onClose}
       footer={
@@ -1172,12 +1306,20 @@ function BackgroundUploadDialog({
         <form id="background-upload-form" onSubmit={onSubmit} className="grid gap-5">
           <ModalError message={error} />
           <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
-            背景图片
-            <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
+            {state.usage === "general" ? "品牌图片" : "背景图片"}
+            <input
+              name="file"
+              type="file"
+              required
+              accept={state.usage === "general" ? "image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,image/webp" : "image/jpeg,image/png,image/webp"}
+              className={inputClass}
+            />
           </label>
           <UploadProgress item={progress} />
           <p className="rounded-md bg-paper px-3 py-2 text-xs font-bold text-ink/50 dark:bg-slate-950 dark:text-slate-500">
-            支持 JPG、PNG、WebP。上传后会进入背景资源列表。
+            {state.usage === "general"
+              ? "支持 ICO、PNG、SVG、WebP。导入后可用于 Favicon 和前后台 Logo。"
+              : "支持 JPG、PNG、WebP。上传后会进入背景资源列表。"}
           </p>
         </form>
       ) : null}

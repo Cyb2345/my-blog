@@ -46,7 +46,7 @@ def _default_params() -> list[dict[str, str | bool]]:
             "key": "sys_mfa_enabled",
             "value": "N",
             "is_system": True,
-            "remark": "Y/N；用户级 MFA 已支持，系统级开关预留。",
+            "remark": "Y/N；开启后仅对已绑定 MFA 的账号要求动态验证码。",
         },
         {
             "name": "密码错误次数",
@@ -88,7 +88,7 @@ def _default_params() -> list[dict[str, str | bool]]:
             "key": "max_upload_image_size_mb",
             "value": str(settings.MAX_UPLOAD_IMAGE_SIZE_MB),
             "is_system": True,
-            "remark": "R2 上传服务使用后端环境变量限制，后台参数用于统一展示和预留热更新。",
+            "remark": "全局上传上限，与当前存储配置的上限取较小值。",
         },
         {
             "name": "默认主题模式",
@@ -102,7 +102,7 @@ def _default_params() -> list[dict[str, str | bool]]:
             "key": "open_message",
             "value": "Y",
             "is_system": True,
-            "remark": "Y/N；预留给前台留言开关。",
+            "remark": "Y/N；控制前台留言入口、表单和提交接口。",
         },
         {
             "name": "是否开启评论",
@@ -130,7 +130,10 @@ def _ensure_params(db: Session) -> None:
         db.add(SystemParam(**item))
         changed = True
     if changed:
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
 
 
 def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:

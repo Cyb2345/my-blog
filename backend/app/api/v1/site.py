@@ -18,6 +18,12 @@ from app.schemas.site import (
     NavigationItemUpdate,
     SiteConfigUpdate,
 )
+from app.services.system_param_service import (
+    get_cached_bool_param,
+    get_cached_int_param,
+    get_cached_param,
+    reload_params_cache,
+)
 from app.utils.response import ok
 
 router = APIRouter(tags=["site"])
@@ -44,6 +50,14 @@ DEFAULT_CONFIG: dict[str, str] = {
     "login_background_mode": "random",
     "login_background_fixed_id": "",
     "login_background_round_robin_index": "0",
+    "login_background_display": "cover",
+    "login_background_position": "center center",
+    "login_background_overlay_enabled": "true",
+    "login_background_overlay_opacity": "0.35",
+    "site_logo_url": "",
+    "favicon_url": "",
+    "admin_logo_url": "",
+    "frontend_nav_logo_url": "",
 }
 
 DEFAULT_NAVIGATION = [
@@ -119,6 +133,13 @@ def _set_config(db: Session, key: str, value: str) -> None:
         db.add(SiteConfig(key=key, value=value))
 
 
+def _float_config(value: str | None, default: float) -> float:
+    try:
+        return float(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
 def _read_nav(item: NavigationItem) -> NavigationItemRead:
     return NavigationItemRead.model_validate(item)
 
@@ -167,6 +188,25 @@ def public_site_config(db: Session = Depends(get_db)):
     return ok({key: value for key, value in config.items() if key not in PUBLIC_CONFIG_EXCLUDED_KEYS})
 
 
+@router.get("/site/runtime-options")
+def public_runtime_options(db: Session = Depends(get_db)):
+    reload_params_cache(db)
+    theme = (get_cached_param("default_theme", "system") or "system").strip().lower()
+    if theme not in {"light", "dark", "system"}:
+        theme = "system"
+    return ok(
+        {
+            "default_theme": theme,
+            "open_message": get_cached_bool_param("open_message", True),
+            "open_comment": get_cached_bool_param("open_comment", True),
+            "max_upload_image_size_mb": max(
+                1,
+                get_cached_int_param("max_upload_image_size_mb", 5),
+            ),
+        }
+    )
+
+
 @router.get("/site/navigation")
 def public_navigation(db: Session = Depends(get_db)):
     _ensure_defaults(db)
@@ -194,6 +234,13 @@ def public_login_background(db: Session = Depends(get_db)):
             "mode": mode,
             "image_url": selected.url if selected else "",
             "media": MediaAssetRead.model_validate(selected) if selected else None,
+            "display": config.get("login_background_display", "cover"),
+            "position": config.get("login_background_position", "center center"),
+            "overlay_enabled": config.get("login_background_overlay_enabled", "true") == "true",
+            "overlay_opacity": min(
+                max(_float_config(config.get("login_background_overlay_opacity"), 0.35), 0),
+                0.8,
+            ),
         }
     )
 

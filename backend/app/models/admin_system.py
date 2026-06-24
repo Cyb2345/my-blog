@@ -27,8 +27,12 @@ class FileStorageConfig(TimestampMixin, Base):
     endpoint: Mapped[str | None] = mapped_column(String(500))
     public_base_url: Mapped[str | None] = mapped_column(String(500))
     object_prefix: Mapped[str | None] = mapped_column(String(255))
+    region: Mapped[str | None] = mapped_column(String(128))
     access_key_id: Mapped[str | None] = mapped_column(String(255))
     secret_access_key_encrypted: Mapped[str | None] = mapped_column(Text)
+    local_path: Mapped[str | None] = mapped_column(String(500))
+    access_path: Mapped[str | None] = mapped_column(String(500))
+    base_path: Mapped[str | None] = mapped_column(String(255))
     max_upload_size_mb: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     allowed_file_types: Mapped[str] = mapped_column(
         String(255), default="image/jpeg,image/png,image/webp", nullable=False

@@ -61,8 +61,12 @@ class FileStorageConfigRead(BaseModel):
     endpoint: str | None = None
     public_base_url: str | None = None
     object_prefix: str | None = None
+    region: str | None = None
     access_key_id: str | None = None
     secret_access_key: str | None = None
+    local_path: str | None = None
+    access_path: str | None = None
+    base_path: str | None = None
     max_upload_size_mb: int
     allowed_file_types: str
     remark: str | None = None
@@ -81,8 +85,12 @@ class FileStorageConfigCreate(BaseModel):
     endpoint: str | None = Field(default=None, max_length=500)
     public_base_url: str | None = Field(default=None, max_length=500)
     object_prefix: str | None = Field(default=None, max_length=255)
+    region: str | None = Field(default=None, max_length=128)
     access_key_id: str | None = Field(default=None, max_length=255)
     secret_access_key: str | None = None
+    local_path: str | None = Field(default=None, max_length=500)
+    access_path: str | None = Field(default=None, max_length=500)
+    base_path: str | None = Field(default=None, max_length=255)
     max_upload_size_mb: int = Field(default=5, ge=1, le=100)
     allowed_file_types: str = "image/jpeg,image/png,image/webp"
     remark: str | None = Field(default=None, max_length=500)
@@ -97,8 +105,12 @@ class FileStorageConfigUpdate(BaseModel):
     endpoint: str | None = Field(default=None, max_length=500)
     public_base_url: str | None = Field(default=None, max_length=500)
     object_prefix: str | None = Field(default=None, max_length=255)
+    region: str | None = Field(default=None, max_length=128)
     access_key_id: str | None = Field(default=None, max_length=255)
     secret_access_key: str | None = None
+    local_path: str | None = Field(default=None, max_length=500)
+    access_path: str | None = Field(default=None, max_length=500)
+    base_path: str | None = Field(default=None, max_length=255)
     max_upload_size_mb: int | None = Field(default=None, ge=1, le=100)
     allowed_file_types: str | None = None
     remark: str | None = Field(default=None, max_length=500)

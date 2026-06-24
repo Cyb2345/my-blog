@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_db, require_admin
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate
+from app.services.system_param_service import get_bool_param, reload_params_cache
 from app.utils.response import ok
 
 router = APIRouter(prefix="/comments", tags=["comments"])
@@ -29,6 +30,9 @@ def list_comments(db: Session = Depends(get_db)):
 def create_comment(
     payload: CommentCreate, request: Request, db: Session = Depends(get_db)
 ):
+    reload_params_cache(db)
+    if not get_bool_param(db, "open_message", True):
+        raise HTTPException(status_code=403, detail="留言功能暂未开放")
     client_host = request.client.host if request.client else None
     if client_host:
         recent_count = db.scalar(

@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { CustomSelect } from "@/components/admin/CustomSelect";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import type { AdminMenuItem } from "@/types/blog";
@@ -33,10 +35,14 @@ export default function AdminMenusPage() {
   const [tree, setTree] = useState<AdminMenuItem[]>([]);
   const [modal, setModal] = useState<MenuModalState | null>(null);
   const [parentId, setParentId] = useState<number | "">("");
+  const [menuType, setMenuType] = useState<AdminMenuItem["type"]>("menu");
+  const [deleteItem, setDeleteItem] = useState<AdminMenuItem | null>(null);
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const flatMenus = useMemo(() => flattenMenus(tree), [tree]);
 
@@ -55,6 +61,7 @@ export default function AdminMenusPage() {
   function openModal(next: MenuModalState) {
     setModalError("");
     setParentId(next.item?.parent_id ?? next.parentId ?? "");
+    setMenuType(next.item?.type ?? "menu");
     setModal(next);
   }
 
@@ -62,6 +69,7 @@ export default function AdminMenusPage() {
     if (saving) return;
     setModal(null);
     setParentId("");
+    setMenuType("menu");
     setModalError("");
   }
 
@@ -78,7 +86,7 @@ export default function AdminMenusPage() {
       parent_id: parentId || null,
       name,
       icon: String(form.get("icon") ?? "").trim() || null,
-      type: String(form.get("type") ?? "menu"),
+      type: menuType,
       route: String(form.get("route") ?? "").trim() || null,
       component: String(form.get("component") ?? "").trim() || null,
       permission: String(form.get("permission") ?? "").trim() || null,
@@ -126,29 +134,33 @@ export default function AdminMenusPage() {
     }
   }
 
-  async function deleteMenu(item: AdminMenuItem) {
+  function openDelete(item: AdminMenuItem) {
     if (item.children?.length) {
       setError("存在子菜单，不能直接删除");
       return;
     }
-    if (!window.confirm(`确认删除菜单「${item.name}」吗？`)) return;
-    setError("");
-    setNotice("");
+    setDeleteError("");
+    setDeleteItem(item);
+  }
+
+  async function confirmDelete() {
+    if (!deleteItem) return;
+    setDeleting(true);
+    setDeleteError("");
     try {
-      await adminRequest(`/admin/menus/${item.id}`, { method: "DELETE" });
+      await adminRequest(`/admin/menus/${deleteItem.id}`, { method: "DELETE" });
+      setDeleteItem(null);
       await load();
       setNotice("菜单已删除。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setDeleteError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeleting(false);
     }
   }
 
   return (
     <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">System / Menus</p>
-        <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">菜单管理</h1>
-      </div>
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
@@ -208,7 +220,7 @@ export default function AdminMenusPage() {
                         {item.is_active ? "隐藏" : "显示"}
                       </Button>
                       {!item.is_system ? (
-                        <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteMenu(item)}>
+                        <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => openDelete(item)}>
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       ) : null}
@@ -226,26 +238,30 @@ export default function AdminMenusPage() {
           <ModalError message={modalError} />
           <div className="grid gap-4 md:grid-cols-2">
             <AdminField label="上级菜单">
-              <select value={parentId} onChange={(event) => setParentId(event.target.value ? Number(event.target.value) : "")} className={inputClass}>
-                <option value="">一级菜单</option>
-                {flatMenus
+              <CustomSelect
+                value={String(parentId)}
+                onChange={(value) => setParentId(value ? Number(value) : "")}
+                options={[
+                  { label: "一级菜单", value: "" },
+                  ...flatMenus
                   .filter((item) => item.id !== modal?.item?.id && item.type !== "button")
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {"　".repeat(item.level)}{item.name}
-                    </option>
-                  ))}
-              </select>
+                  .map((item) => ({ label: `${"　".repeat(item.level)}${item.name}`, value: String(item.id) })),
+                ]}
+              />
             </AdminField>
             <AdminField label="菜单名称 *">
               <input name="name" required defaultValue={modal?.item?.name ?? ""} className={inputClass} />
             </AdminField>
             <AdminField label="菜单类型">
-              <select name="type" defaultValue={modal?.item?.type ?? "menu"} className={inputClass}>
-                <option value="directory">目录</option>
-                <option value="menu">菜单</option>
-                <option value="button">按钮</option>
-              </select>
+              <CustomSelect
+                value={menuType}
+                onChange={(value) => setMenuType(value as AdminMenuItem["type"])}
+                options={[
+                  { label: "目录", value: "directory" },
+                  { label: "菜单", value: "menu" },
+                  { label: "按钮", value: "button" },
+                ]}
+              />
             </AdminField>
             <AdminField label="图标">
               <input name="icon" defaultValue={modal?.item?.icon ?? ""} placeholder="Lucide 图标名" className={inputClass} />
@@ -277,6 +293,7 @@ export default function AdminMenusPage() {
           </div>
         </form>
       </AdminModal>
+      <DeleteConfirmDialog open={Boolean(deleteItem)} description={deleteItem ? `确定删除菜单「${deleteItem.name}」吗？` : "确定删除该菜单吗？"} error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteItem(null)} onConfirm={() => void confirmDelete()} />
     </>
   );
 }

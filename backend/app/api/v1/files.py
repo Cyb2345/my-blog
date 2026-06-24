@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from math import ceil
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, or_, select
@@ -20,6 +22,7 @@ from app.services.file_storage_config_service import (
     ensure_default_config,
     encrypt_secret,
     is_masked,
+    missing_local_fields,
     missing_r2_fields,
     read_config,
     resolve_storage_config,
@@ -41,6 +44,24 @@ def _paginate(total: int, page: int, page_size: int) -> dict[str, int]:
     }
 
 
+def _validate_config(config: FileStorageConfig) -> None:
+    resolved = resolve_storage_config(config)
+    if resolved.storage_type == "local":
+        missing = missing_local_fields(resolved)
+    else:
+        missing = missing_r2_fields(resolved)
+    if missing:
+        raise HTTPException(status_code=400, detail=f"配置不完整：{', '.join(missing)}")
+    if resolved.storage_type == "local" and not resolved.access_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="本地访问路径必须以 / 开头")
+
+
+def _media_dict(asset: MediaAsset, storage_names: dict[int, str]) -> dict:
+    data = MediaAssetRead.model_validate(asset).model_dump()
+    data["storage_name"] = storage_names.get(asset.storage_config_id or 0)
+    return data
+
+
 @router.get("/configs")
 def list_configs(page: int = 1, page_size: int = 20, db: Session = Depends(get_db)):
     ensure_default_config(db)
@@ -58,22 +79,9 @@ def list_configs(page: int = 1, page_size: int = 20, db: Session = Depends(get_d
 
 @router.post("/configs")
 def create_config(payload: FileStorageConfigCreate, db: Session = Depends(get_db)):
-    config = FileStorageConfig(
-        name=payload.name,
-        storage_type=payload.storage_type,
-        is_primary=payload.is_primary,
-        status=payload.status,
-        bucket=payload.bucket,
-        endpoint=payload.endpoint,
-        public_base_url=payload.public_base_url,
-        object_prefix=payload.object_prefix,
-        access_key_id=payload.access_key_id,
-        max_upload_size_mb=payload.max_upload_size_mb,
-        allowed_file_types=payload.allowed_file_types,
-        remark=payload.remark,
-    )
-    if payload.secret_access_key and not is_masked(payload.secret_access_key):
-        config.secret_access_key_encrypted = encrypt_secret(payload.secret_access_key)
+    config = FileStorageConfig(name=payload.name)
+    apply_config_payload(config, payload)
+    _validate_config(config)
     if config.is_primary:
         db.query(FileStorageConfig).update({FileStorageConfig.is_primary: False})
     db.add(config)
@@ -97,6 +105,7 @@ def update_config(config_id: int, payload: FileStorageConfigUpdate, db: Session 
     if not config:
         raise HTTPException(status_code=404, detail="文件配置不存在")
     apply_config_payload(config, payload)
+    _validate_config(config)
     if payload.is_primary:
         db.query(FileStorageConfig).filter(FileStorageConfig.id != config.id).update(
             {FileStorageConfig.is_primary: False}
@@ -136,10 +145,12 @@ def test_config(config_id: int, db: Session = Depends(get_db)):
     if not config:
         raise HTTPException(status_code=404, detail="文件配置不存在")
     resolved = resolve_storage_config(config)
-    if resolved.storage_type == "r2":
-        missing = missing_r2_fields(resolved)
-        if missing:
-            raise HTTPException(status_code=400, detail=f"配置不完整：{', '.join(missing)}")
+    _validate_config(config)
+    if resolved.storage_type == "local":
+        path = Path(resolved.local_path).expanduser()
+        path.mkdir(parents=True, exist_ok=True)
+        if not path.is_dir():
+            raise HTTPException(status_code=400, detail="本地存储路径不可用")
     return ok({"status": "ok", "message": "配置字段检查通过，上传将使用当前主文件配置。"})
 
 
@@ -149,6 +160,8 @@ def list_files(
     file_type: str | None = None,
     storage_type: str | None = None,
     usage_type: str | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
     page: int = 1,
     page_size: int = 10,
     db: Session = Depends(get_db),
@@ -174,6 +187,10 @@ def list_files(
         conditions.append(MediaAsset.storage_type == storage_type)
     if usage_type:
         conditions.append(MediaAsset.usage_type == usage_type)
+    if start_time:
+        conditions.append(MediaAsset.created_at >= start_time)
+    if end_time:
+        conditions.append(MediaAsset.created_at <= end_time)
     for condition in conditions:
         statement = statement.where(condition)
         count_statement = count_statement.where(condition)
@@ -183,7 +200,19 @@ def list_files(
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
-    return ok({"items": [MediaAssetRead.model_validate(item) for item in assets], **_paginate(total, page, page_size)})
+    storage_ids = {item.storage_config_id for item in assets if item.storage_config_id}
+    storage_names = (
+        dict(
+            db.execute(
+                select(FileStorageConfig.id, FileStorageConfig.name).where(
+                    FileStorageConfig.id.in_(storage_ids)
+                )
+            ).all()
+        )
+        if storage_ids
+        else {}
+    )
+    return ok({"items": [_media_dict(item, storage_names) for item in assets], **_paginate(total, page, page_size)})
 
 
 @router.delete("/{file_id}")

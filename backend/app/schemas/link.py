@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 
 class LinkBase(BaseModel):
@@ -9,6 +9,7 @@ class LinkBase(BaseModel):
     url: HttpUrl
     description: str | None = None
     avatar: str | None = None
+    email: EmailStr | None = None
     status: Literal["active", "inactive"] = "active"
     sort_order: int = 0
 
@@ -22,6 +23,7 @@ class LinkUpdate(BaseModel):
     url: HttpUrl | None = None
     description: str | None = None
     avatar: str | None = None
+    email: EmailStr | None = None
     status: Literal["active", "inactive"] | None = None
     sort_order: int | None = None
 

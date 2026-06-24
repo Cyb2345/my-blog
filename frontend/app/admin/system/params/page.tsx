@@ -53,20 +53,24 @@ const defaultParamTableSettings: TableSettings = {
   striped: true,
   headerBackground: true,
   density: "default",
-  visibleColumns: ["name", "key", "value", "isSystem", "createdAt", "updatedAt", "remark", "actions"],
+  visibleColumns: ["name", "key", "value", "effect", "isSystem", "createdAt", "updatedAt", "actions"],
 };
 
 const hotUpdateKeys = new Set([
+  "sys_captcha_type",
   "sys_mfa_enabled",
   "password_error_count",
   "password_lock_minutes",
   "login_rate_limit_per_minute",
   "captcha_rate_limit_per_minute",
   "mfa_rate_limit_per_minute",
+  "max_upload_image_size_mb",
+  "default_theme",
+  "open_message",
 ]);
-const restartKeys = new Set(["max_upload_image_size_mb"]);
-const frontendReservedKeys = new Set(["default_theme"]);
-const featureReservedKeys = new Set(["sys_captcha_type", "open_comment", "open_message"]);
+const restartKeys = new Set<string>();
+const frontendReservedKeys = new Set<string>();
+const featureReservedKeys = new Set(["open_comment"]);
 
 function normalizePage(data: ParamPage | SystemParam[], page: number, pageSize: number): ParamPage {
   if (!Array.isArray(data)) return data;
@@ -126,6 +130,24 @@ function getEffectHint(key: string) {
   if (frontendReservedKeys.has(key)) return { label: "需前端接入", className: "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20" };
   if (featureReservedKeys.has(key)) return { label: "预留配置", className: "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]" };
   return { label: "保存后生效", className: "bg-paper text-ink/60 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]" };
+}
+
+function displayParamValue(param: SystemParam) {
+  if (param.key === "sys_captcha_type") {
+    return {
+      none: "关闭验证码",
+      image: "图片验证码",
+      slider: "滑块验证码",
+      turnstile: "Cloudflare Turnstile",
+    }[param.value] ?? param.value;
+  }
+  if (["sys_mfa_enabled", "open_comment", "open_message"].includes(param.key)) {
+    return ["1", "true", "yes", "y", "on"].includes(param.value.toLowerCase()) ? "开启" : "关闭";
+  }
+  if (param.key === "default_theme") {
+    return { light: "浅色模式", dark: "深色模式", system: "跟随系统" }[param.value] ?? param.value;
+  }
+  return param.value || "-";
 }
 
 export default function AdminParamsPage() {
@@ -437,7 +459,7 @@ export default function AdminParamsPage() {
         <div className="overflow-x-auto">
           <table
             className={cn(
-              "admin-table w-full min-w-[1520px] table-fixed border-collapse text-sm",
+              "admin-table w-full min-w-[1320px] table-fixed border-collapse text-sm",
               tableSettings.bordered &&
                 "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-[var(--border-soft)] dark:[&_th]:border-[var(--border-soft)]",
             )}
@@ -447,10 +469,10 @@ export default function AdminParamsPage() {
               <col className="w-[180px]" />
               <col className="w-[220px]" />
               <col className="w-[240px]" />
+              <col className="w-[140px]" />
               <col className="w-[110px]" />
               <col className="w-[180px]" />
               <col className="w-[180px]" />
-              <col />
               <col className="w-[140px]" />
             </colgroup>
             <thead
@@ -466,10 +488,10 @@ export default function AdminParamsPage() {
                 <th className={tableCellPadding}>参数名称</th>
                 <th className={tableCellPadding}>参数键名</th>
                 <th className={tableCellPadding}>参数键值</th>
+                <th className={tableCellPadding}>生效状态</th>
                 <th className={tableCellPadding}>系统内置</th>
                 <th className={tableCellPadding}>创建时间</th>
                 <th className={tableCellPadding}>更新时间</th>
-                <th className={tableCellPadding}>备注</th>
                 <th
                   className={cn(
                     "sticky right-0 z-10 text-center",
@@ -504,7 +526,10 @@ export default function AdminParamsPage() {
                       <span className="block truncate" title={param.key}>{param.key}</span>
                     </td>
                     <td className={cn("font-bold text-ink/70 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={param.value || "-"}>{param.value || "-"}</span>
+                      <span className="block truncate" title={displayParamValue(param)}>{displayParamValue(param)}</span>
+                    </td>
+                    <td className={tableCellPadding}>
+                      <span className={cn("inline-flex rounded-md px-2 py-1 text-xs font-black ring-1", hint.className)}>{hint.label}</span>
                     </td>
                     <td className={tableCellPadding}>
                       <span
@@ -520,12 +545,6 @@ export default function AdminParamsPage() {
                     </td>
                     <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(param.created_at)}</td>
                     <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(param.updated_at)}</td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className={cn("shrink-0 rounded-md px-2 py-1 text-xs font-black ring-1", hint.className)}>{hint.label}</span>
-                        <span className="block truncate" title={param.remark || ""}>{param.remark || "-"}</span>
-                      </div>
-                    </td>
                     <td
                       className={cn(
                         "sticky right-0",
@@ -597,7 +616,7 @@ export default function AdminParamsPage() {
                 className={cn(
                   "interactive h-10 min-w-10 rounded-md px-3",
                   number === pageData.page
-                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
                     : "bg-paper text-ink/70 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
                 )}
               >

@@ -33,6 +33,12 @@ services:
       - "traefik.http.routers.blog-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.blog-api.priority=100"
       - "traefik.http.services.blog-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.blog-uploads.rule=Host(`www.ccby.us`) && PathPrefix(`/uploads`)"
+      - "traefik.http.routers.blog-uploads.entrypoints=websecure"
+      - "traefik.http.routers.blog-uploads.tls=true"
+      - "traefik.http.routers.blog-uploads.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-uploads.priority=100"
+      - "traefik.http.routers.blog-uploads.service=blog-api"
 
   frontend:
     build:

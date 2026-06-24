@@ -949,7 +949,7 @@ export default function AdminUsersPage() {
                 className={cn(
                   "interactive h-10 min-w-10 rounded-md px-3",
                   number === pageData.page
-                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
                     : "bg-paper text-ink/70 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
                 )}
               >

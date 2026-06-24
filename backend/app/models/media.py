@@ -28,3 +28,7 @@ class MediaAsset(TimestampMixin, Base):
     display_mode: Mapped[str | None] = mapped_column(String(32))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    storage_config_id: Mapped[int | None] = mapped_column(
+        ForeignKey("file_storage_configs.id", ondelete="SET NULL"),
+        index=True,
+    )

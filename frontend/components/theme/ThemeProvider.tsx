@@ -3,11 +3,17 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type { ReactNode } from "react";
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+}: {
+  children: ReactNode;
+  defaultTheme?: "light" | "dark" | "system";
+}) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme={defaultTheme}
       enableSystem
       disableTransitionOnChange={false}
       storageKey="personal-blog-theme"

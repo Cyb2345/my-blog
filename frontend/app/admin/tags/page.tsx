@@ -10,6 +10,7 @@ import {
   AdminTableActions,
   adminTableActionIconClass,
 } from "@/components/admin/AdminTableActionButton";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import {
   DataTableToolbar,
   type TableSettings,
@@ -431,18 +432,15 @@ export default function AdminTagsPage() {
 
         <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-white/10 dark:text-slate-300">
           <span>共 {pageData.total} 条</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <CustomSelect
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
               setPageNumber(1);
             }}
-            className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>{size}条/页</option>
-            ))}
-          </select>
+            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
+            className="w-32"
+          />
           <button
             type="button"
             disabled={pageData.page <= 1}
@@ -461,7 +459,7 @@ export default function AdminTagsPage() {
                 className={cn(
                   "interactive h-10 min-w-10 rounded-md px-3",
                   number === pageData.page
-                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
                     : "bg-paper text-ink/70 dark:bg-white/10 dark:text-slate-300",
                 )}
               >

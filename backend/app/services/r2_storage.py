@@ -59,8 +59,8 @@ class R2Storage:
         ).strip("/")
 
     def _ensure_configured(self) -> None:
-        if self.storage_config and self.storage_config.storage_type != "r2":
-            raise HTTPException(status_code=400, detail="当前主文件配置不是 R2 存储")
+        if self.storage_config and self.storage_config.storage_type not in {"r2", "s3"}:
+            raise HTTPException(status_code=400, detail="当前主文件配置不是对象存储")
         if self.storage_config and self.storage_config.status != "active":
             raise HTTPException(status_code=503, detail="当前 R2 文件配置未启用")
         if not self.storage_config and not self.settings.R2_ENABLED:
@@ -84,10 +84,10 @@ class R2Storage:
             raise HTTPException(status_code=503, detail="R2 存储未配置，请检查当前文件配置或后端 .env")
         if "<" in self.endpoint or ">" in self.endpoint:
             raise HTTPException(status_code=503, detail="R2_ENDPOINT 仍是占位符，请填写 Cloudflare R2 账户 endpoint")
-        if not self.endpoint.startswith("https://"):
+        if (not self.storage_config or self.storage_config.storage_type == "r2") and not self.endpoint.startswith("https://"):
             raise HTTPException(status_code=503, detail="R2_ENDPOINT 必须是 https:// 开头的地址")
-        if self.object_prefix != "images":
-            raise HTTPException(status_code=500, detail="R2_OBJECT_PREFIX 必须配置为 images")
+        if not self.object_prefix:
+            raise HTTPException(status_code=500, detail="对象存储路径前缀不能为空")
 
     @cached_property
     def client(self):
@@ -97,7 +97,7 @@ class R2Storage:
             endpoint_url=self.endpoint,
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.secret_access_key,
-            region_name="auto",
+            region_name=self.storage_config.region if self.storage_config else "auto",
             config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
         )
 
@@ -107,8 +107,8 @@ class R2Storage:
 
     def upload_object(self, *, object_key: str, content: bytes, content_type: str) -> str:
         self._ensure_configured()
-        if not object_key.startswith("images/"):
-            raise HTTPException(status_code=500, detail="R2 object key 必须以 images/ 开头")
+        if not object_key.startswith(f"{self.object_prefix}/"):
+            raise HTTPException(status_code=500, detail="对象路径与配置前缀不一致")
         try:
             self.client.put_object(
                 Bucket=self.bucket_name,
@@ -118,5 +118,5 @@ class R2Storage:
                 CacheControl="public, max-age=604800, immutable",
             )
         except (BotoCoreError, ClientError) as exc:
-            raise HTTPException(status_code=502, detail="图片上传到 R2 失败") from exc
+            raise HTTPException(status_code=502, detail="图片上传到对象存储失败") from exc
         return self.public_url(object_key)

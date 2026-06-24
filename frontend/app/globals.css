@@ -229,6 +229,26 @@ select:focus {
   background: rgba(68, 112, 143, 0.055);
 }
 
+.admin-table th {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.25rem;
+}
+
+.admin-table td {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.35rem;
+  vertical-align: middle;
+}
+
+.admin-table input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+}
+
 .dark .admin-table tbody tr:hover {
   background: color-mix(in srgb, var(--hover) 84%, transparent);
 }
@@ -945,10 +965,6 @@ html.theme-transitioning *::after {
 
 .dark [class*="dark:ring-sky-400"] {
   --tw-ring-color: color-mix(in srgb, var(--primary) 32%, transparent) !important;
-}
-
-.dark [class*="dark:text-slate-950"] {
-  color: var(--bg) !important;
 }
 
 .dark .shadow-soft,

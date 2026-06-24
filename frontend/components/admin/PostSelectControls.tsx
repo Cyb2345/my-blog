@@ -324,7 +324,7 @@ export function PostTagEditorSelect({
           className={cn(
             "interactive ml-auto inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
             open
-              ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-slate-950 dark:ring-sky-300"
+              ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-white dark:ring-sky-300"
               : "bg-paper text-ocean ring-ocean/20 hover:ring-ocean/50 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-300/20",
           )}
         >
@@ -368,7 +368,7 @@ export function PostTagEditorSelect({
                   className={cn(
                     "interactive rounded-md px-2.5 py-1.5 text-xs font-black transition-all duration-150",
                     selectedIds.has(tag.id)
-                      ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                      ? "bg-ocean text-white dark:bg-sky-400 dark:text-white"
                       : "bg-paper text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
                   )}
                 >

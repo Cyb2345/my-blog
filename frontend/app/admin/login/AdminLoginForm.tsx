@@ -15,6 +15,10 @@ export type CaptchaType = "none" | "image" | "slider" | "turnstile";
 
 type AdminLoginFormProps = {
   backgroundUrl: string;
+  backgroundDisplay: "cover" | "contain" | "auto";
+  backgroundPosition: string;
+  overlayEnabled: boolean;
+  overlayOpacity: number;
   captchaType: CaptchaType;
   mfaEnabled: boolean;
 };
@@ -41,7 +45,15 @@ function formatError(body: unknown) {
   return detail ? JSON.stringify(detail) : "请求失败，请稍后重试";
 }
 
-export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: AdminLoginFormProps) {
+export function AdminLoginForm({
+  backgroundUrl,
+  backgroundDisplay,
+  backgroundPosition,
+  overlayEnabled,
+  overlayOpacity,
+  captchaType,
+  mfaEnabled,
+}: AdminLoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -126,19 +138,25 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
   }
 
   return (
-    <main className="relative min-h-[100svh] overflow-hidden bg-[#0b0b0c] px-4 py-5 text-white sm:px-6">
+    <main className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#0b0b0c] px-4 py-5 text-white sm:px-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(79,124,255,0.16),transparent_28rem)]" aria-hidden="true" />
       {backgroundUrl ? (
         <div
           className={cn(
-            "absolute inset-0 bg-cover bg-center transition-opacity duration-500",
+            "absolute inset-0 bg-no-repeat transition-opacity duration-500",
             backgroundLoaded ? "opacity-100" : "opacity-0",
           )}
-          style={{ backgroundImage: `url(${backgroundUrl})` }}
+          style={{
+            backgroundImage: `url(${backgroundUrl})`,
+            backgroundSize: backgroundDisplay,
+            backgroundPosition,
+          }}
           aria-hidden="true"
         />
       ) : null}
-      <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px]" aria-hidden="true" />
+      {overlayEnabled ? (
+        <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} aria-hidden="true" />
+      ) : null}
 
       <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between">
         <Link
@@ -151,7 +169,7 @@ export function AdminLoginForm({ backgroundUrl, captchaType, mfaEnabled }: Admin
         <ThemeToggle />
       </div>
 
-      <section className="relative z-10 grid min-h-[calc(100svh-4.5rem)] place-items-center py-8">
+      <section className="relative z-10 grid min-h-0 flex-1 place-items-center py-6 sm:py-8">
         <div className="motion-surface w-full max-w-[460px] rounded-lg border border-white/12 bg-[color-mix(in_srgb,var(--surface-card)_88%,transparent)] p-6 text-[var(--text)] shadow-2xl backdrop-blur-xl sm:p-8">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-md bg-[var(--primary)] text-white shadow-soft">
             <LockKeyhole className="h-7 w-7" aria-hidden="true" />

@@ -14,6 +14,7 @@ import {
   AdminTableActions,
   adminTableActionIconClass,
 } from "@/components/admin/AdminTableActionButton";
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
 import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
@@ -527,7 +528,7 @@ export default function AdminPostsPage() {
                     {visibleColumns.category ? <td className={cn("text-ink/70 dark:text-slate-300", tableCellPadding)}>{post.category?.name ?? "-"}</td> : null}
                     {visibleColumns.tags ? (
                       <td className={tableCellPadding}>
-                        <div className="flex max-w-full flex-nowrap gap-1 overflow-hidden">
+                        <div className="flex max-h-[3.5rem] max-w-full flex-wrap content-start gap-1 overflow-hidden">
                           {visibleTags.length ? (
                             <>
                               {visibleTags.map((tag) => (
@@ -535,7 +536,14 @@ export default function AdminPostsPage() {
                                   <span className="truncate">{tag.name}</span>
                                 </span>
                               ))}
-                              {extraTags ? <span className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraTags}</span> : null}
+                              {extraTags ? (
+                                <span
+                                  className="rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
+                                  title={post.tags.map((tag) => tag.name).join("、")}
+                                >
+                                  +{extraTags}
+                                </span>
+                              ) : null}
                             </>
                           ) : (
                             <span className="text-ink/40 dark:text-slate-500">-</span>
@@ -591,20 +599,15 @@ export default function AdminPostsPage() {
 
         <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-white/10 dark:text-slate-300">
           <span>共 {page.total} 条</span>
-          <select
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <CustomSelect
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
               setPageNumber(1);
             }}
-            className="min-h-10 rounded-md border border-ink/10 bg-white px-3 py-2 outline-none dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size}>
-                {size}条/页
-              </option>
-            ))}
-          </select>
+            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
+            className="w-32"
+          />
           <button
             type="button"
             disabled={page.page <= 1}
@@ -622,7 +625,7 @@ export default function AdminPostsPage() {
                 className={cn(
                   "interactive h-10 min-w-10 rounded-md px-3",
                   number === page.page
-                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
                     : "bg-paper text-ink/70 dark:bg-white/10 dark:text-slate-300",
                 )}
               >

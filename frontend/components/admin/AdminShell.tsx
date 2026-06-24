@@ -38,8 +38,8 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { adminRequest, clearToken, getToken } from "@/lib/auth";
-import { cn } from "@/lib/utils";
-import type { AdminMenuItem } from "@/types/blog";
+import { cn, getAssetUrl } from "@/lib/utils";
+import type { AdminMenuItem, SiteConfig } from "@/types/blog";
 
 type AdminLink = {
   label: string;
@@ -220,8 +220,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const current = normalizeAdminPath(pathname);
-  const [ready, setReady] = useState(() => Boolean(getToken()));
+  const [ready, setReady] = useState(false);
   const [sections, setSections] = useState<AdminSection[]>(fallbackSections);
+  const [adminLogo, setAdminLogo] = useState("");
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const breadcrumb = useMemo(() => findBreadcrumb(current, sections), [current, sections]);
@@ -255,6 +256,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [ready]);
 
   useEffect(() => {
+    if (!ready || !getToken()) return;
+    adminRequest<SiteConfig>("/admin/site/config")
+      .then((config) => setAdminLogo(config.admin_logo_url || config.site_logo_url || ""))
+      .catch(() => setAdminLogo(""));
+  }, [ready]);
+
+  useEffect(() => {
     const activeSection = sections.find((section) =>
       section.children.some((item) => isActivePath(current, item.href)),
     );
@@ -283,10 +291,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="admin-shell min-h-screen bg-[#f5f7fb] text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]">
+    <div className="admin-shell min-h-screen overflow-x-hidden bg-[#f5f7fb] text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]">
       <aside className="fixed inset-y-0 left-0 hidden w-64 overflow-y-auto border-r border-ink/10 bg-white dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
         <Link href="/admin/dashboard" className="interactive flex h-[72px] items-center gap-3 border-b border-ink/10 px-5 font-black dark:border-[var(--border-soft)]">
-          <span className="grid h-10 w-10 place-items-center rounded-md bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]">B</span>
+          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-ocean text-white dark:bg-[var(--primary)]">
+            {adminLogo ? <img src={getAssetUrl(adminLogo)} alt="" className="h-full w-full object-contain" /> : "B"}
+          </span>
           <span>博客管理系统</span>
         </Link>
         <nav className="py-3">
@@ -368,7 +378,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </aside>
-      <div className="md:pl-64">
+      <div className="min-w-0 md:pl-64">
         <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/90 backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_92%,transparent)]">
           <div className="flex h-[72px] items-center justify-between gap-3 px-4 md:px-6">
             <div className="flex min-w-0 items-center gap-3">
@@ -393,7 +403,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "interactive whitespace-nowrap rounded-md px-3 py-2 text-sm font-bold",
-                      active ? "bg-ink text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]" : "bg-paper text-ink/65 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
+                      active ? "bg-ink text-white dark:bg-[var(--primary)] dark:text-white" : "bg-paper text-ink/65 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
                     )}
                   >
                     {label}
@@ -421,7 +431,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="min-w-0 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

@@ -5,6 +5,13 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal } from "@/components/admin/AdminModal";
+import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
+import { CustomSelect } from "@/components/admin/CustomSelect";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
@@ -16,10 +23,13 @@ export default function AdminOperationLogsPage() {
   const [method, setMethod] = useState("");
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<OperationLog | null>(null);
+  const [deleteItem, setDeleteItem] = useState<OperationLog | null>(null);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function load(nextPage = page, nextUsername = username, nextMethod = method) {
     try {
@@ -46,48 +56,35 @@ export default function AdminOperationLogsPage() {
     await load(1);
   }
 
-  async function deleteLog(item: OperationLog) {
-    if (!window.confirm("确认删除这条操作日志吗？")) return;
-    setError("");
-    setNotice("");
+  async function confirmDelete() {
+    if (!deleteItem) return;
+    setDeleting(true);
+    setDeleteError("");
     try {
-      await adminRequest(`/admin/logs/operation/${item.id}`, { method: "DELETE" });
+      await adminRequest(`/admin/logs/operation/${deleteItem.id}`, { method: "DELETE" });
+      setDeleteItem(null);
       await load(page);
       setNotice("操作日志已删除。");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setDeleteError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeleting(false);
     }
   }
 
   return (
     <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">Logs / Operation</p>
-        <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">操作日志</h1>
-      </div>
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
-      <form onSubmit={search} className="motion-surface mb-5 flex flex-wrap items-end gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <form onSubmit={search} className="motion-surface mb-4 grid gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
         <AdminField label="用户名">
           <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="请输入用户名" className={inputClass} />
         </AdminField>
         <AdminField label="请求方式">
-          <select value={method} onChange={(event) => setMethod(event.target.value)} className={inputClass}>
-            <option value="">全部</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-            <option value="PATCH">PATCH</option>
-          </select>
+          <CustomSelect value={method} onChange={setMethod} options={["", "POST", "PUT", "DELETE", "PATCH"].map((value) => ({ label: value || "全部", value }))} />
         </AdminField>
-        <Button type="submit">
-          <Search className="h-4 w-4" aria-hidden="true" />
-          查询
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => { setUsername(""); setMethod(""); void load(1, "", ""); }}>
-          重置
-        </Button>
+        <div className="flex items-end gap-2"><Button type="submit"><Search className="h-4 w-4" aria-hidden="true" />查询</Button><Button type="button" variant="ghost" onClick={() => { setUsername(""); setMethod(""); void load(1, "", ""); }}>重置</Button></div>
       </form>
 
       <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -120,16 +117,10 @@ export default function AdminOperationLogsPage() {
                   <td className="p-3 text-ink/65 dark:text-slate-400">{item.response_code || "-"}</td>
                   <td className="p-3 text-ink/65 dark:text-slate-400">{formatDate(item.created_at)}</td>
                   <td className="p-3">
-                    <div className="flex gap-2">
-                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => setDetail(item)}>
-                        <Eye className="h-4 w-4" aria-hidden="true" />
-                        详情
-                      </Button>
-                      <Button type="button" variant="danger" className="h-9 min-h-9 px-3" onClick={() => void deleteLog(item)}>
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        删除
-                      </Button>
-                    </div>
+                    <AdminTableActions>
+                      <AdminTableActionButton variant="neutral" onClick={() => setDetail(item)} title="详情" aria-label="详情"><Eye className={adminTableActionIconClass} /></AdminTableActionButton>
+                      <AdminTableActionButton variant="delete" onClick={() => setDeleteItem(item)} title="删除" aria-label="删除"><Trash2 className={adminTableActionIconClass} /></AdminTableActionButton>
+                    </AdminTableActions>
                   </td>
                 </tr>
               ))}
@@ -181,6 +172,7 @@ export default function AdminOperationLogsPage() {
           </div>
         ) : null}
       </AdminModal>
+      <DeleteConfirmDialog open={Boolean(deleteItem)} description="确定删除该操作日志吗？" error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteItem(null)} onConfirm={() => void confirmDelete()} />
     </>
   );
 }

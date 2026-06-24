@@ -79,6 +79,7 @@ export type FriendLink = {
   url: string;
   description?: string | null;
   avatar?: string | null;
+  email?: string | null;
   status: "active" | "inactive";
   sort_order: number;
   created_at: string;
@@ -136,6 +137,8 @@ export type MediaAsset = {
   display_mode?: string | null;
   is_active: boolean;
   created_by_id?: number | null;
+  storage_config_id?: number | null;
+  storage_name?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -276,8 +279,12 @@ export type FileStorageConfig = {
   endpoint?: string | null;
   public_base_url?: string | null;
   object_prefix?: string | null;
+  region?: string | null;
   access_key_id?: string | null;
   secret_access_key?: string | null;
+  local_path?: string | null;
+  access_path?: string | null;
+  base_path?: string | null;
   max_upload_size_mb: number;
   allowed_file_types: string;
   remark?: string | null;

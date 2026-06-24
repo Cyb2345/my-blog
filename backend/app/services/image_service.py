@@ -14,6 +14,8 @@ ALLOWED_IMAGE_TYPES = {
     "image/jpeg": "JPEG",
     "image/png": "PNG",
     "image/webp": "WEBP",
+    "image/x-icon": "ICO",
+    "image/vnd.microsoft.icon": "ICO",
 }
 
 USAGE_FOLDERS = {
@@ -45,8 +47,8 @@ class ProcessedImage:
     object_key: str
     mime_type: str
     size: int
-    width: int
-    height: int
+    width: int | None
+    height: int | None
     usage_type: str
 
 
@@ -65,8 +67,8 @@ def _safe_stem(filename: str | None) -> str:
 
 def _object_prefix(value: str | None = None) -> str:
     prefix = (value if value is not None else get_settings().R2_OBJECT_PREFIX).strip("/")
-    if prefix != "images":
-        raise HTTPException(status_code=500, detail="R2_OBJECT_PREFIX 必须配置为 images")
+    if not prefix or ".." in prefix.split("/"):
+        raise HTTPException(status_code=400, detail="文件基础路径无效")
     return prefix
 
 
@@ -74,9 +76,10 @@ def _build_object_key(
     usage_type: str,
     original_name: str | None,
     object_prefix: str | None = None,
+    extension: str = "webp",
 ) -> tuple[str, str]:
     now = datetime.now(timezone.utc)
-    filename = f"{_safe_stem(original_name)}_{uuid4().hex[:10]}.webp"
+    filename = f"{_safe_stem(original_name)}_{uuid4().hex[:10]}.{extension}"
     object_key = "/".join(
         [
             _object_prefix(object_prefix),
@@ -109,10 +112,45 @@ def process_upload_image(
             detail=f"图片大小不能超过 {upload_limit_mb}MB",
         )
 
+    if file.content_type == "image/svg+xml":
+        if usage_type != "general":
+            raise HTTPException(status_code=400, detail="SVG 仅用于品牌和通用资源")
+        try:
+            svg_text = content.decode("utf-8").lstrip()
+        except UnicodeDecodeError as exc:
+            raise HTTPException(status_code=400, detail="SVG 文件无法识别") from exc
+        if "<svg" not in svg_text[:500].lower():
+            raise HTTPException(status_code=400, detail="SVG 文件无法识别")
+        unsafe_svg_patterns = (
+            r"<\s*script\b",
+            r"<\s*foreignobject\b",
+            r"\bon[a-z]+\s*=",
+            r"(?:href|xlink:href)\s*=\s*[\"']?\s*(?:javascript:|data:text/html)",
+        )
+        if any(re.search(pattern, svg_text, flags=re.IGNORECASE) for pattern in unsafe_svg_patterns):
+            raise HTTPException(status_code=400, detail="SVG 包含不安全内容")
+        object_key, filename = _build_object_key(
+            usage_type,
+            original_name,
+            object_prefix,
+            extension="svg",
+        )
+        return ProcessedImage(
+            content=content,
+            filename=filename,
+            original_name=original_name,
+            object_key=object_key,
+            mime_type="image/svg+xml",
+            size=len(content),
+            width=None,
+            height=None,
+            usage_type=usage_type,
+        )
+
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="仅支持 jpg、jpeg、png 和 webp 图片",
+            detail="仅支持 jpg、jpeg、png、webp、ico 和 svg 图片",
         )
 
     try:
@@ -125,7 +163,7 @@ def process_upload_image(
     if image.format not in ALLOWED_IMAGE_TYPES.values():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="仅支持 jpg、jpeg、png 和 webp 图片",
+            detail="仅支持 jpg、jpeg、png、webp、ico 和 svg 图片",
         )
 
     image = ImageOps.exif_transpose(image)

@@ -3,6 +3,7 @@
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { CustomSelect } from "@/components/admin/CustomSelect";
 import { cn } from "@/lib/utils";
 
 type DateTimePickerProps = {
@@ -210,7 +211,7 @@ export function DateTimePicker({
                 className={cn(
                   "interactive h-9 rounded-md text-sm font-black transition-colors duration-150",
                   active
-                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
                     : "bg-paper/60 text-ink/70 hover:bg-ocean/10 hover:text-ocean dark:bg-[var(--surface)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
                 )}
               >
@@ -235,15 +236,13 @@ export function DateTimePicker({
             ].map(([key, label, options]) => (
               <label key={key as string} className="grid gap-1 text-xs font-bold text-ink/50 dark:text-[var(--text-muted)]">
                 {label as string}
-                <select
-                  value={(selected ?? base)[key as keyof Pick<DateParts, "hour" | "minute" | "second">]}
-                  onChange={(event) => updateParts({ [key as string]: Number(event.target.value) } as Partial<DateParts>)}
-                  className="h-9 rounded-md border border-ink/10 bg-white px-2 text-sm font-bold text-ink outline-none dark:border-[var(--border-soft)] dark:bg-[var(--surface)] dark:text-[var(--text)]"
-                >
-                  {(options as number[]).map((option) => (
-                    <option key={option} value={option}>{pad(option)}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String((selected ?? base)[key as keyof Pick<DateParts, "hour" | "minute" | "second">])}
+                  onChange={(value) => updateParts({ [key as string]: Number(value) } as Partial<DateParts>)}
+                  options={(options as number[]).map((option) => ({ label: pad(option), value: String(option) }))}
+                  className="min-w-0"
+                  panelClassName="max-h-52"
+                />
               </label>
             ))}
           </div>
@@ -269,7 +268,7 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="interactive min-h-9 rounded-md bg-ocean px-3 text-sm font-black text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+              className="interactive min-h-9 rounded-md bg-ocean px-3 text-sm font-black text-white dark:bg-[var(--primary)] dark:text-white"
             >
               完成
             </button>

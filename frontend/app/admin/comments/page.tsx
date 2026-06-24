@@ -3,14 +3,22 @@
 import { Check, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/Button";
+import {
+  AdminTableActionButton,
+  AdminTableActions,
+  adminTableActionIconClass,
+} from "@/components/admin/AdminTableActionButton";
+import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { adminRequest } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import type { CommentItem } from "@/types/blog";
 
 export default function AdminCommentsPage() {
   const [items, setItems] = useState<CommentItem[]>([]);
+  const [deleteItem, setDeleteItem] = useState<CommentItem | null>(null);
   const [error, setError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   function load() {
     adminRequest<CommentItem[]>("/admin/comments").then(setItems).catch((err: Error) => setError(err.message));
@@ -19,12 +27,26 @@ export default function AdminCommentsPage() {
   useEffect(load, []);
 
   async function action(path: string, method = "POST") {
-    if (method === "DELETE" && !window.confirm("确认删除这条留言吗？")) return;
     try {
       await adminRequest(path, { method });
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteItem) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await adminRequest(`/admin/comments/${deleteItem.id}`, { method: "DELETE" });
+      setDeleteItem(null);
+      load();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "删除失败");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -36,12 +58,8 @@ export default function AdminCommentsPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">Comments</p>
-        <h1 className="mt-2 text-2xl font-black text-ink">留言管理</h1>
-      </div>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{error}</p> : null}
-      <div className="motion-surface overflow-x-auto rounded-lg border border-ink/10 bg-white shadow-sm">
+      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
+      <div className="motion-surface overflow-x-auto rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
         <table className="admin-table w-full min-w-[900px] text-sm">
           <thead className="bg-paper text-left text-ink/60">
             <tr>
@@ -62,26 +80,18 @@ export default function AdminCommentsPage() {
                 <td className="p-3 text-ink/60">{statusText[item.status]}</td>
                 <td className="p-3 text-ink/60">{formatDate(item.created_at)}</td>
                 <td className="p-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="ghost" className="h-9 min-h-9 px-3" onClick={() => action(`/admin/comments/${item.id}/approve`)}>
-                      <Check className="h-4 w-4" />
-                      通过
-                    </Button>
-                    <Button variant="ghost" className="h-9 min-h-9 px-3" onClick={() => action(`/admin/comments/${item.id}/reject`)}>
-                      <X className="h-4 w-4" />
-                      驳回
-                    </Button>
-                    <Button variant="danger" className="h-9 min-h-9 px-3" onClick={() => action(`/admin/comments/${item.id}`, "DELETE")}>
-                      <Trash2 className="h-4 w-4" />
-                      删除
-                    </Button>
-                  </div>
+                  <AdminTableActions>
+                    <AdminTableActionButton variant="success" onClick={() => action(`/admin/comments/${item.id}/approve`)} title="通过" aria-label="通过"><Check className={adminTableActionIconClass} /></AdminTableActionButton>
+                    <AdminTableActionButton variant="warning" onClick={() => action(`/admin/comments/${item.id}/reject`)} title="驳回" aria-label="驳回"><X className={adminTableActionIconClass} /></AdminTableActionButton>
+                    <AdminTableActionButton variant="delete" onClick={() => setDeleteItem(item)} title="删除" aria-label="删除"><Trash2 className={adminTableActionIconClass} /></AdminTableActionButton>
+                  </AdminTableActions>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <DeleteConfirmDialog open={Boolean(deleteItem)} description={deleteItem ? `确定删除留言「${deleteItem.nickname}」吗？` : "确定删除该留言吗？"} error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteItem(null)} onConfirm={() => void confirmDelete()} />
     </>
   );
 }

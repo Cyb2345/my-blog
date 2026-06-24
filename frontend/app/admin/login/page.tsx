@@ -8,6 +8,10 @@ const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 type LoginBackgroundPayload = {
   image_url?: string | null;
+  display?: "cover" | "contain" | "auto" | null;
+  position?: string | null;
+  overlay_enabled?: boolean | null;
+  overlay_opacity?: number | null;
 };
 
 type LoginOptionsPayload = {
@@ -46,7 +50,13 @@ async function fetchPublicData<T>(path: string, fallback: T): Promise<T> {
 
 export default async function AdminLoginPage() {
   const [background, options] = await Promise.all([
-    fetchPublicData<LoginBackgroundPayload>("/site/login-background", { image_url: "" }),
+    fetchPublicData<LoginBackgroundPayload>("/site/login-background", {
+      image_url: "",
+      display: "cover",
+      position: "center center",
+      overlay_enabled: true,
+      overlay_opacity: 0.35,
+    }),
     fetchPublicData<LoginOptionsPayload>("/auth/login-options", fallbackLoginOptions),
   ]);
   const backgroundUrl = resolveAssetUrl(background.image_url);
@@ -57,6 +67,10 @@ export default async function AdminLoginPage() {
       {backgroundUrl ? <link rel="preload" as="image" href={backgroundUrl} /> : null}
       <AdminLoginForm
         backgroundUrl={backgroundUrl}
+        backgroundDisplay={background.display ?? "cover"}
+        backgroundPosition={background.position ?? "center center"}
+        overlayEnabled={background.overlay_enabled !== false}
+        overlayOpacity={Math.min(Math.max(Number(background.overlay_opacity ?? 0.35), 0), 0.8)}
         captchaType={captchaType}
         mfaEnabled={Boolean(options.mfa_enabled)}
       />

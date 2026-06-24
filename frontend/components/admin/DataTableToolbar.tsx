@@ -148,7 +148,7 @@ function ToolIconButton({
       className={cn(
         "interactive grid h-10 w-10 place-items-center rounded-md transition-all duration-200",
         active
-          ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]"
+          ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
           : "bg-paper text-ink/55 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:hover:text-[var(--text)]",
       )}
       aria-label={label}

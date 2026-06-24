@@ -15,5 +15,6 @@ class Link(TimestampMixin, Base):
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     avatar: Mapped[str | None] = mapped_column(String(500))
+    email: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(24), default="active", index=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(default=0, nullable=False)

@@ -30,8 +30,12 @@ class ResolvedStorageConfig:
     endpoint: str
     public_base_url: str
     object_prefix: str
+    region: str
     access_key_id: str
     secret_access_key: str
+    local_path: str
+    access_path: str
+    base_path: str
     max_upload_size_mb: int
     allowed_file_types: str
 
@@ -82,10 +86,11 @@ def ensure_default_config(db: Session) -> None:
             endpoint=settings.R2_ENDPOINT,
             public_base_url=settings.R2_PUBLIC_BASE_URL,
             object_prefix=settings.R2_OBJECT_PREFIX,
+            region="auto",
             access_key_id=settings.R2_ACCESS_KEY_ID,
             secret_access_key_encrypted=None,
             max_upload_size_mb=settings.MAX_UPLOAD_IMAGE_SIZE_MB,
-            allowed_file_types="image/jpeg,image/png,image/webp",
+            allowed_file_types="image/jpeg,image/png,image/webp,image/x-icon,image/vnd.microsoft.icon,image/svg+xml",
             remark="敏感密钥优先从 backend/.env 读取，接口只返回脱敏状态。",
         )
     )
@@ -94,20 +99,36 @@ def ensure_default_config(db: Session) -> None:
 
 def read_config(config: FileStorageConfig) -> FileStorageConfigRead:
     settings = get_settings()
-    access_key_id = config.access_key_id or settings.R2_ACCESS_KEY_ID
-    has_secret = bool(config.secret_access_key_encrypted or settings.R2_SECRET_ACCESS_KEY)
+    is_object_storage = config.storage_type in {"r2", "s3"}
+    access_key_id = config.access_key_id or (settings.R2_ACCESS_KEY_ID if config.storage_type == "r2" else "")
+    has_secret = bool(
+        config.secret_access_key_encrypted
+        or (settings.R2_SECRET_ACCESS_KEY if config.storage_type == "r2" else "")
+    )
     data = {
         "id": config.id,
         "name": config.name,
         "storage_type": config.storage_type,
         "is_primary": config.is_primary,
         "status": config.status,
-        "bucket": config.bucket or settings.R2_BUCKET_NAME,
-        "endpoint": config.endpoint or settings.R2_ENDPOINT,
-        "public_base_url": config.public_base_url or settings.R2_PUBLIC_BASE_URL,
-        "object_prefix": config.object_prefix or settings.R2_OBJECT_PREFIX,
-        "access_key_id": mask_secret(access_key_id),
-        "secret_access_key": MASKED_SECRET if has_secret else None,
+        "bucket": (config.bucket or settings.R2_BUCKET_NAME) if config.storage_type == "r2" else config.bucket,
+        "endpoint": (config.endpoint or settings.R2_ENDPOINT) if config.storage_type == "r2" else config.endpoint,
+        "public_base_url": (
+            config.public_base_url or settings.R2_PUBLIC_BASE_URL
+            if config.storage_type == "r2"
+            else config.public_base_url
+        ),
+        "object_prefix": (
+            config.object_prefix or settings.R2_OBJECT_PREFIX
+            if config.storage_type == "r2"
+            else config.object_prefix
+        ),
+        "region": config.region,
+        "access_key_id": mask_secret(access_key_id) if is_object_storage else None,
+        "secret_access_key": MASKED_SECRET if is_object_storage and has_secret else None,
+        "local_path": config.local_path,
+        "access_path": config.access_path,
+        "base_path": config.base_path,
         "max_upload_size_mb": config.max_upload_size_mb,
         "allowed_file_types": config.allowed_file_types,
         "remark": config.remark,
@@ -122,6 +143,7 @@ def apply_config_payload(
     payload: FileStorageConfigCreate | FileStorageConfigUpdate,
 ) -> None:
     data = payload.model_dump(exclude_unset=True)
+    storage_type = data.get("storage_type", config.storage_type)
     secret = data.pop("secret_access_key", None)
     access_key_id = data.get("access_key_id")
     if is_masked(access_key_id):
@@ -130,6 +152,17 @@ def apply_config_payload(
         setattr(config, field, value)
     if secret and not is_masked(secret):
         config.secret_access_key_encrypted = encrypt_secret(secret)
+    if storage_type == "local":
+        config.bucket = None
+        config.endpoint = None
+        config.object_prefix = None
+        config.region = None
+        config.access_key_id = None
+        config.secret_access_key_encrypted = None
+    else:
+        config.local_path = None
+        config.access_path = None
+        config.base_path = None
 
 
 def get_primary_storage_config(db: Session) -> FileStorageConfig:
@@ -159,24 +192,31 @@ def resolve_storage_config(
     settings: Settings | None = None,
 ) -> ResolvedStorageConfig:
     settings = settings or get_settings()
-    secret = decrypt_secret(config.secret_access_key_encrypted) or settings.R2_SECRET_ACCESS_KEY
+    is_r2 = config.storage_type == "r2"
+    secret = decrypt_secret(config.secret_access_key_encrypted) or (
+        settings.R2_SECRET_ACCESS_KEY if is_r2 else ""
+    )
     return ResolvedStorageConfig(
         id=config.id,
         storage_type=config.storage_type or "r2",
         status=config.status,
-        bucket=config.bucket or settings.R2_BUCKET_NAME,
-        endpoint=config.endpoint or settings.R2_ENDPOINT,
-        public_base_url=config.public_base_url or settings.R2_PUBLIC_BASE_URL,
-        object_prefix=(config.object_prefix or settings.R2_OBJECT_PREFIX).strip("/"),
-        access_key_id=config.access_key_id or settings.R2_ACCESS_KEY_ID,
+        bucket=config.bucket or (settings.R2_BUCKET_NAME if is_r2 else ""),
+        endpoint=config.endpoint or (settings.R2_ENDPOINT if is_r2 else ""),
+        public_base_url=config.public_base_url or (settings.R2_PUBLIC_BASE_URL if is_r2 else ""),
+        object_prefix=(config.object_prefix or (settings.R2_OBJECT_PREFIX if is_r2 else "images")).strip("/"),
+        region=config.region or ("auto" if is_r2 else ""),
+        access_key_id=config.access_key_id or (settings.R2_ACCESS_KEY_ID if is_r2 else ""),
         secret_access_key=secret,
+        local_path=config.local_path or settings.UPLOAD_DIR,
+        access_path=(config.access_path or "/uploads").rstrip("/"),
+        base_path=(config.base_path or "images").strip("/"),
         max_upload_size_mb=config.max_upload_size_mb or settings.MAX_UPLOAD_IMAGE_SIZE_MB,
         allowed_file_types=config.allowed_file_types,
     )
 
 
 def missing_r2_fields(config: ResolvedStorageConfig) -> list[str]:
-    if config.storage_type != "r2":
+    if config.storage_type not in {"r2", "s3"}:
         return []
     return [
         label
@@ -186,6 +226,19 @@ def missing_r2_fields(config: ResolvedStorageConfig) -> list[str]:
             "public_base_url": config.public_base_url,
             "access_key_id": config.access_key_id,
             "secret_access_key": config.secret_access_key,
+        }.items()
+        if not value
+    ]
+
+
+def missing_local_fields(config: ResolvedStorageConfig) -> list[str]:
+    if config.storage_type != "local":
+        return []
+    return [
+        label
+        for label, value in {
+            "local_path": config.local_path,
+            "access_path": config.access_path,
         }.items()
         if not value
     ]

@@ -31,7 +31,7 @@ export default async function DocsPage() {
             {first ? (
               <Link
                 href={`/docs/${first.slug}`}
-                className="interactive mt-6 inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white hover:bg-ocean dark:bg-sky-400 dark:text-slate-950 dark:hover:bg-sky-300"
+                className="interactive mt-6 inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white hover:bg-ocean dark:bg-sky-400 dark:text-white dark:hover:bg-sky-300"
               >
                 {first.title}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />

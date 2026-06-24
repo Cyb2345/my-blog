@@ -827,7 +827,7 @@ export function PostModalEditor({
                 className={cn(
                   "interactive inline-flex min-h-8 items-center gap-2 rounded-md px-3 transition-all duration-200",
                   syncScroll
-                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-slate-950"
+                    ? "bg-ocean text-white dark:bg-sky-400 dark:text-white"
                     : "bg-paper text-ink/60 ring-1 ring-ink/10 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10",
                   !showPreview && "cursor-not-allowed opacity-50",
                 )}
