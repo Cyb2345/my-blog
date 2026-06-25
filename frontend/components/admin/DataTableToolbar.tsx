@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { useAdminLayout } from "@/components/admin/AdminLayoutContext";
 import { cn } from "@/lib/utils";
 
 export type TableDensity = "compact" | "default" | "loose";
@@ -121,9 +122,10 @@ function ToolPopover({
     <div
       className={cn(
         "absolute right-0 top-[calc(100%+0.5rem)] z-40 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
-        open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+        open ? "visible pointer-events-auto translate-y-0 scale-100 opacity-100" : "invisible pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         className,
       )}
+      aria-hidden={!open}
     >
       {children}
     </div>
@@ -168,6 +170,7 @@ export function TableDensitySelector({
   onSettingsChange: Dispatch<SetStateAction<TableSettings>>;
   onClose: () => void;
 }) {
+  const { t } = useAdminLayout();
   return (
     <div className="grid gap-1">
       {densityOptions.map((option) => (
@@ -183,7 +186,7 @@ export function TableDensitySelector({
             settings.density === option.value ? "bg-ocean/10 text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/65 dark:text-[var(--text-secondary)]",
           )}
         >
-          {option.label}
+          {t(option.label)}
           {settings.density === option.value ? <span>✓</span> : null}
         </button>
       ))}
@@ -200,6 +203,7 @@ export function ColumnVisibilityPopover({
   onSettingsChange: Dispatch<SetStateAction<TableSettings>>;
   columns: TableColumnOption[];
 }) {
+  const { t } = useAdminLayout();
   return (
     <div className="grid gap-1">
       {columns.map((column) => {
@@ -228,7 +232,7 @@ export function ColumnVisibilityPopover({
               }}
               className="h-4 w-4 accent-blue-500"
             />
-            {column.label}
+            {t(column.label)}
           </label>
         );
       })}
@@ -237,7 +241,7 @@ export function ColumnVisibilityPopover({
         onClick={() => onSettingsChange((current) => ({ ...current, visibleColumns: columns.map((column) => column.key) }))}
         className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
       >
-        恢复默认列
+        {t("恢复默认列")}
       </button>
     </div>
   );
@@ -250,6 +254,7 @@ export function TableStyleSettings({
   settings: TableSettings;
   onSettingsChange: Dispatch<SetStateAction<TableSettings>>;
 }) {
+  const { t } = useAdminLayout();
   return (
     <div className="grid gap-1">
       {[
@@ -270,7 +275,7 @@ export function TableStyleSettings({
             onChange={() => onSettingsChange((current) => ({ ...current, [option.key]: !current[option.key] }))}
             className="h-4 w-4 accent-blue-500"
           />
-          {option.label}
+          {t(option.label)}
         </label>
       ))}
     </div>
@@ -288,6 +293,7 @@ export function DataTableToolbar({
   enableColumns = true,
   enableStyle = true,
 }: DataTableToolbarProps) {
+  const { t } = useAdminLayout();
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const [activePanel, setActivePanel] = useState<TablePanel>(null);
 
@@ -317,13 +323,13 @@ export function DataTableToolbar({
   return (
     <div ref={toolbarRef} className="flex flex-wrap items-center gap-2">
       {enableRefresh ? (
-        <ToolIconButton label="刷新" onClick={() => onRefresh?.()}>
+        <ToolIconButton label={t("刷新")} onClick={() => onRefresh?.()}>
           <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} aria-hidden="true" />
         </ToolIconButton>
       ) : null}
       {enableDensity ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "density"} label="行高 / 密度设置" onClick={() => togglePanel("density")}>
+          <ToolIconButton active={activePanel === "density"} label={t("行高 / 密度设置")} onClick={() => togglePanel("density")}>
             <Rows3 className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "density"}>
@@ -333,7 +339,7 @@ export function DataTableToolbar({
       ) : null}
       {enableColumns && columns.length ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "columns"} label="列显示设置" onClick={() => togglePanel("columns")}>
+          <ToolIconButton active={activePanel === "columns"} label={t("列显示设置")} onClick={() => togglePanel("columns")}>
             <Columns3 className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "columns"} className="min-w-56">
@@ -343,7 +349,7 @@ export function DataTableToolbar({
       ) : null}
       {enableStyle ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "style"} label="表格样式设置" onClick={() => togglePanel("style")}>
+          <ToolIconButton active={activePanel === "style"} label={t("表格样式设置")} onClick={() => togglePanel("style")}>
             <Settings className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "style"} className="min-w-52">
