@@ -85,7 +85,7 @@ AdminLayout
 - `slide-right`：新页面从左侧轻微进入。
 - `slide-up`：新页面从下方轻微上浮进入。
 - `slide-down`：新页面从上方轻微下落进入。
-- `zoom`：旧主内容层先轻微缩小并淡出，主内容区域短暂露出过场背景，新主内容再从 `scale(0.96)` 放大淡入。
+- `zoom`：旧主内容快照轻微缩小并淡出，新主内容同步从 `scale(0.97)` 放大淡入，不设置等待空场。
 
 用户选择关闭动画后必须完全禁用页面切换的 transition 和 animation。用户设备开启 `prefers-reduced-motion: reduce` 时，页面切换动画必须实际禁用。
 

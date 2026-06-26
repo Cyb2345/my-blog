@@ -18,6 +18,7 @@ import {
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { Button } from "@/components/ui/Button";
 import { adminRequest } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
@@ -199,6 +200,7 @@ export default function AdminNavigationPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !items.length ? <TableSkeletonRows columns={7} rows={6} cellClassName={cellClass} /> : null}
               {items.map((item, index) => (
                 <tr
                   key={item.id}

@@ -18,6 +18,7 @@ import {
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
 import { adminRequest, adminUpload } from "@/lib/auth";
@@ -268,6 +269,7 @@ export default function AdminLinksPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !data.items.length ? <TableSkeletonRows columns={10} rows={6} cellClassName={cellClass} /> : null}
               {data.items.map((item, index) => (
                 <tr key={item.id} className={cn("border-t border-ink/10 dark:border-[var(--border-soft)]", settings.striped && index % 2 === 1 && "bg-paper/45 dark:bg-white/[0.03]")}>
                   <td className={cn("text-center", cellClass)}><input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} aria-label={`选择 ${item.name}`} /></td>

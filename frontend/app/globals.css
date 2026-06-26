@@ -302,17 +302,8 @@ select:focus {
   width: 100%;
   min-height: 1px;
   backface-visibility: hidden;
+  background: transparent;
   transform-origin: center center;
-}
-
-.admin-page-transition::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  opacity: 0;
 }
 
 .admin-page-transition__page {
@@ -332,7 +323,7 @@ select:focus {
   width: 100%;
   min-width: 0;
   transform-origin: center center;
-  animation: admin-page-zoom-exit var(--motion-page-zoom-exit, 160ms) var(--ease-standard) both;
+  animation: admin-page-zoom-exit var(--motion-page-zoom-exit, 180ms) var(--ease-standard) both;
   will-change: opacity, transform;
 }
 
@@ -360,19 +351,6 @@ select:focus {
   animation: admin-page-zoom-enter var(--motion-page-zoom-enter, 220ms) var(--ease-standard) both;
 }
 
-.admin-page-transition--zoom-with-exit.admin-page-transition--entering {
-  animation-delay: var(--motion-page-zoom-enter-delay, 170ms);
-}
-
-.admin-page-transition--zoom-switching::before {
-  background: color-mix(in srgb, var(--color-text) 7%, var(--color-bg-muted));
-  opacity: 1;
-}
-
-.dark .admin-page-transition--zoom-switching::before {
-  background: color-mix(in srgb, var(--color-bg) 86%, black);
-}
-
 .admin-page-transition--fade,
 .admin-page-transition--none {
   transform: none;
@@ -384,10 +362,6 @@ select:focus {
   transition: none !important;
   transform: none !important;
   will-change: auto;
-}
-
-.admin-page-transition--none::before {
-  opacity: 0;
 }
 
 html.admin-fullscreen-transitioning .admin-shell {
@@ -507,14 +481,14 @@ html[data-admin-font-size="large"] .admin-shell {
   }
   to {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.985);
   }
 }
 
 @keyframes admin-page-zoom-enter {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
   to {
     opacity: 1;
@@ -1119,7 +1093,6 @@ html.theme-transitioning *::after {
     will-change: auto !important;
   }
 
-  .admin-page-transition::before,
   .admin-page-transition__snapshot {
     animation: none !important;
     opacity: 0 !important;

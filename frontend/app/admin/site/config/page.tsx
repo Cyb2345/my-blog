@@ -1,7 +1,7 @@
 "use client";
 
 import { Copy, Edit, EyeOff, Eye, Image, Plus, Trash2, Upload } from "lucide-react";
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
@@ -15,6 +15,7 @@ import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { ImagePicker } from "@/components/admin/ImagePicker";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
 import type { MediaAsset, NavigationItem, SiteConfig } from "@/types/blog";
@@ -346,11 +347,26 @@ function formatBytes(value: number) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function EmptyState({ children }: { children: ReactNode }) {
+function SiteConfigSkeleton() {
   return (
-    <div className="rounded-lg border border-dashed border-ink/10 bg-paper/70 p-8 text-center text-sm font-bold text-ink/45 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-500">
-      {children}
-    </div>
+    <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
+      <div className="border-b border-ink/10 px-4 py-4 dark:border-white/10 sm:px-5">
+        <Skeleton className="h-5 w-36" />
+        <Skeleton className="mt-3 h-4 w-64 max-w-full" />
+      </div>
+      <div className="grid divide-y divide-ink/10 dark:divide-white/10">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div key={index} className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(180px,260px)_auto] sm:items-center sm:px-5">
+            <div className="grid gap-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-56 max-w-full" />
+            </div>
+            <Skeleton className="h-4 w-44 max-w-full" />
+            <Skeleton className="h-9 w-20" />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -771,7 +787,7 @@ export function SiteConfigManager({
       </div>
 
       {loading ? (
-        <EmptyState>正在加载站点配置...</EmptyState>
+        <SiteConfigSkeleton />
       ) : activeGroup === "navigation" ? (
         <NavigationConfigTable
           items={navigation}

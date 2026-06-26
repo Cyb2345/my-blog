@@ -44,18 +44,22 @@ export function AdminPageTransition({
     animating: pageTransition !== "none",
     key: transitionKey,
   }));
-  const [zoomSwitching, setZoomSwitching] = useState(false);
 
-  let animating = animationState.animating;
-  if (animationState.key !== transitionKey) {
-    animating = pageTransition !== "none";
-    setAnimationState({ animating, key: transitionKey });
-  }
+  const routeChanged = animationState.key !== transitionKey;
+  const animating = pageTransition !== "none" && (routeChanged || animationState.animating);
+
+  useEffect(() => {
+    setAnimationState((current) => {
+      if (current.key === transitionKey) {
+        if (pageTransition === "none" && current.animating) return { ...current, animating: false };
+        return current;
+      }
+      return { animating: pageTransition !== "none", key: transitionKey };
+    });
+  }, [pageTransition, transitionKey]);
 
   useEffect(() => {
     if (pageTransition !== "none") return;
-    setAnimationState((current) => current.animating ? { ...current, animating: false } : current);
-    setZoomSwitching(false);
     if (zoomSwitchingTimer.current) {
       window.clearTimeout(zoomSwitchingTimer.current);
       zoomSwitchingTimer.current = null;
@@ -82,12 +86,10 @@ export function AdminPageTransition({
 
       if (zoomSwitchingTimer.current) window.clearTimeout(zoomSwitchingTimer.current);
       exitLayer.replaceChildren(snapshot);
-      setZoomSwitching(true);
       zoomSwitchingTimer.current = window.setTimeout(() => {
         exitLayer.replaceChildren();
-        setZoomSwitching(false);
         zoomSwitchingTimer.current = null;
-      }, 450);
+      }, 280);
     }
 
     window.addEventListener("admin:page-transition-capture", captureZoomExitSnapshot);
@@ -156,7 +158,6 @@ export function AdminPageTransition({
       className={cn(
         "admin-page-transition min-w-0",
         `admin-page-transition--${pageTransition}`,
-        pageTransition === "zoom" && zoomSwitching && "admin-page-transition--zoom-switching",
       )}
     >
       <div ref={exitLayerRef} className="admin-page-transition__exit-layer" aria-hidden="true" />
@@ -166,17 +167,16 @@ export function AdminPageTransition({
         onAnimationEnd={(event) => {
           if (event.currentTarget !== event.target) return;
           setAnimationState((current) => current.key === transitionKey ? { ...current, animating: false } : current);
-          setZoomSwitching(false);
           if (zoomSwitchingTimer.current) {
             window.clearTimeout(zoomSwitchingTimer.current);
             zoomSwitchingTimer.current = null;
+            exitLayerRef.current?.replaceChildren();
           }
         }}
         className={cn(
           "admin-page-transition__page min-w-0",
           animating && "admin-page-transition--entering",
           `admin-page-transition--${pageTransition}`,
-          pageTransition === "zoom" && zoomSwitching && "admin-page-transition--zoom-with-exit",
         )}
       >
         {children}
