@@ -19,7 +19,9 @@ import {
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { ParamValueField } from "@/components/admin/ParamValueField";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { Button } from "@/components/ui/Button";
+import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { MediaAsset, Paginated, SystemParam } from "@/types/blog";
@@ -48,6 +50,7 @@ const systemFilterOptions = [
   { label: "否", value: "false" },
 ];
 const paramTableSettingsKey = "admin-table-settings:system-params";
+const paramPageCacheKey = "admin-page-cache:system-params";
 const defaultParamTableSettings: TableSettings = {
   bordered: true,
   striped: true,
@@ -151,7 +154,7 @@ function displayParamValue(param: SystemParam) {
 }
 
 export default function AdminParamsPage() {
-  const [pageData, setPageData] = useState<ParamPage>(emptyPage);
+  const [pageData, setPageData] = useState<ParamPage>(() => readAdminPageCache<ParamPage>(paramPageCacheKey) ?? emptyPage);
   const [tableSettings, setTableSettings] = useTableSettings(paramTableSettingsKey, defaultParamTableSettings);
   const [filters, setFilters] = useState<ParamFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<ParamFilters>(emptyFilters);
@@ -188,6 +191,7 @@ export default function AdminParamsPage() {
       const data = await adminRequest<ParamPage | SystemParam[]>(`/admin/system/params?${query.toString()}`);
       const normalized = normalizePage(data, currentPage, currentPageSize);
       setPageData(normalized);
+      writeAdminPageCache(paramPageCacheKey, normalized);
       setPageNumber(normalized.page);
       setJumpPage(String(normalized.page || 1));
       setSelectedIds(new Set());
@@ -504,6 +508,9 @@ export default function AdminParamsPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !pageData.items.length ? (
+                <TableSkeletonRows columns={9} rows={6} cellClassName={tableCellPadding} />
+              ) : null}
               {pageData.items.map((param, rowIndex) => {
                 const rowStriped = tableSettings.striped && rowIndex % 2 === 1;
                 const hint = getEffectHint(param.key);

@@ -18,7 +18,9 @@ import { CustomSelect } from "@/components/admin/CustomSelect";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { PostModalEditor } from "@/components/admin/PostModalEditor";
 import { PostCategorySelect, PostTagMultiSelect } from "@/components/admin/PostSelectControls";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { Button } from "@/components/ui/Button";
+import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
 import type { Category, Paginated, Post, Tag } from "@/types/blog";
@@ -63,6 +65,7 @@ const columns: ColumnConfig[] = [
 const defaultColumnWidths = Object.fromEntries(columns.map((column) => [column.key, column.defaultWidth])) as ColumnWidths;
 const postTableSettingsKey = "admin-table-settings:content-posts";
 const postColumnWidthStorageKey = "admin-table-column-widths:content-posts";
+const postsPageCacheKey = "admin-page-cache:content-posts";
 const tableColumnOptions = columns.map(({ key, label, locked }) => ({ key, label, locked }));
 const defaultPostTableSettings: TableSettings = {
   bordered: true,
@@ -138,7 +141,7 @@ function CoverThumb({ src, title }: { src?: string | null; title: string }) {
 }
 
 export default function AdminPostsPage() {
-  const [page, setPage] = useState<Paginated<Post>>(emptyPage);
+  const [page, setPage] = useState<Paginated<Post>>(() => readAdminPageCache<Paginated<Post>>(postsPageCacheKey) ?? emptyPage);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [filters, setFilters] = useState<PostQuery>(emptyQuery);
@@ -174,6 +177,7 @@ export default function AdminPostsPage() {
     try {
       const data = await adminRequest<Paginated<Post>>(`/admin/posts?${params.toString()}`);
       setPage(data);
+      writeAdminPageCache(postsPageCacheKey, data);
       setJumpPage(String(data.page || 1));
       setSelectedIds(new Set());
     } catch (err) {
@@ -497,6 +501,9 @@ export default function AdminPostsPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !page.items.length ? (
+                <TableSkeletonRows columns={visibleColumnCount + 1} rows={6} cellClassName={tableCellPadding} />
+              ) : null}
               {page.items.map((post, rowIndex) => {
                 const visibleTags = post.tags?.slice(0, 3) ?? [];
                 const extraTags = Math.max((post.tags?.length ?? 0) - visibleTags.length, 0);

@@ -18,7 +18,9 @@ import {
 } from "@/components/admin/DataTableToolbar";
 import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { Button } from "@/components/ui/Button";
+import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { AccessLog, Paginated } from "@/types/blog";
@@ -41,6 +43,7 @@ const emptyPage: AccessLogPage = { items: [], total: 0, page: 1, page_size: 10, 
 const emptyQuery: AccessLogQuery = { ip: "", location: "", browser: "", os: "", start_time: "", end_time: "" };
 const pageSizeOptions = [10, 20, 50];
 const accessLogTableSettingsKey = "admin-table-settings:logs-access";
+const accessLogPageCacheKey = "admin-page-cache:logs-access";
 const defaultAccessLogTableSettings: TableSettings = {
   bordered: true,
   striped: true,
@@ -78,7 +81,7 @@ function toApiDateTime(value: string) {
 }
 
 export default function AdminAccessLogsPage() {
-  const [pageData, setPageData] = useState<AccessLogPage>(emptyPage);
+  const [pageData, setPageData] = useState<AccessLogPage>(() => readAdminPageCache<AccessLogPage>(accessLogPageCacheKey) ?? emptyPage);
   const [tableSettings, setTableSettings] = useTableSettings(accessLogTableSettingsKey, defaultAccessLogTableSettings);
   const [filters, setFilters] = useState<AccessLogQuery>(emptyQuery);
   const [appliedFilters, setAppliedFilters] = useState<AccessLogQuery>(emptyQuery);
@@ -114,6 +117,7 @@ export default function AdminAccessLogsPage() {
 
       const data = await adminRequest<AccessLogPage>(`/admin/logs/access?${params.toString()}`);
       setPageData(data);
+      writeAdminPageCache(accessLogPageCacheKey, data);
       setPageNumber(data.page);
       setJumpPage(String(data.page));
       setSelectedIds(new Set());
@@ -364,6 +368,9 @@ export default function AdminAccessLogsPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !pageData.items.length ? (
+                <TableSkeletonRows columns={7} rows={6} cellClassName={tableCellPadding} />
+              ) : null}
               {pageData.items.map((item, rowIndex) => {
                 const rowStriped = tableSettings.striped && rowIndex % 2 === 1;
                 return (

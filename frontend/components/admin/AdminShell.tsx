@@ -44,7 +44,7 @@ import {
   AdminLayoutProvider,
   useAdminLayout,
 } from "@/components/admin/AdminLayoutContext";
-import { AdminPageTransition, type AdminPageTransitionStage } from "@/components/admin/AdminPageTransition";
+import { AdminPageTransition } from "@/components/admin/AdminPageTransition";
 import { AdminSettingsDrawer } from "@/components/admin/AdminSettingsDrawer";
 import { AdminTabs, type AdminTab } from "@/components/admin/AdminTabs";
 import { AdminTopBar } from "@/components/admin/AdminTopBar";
@@ -153,9 +153,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 const tabsStorageKey = "admin_open_tabs";
 const dashboardTab: AdminTab = { href: "/admin/dashboard", label: "仪表盘", pinned: true };
-const pageLeaveMs = 210;
-const pageHoldMs = 100;
-const pageEnterMs = 300;
+const pageEnterMs = 220;
 
 function resolveIcon(icon?: string | null) {
   return icon ? iconMap[icon] ?? LayoutGrid : LayoutGrid;
@@ -197,10 +195,6 @@ function normalizeAdminPath(pathname: string) {
   if (pathname.startsWith("/admin/media")) return "/admin/files/list";
   if (pathname.startsWith("/admin/settings")) return "/admin/site/config";
   return pathname;
-}
-
-function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function isActivePath(current: string, href: string) {
@@ -376,10 +370,8 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   const [tabsHydrated, setTabsHydrated] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [transitionStage, setTransitionStage] = useState<AdminPageTransitionStage>("idle");
   const [progressVisible, setProgressVisible] = useState(false);
-  const transitionTimers = useRef<number[]>([]);
-  const previousCurrent = useRef(current);
+  const progressTimer = useRef<number | null>(null);
 
   const breadcrumb = useMemo(() => findBreadcrumb(current, sections), [current, sections]);
   const currentTabLabel = breadcrumb[breadcrumb.length - 1] || "管理员工作台";
@@ -465,37 +457,27 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     setMobileSidebarOpen(false);
   }, [current, sections, settings.accordionMenu]);
 
-  useEffect(() => () => {
-    clearTransitionTimers();
-  }, []);
-
   useEffect(() => {
-    if (previousCurrent.current === current) return;
-    previousCurrent.current = current;
-    if (settings.pageTransition === "none" || prefersReducedMotion()) {
-      clearTransitionTimers();
-      setTransitionStage("idle");
-      setProgressVisible(false);
-      return;
-    }
-    setTransitionStage("entering");
-    scheduleTransition(() => {
-      setTransitionStage("idle");
-      setProgressVisible(false);
-    }, pageEnterMs + 80);
+    clearProgressTimer();
+    progressTimer.current = window.setTimeout(() => setProgressVisible(false), pageEnterMs + 80);
   }, [current, settings.pageTransition]);
 
-  function clearTransitionTimers() {
-    transitionTimers.current.forEach((timer) => window.clearTimeout(timer));
-    transitionTimers.current = [];
+  useEffect(() => () => {
+    clearProgressTimer();
+  }, []);
+
+  function clearProgressTimer() {
+    if (progressTimer.current) window.clearTimeout(progressTimer.current);
+    progressTimer.current = null;
   }
 
-  function scheduleTransition(callback: () => void, delay: number) {
-    const timer = window.setTimeout(() => {
-      transitionTimers.current = transitionTimers.current.filter((currentTimer) => currentTimer !== timer);
-      callback();
-    }, delay);
-    transitionTimers.current.push(timer);
+  function finishProgressSoon() {
+    clearProgressTimer();
+    progressTimer.current = window.setTimeout(() => {
+      setProgressVisible(false);
+      setRefreshing(false);
+      progressTimer.current = null;
+    }, pageEnterMs + 80);
   }
 
   function navigate(href: string) {
@@ -505,15 +487,12 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     const targetAdminPath = normalizeAdminPath(targetUrl.pathname);
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (targetPath === currentPath) return;
-    clearTransitionTimers();
-    if (targetAdminPath === current || settings.pageTransition === "none" || prefersReducedMotion()) {
+    if (targetAdminPath === current) {
       router.push(targetPath);
       return;
     }
     setProgressVisible(true);
-    setTransitionStage("leaving");
-    scheduleTransition(() => setTransitionStage("hidden"), pageLeaveMs);
-    scheduleTransition(() => router.push(targetPath), pageLeaveMs + pageHoldMs);
+    router.push(targetPath);
   }
 
   function handleLinkCapture(event: ReactMouseEvent<HTMLDivElement>) {
@@ -540,26 +519,9 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     if (refreshing) return;
     setRefreshing(true);
     setProgressVisible(true);
-    clearTransitionTimers();
-    if (settings.pageTransition === "none" || prefersReducedMotion()) {
-      setRefreshKey((value) => value + 1);
-      window.dispatchEvent(new CustomEvent("admin:refresh"));
-      setRefreshing(false);
-      setProgressVisible(false);
-      return;
-    }
-    setTransitionStage("leaving");
-    scheduleTransition(() => setTransitionStage("hidden"), pageLeaveMs);
-    scheduleTransition(() => {
-      setRefreshKey((value) => value + 1);
-      window.dispatchEvent(new CustomEvent("admin:refresh"));
-      setTransitionStage("entering");
-    }, pageLeaveMs + pageHoldMs);
-    scheduleTransition(() => {
-      setTransitionStage("idle");
-      setRefreshing(false);
-      setProgressVisible(false);
-    }, pageLeaveMs + pageHoldMs + pageEnterMs + 80);
+    setRefreshKey((value) => value + 1);
+    window.dispatchEvent(new CustomEvent("admin:refresh"));
+    finishProgressSoon();
   }
 
   function closeTab(href: string) {
@@ -653,7 +615,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
 
         <main className="admin-content min-w-0 p-4 md:p-6">
           <div className={cn("admin-content-inner mx-auto w-full", settings.containerWidth === "fixed" && "max-w-[1440px]")}>
-            <AdminPageTransition stage={transitionStage} transitionKey={`${pathname}-${refreshKey}`}>
+            <AdminPageTransition key={`${pathname}-${refreshKey}`} transitionKey={`${pathname}-${refreshKey}`}>
               {children}
             </AdminPageTransition>
           </div>

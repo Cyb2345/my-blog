@@ -1,25 +1,26 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { translateAdminText, useAdminLayout } from "@/components/admin/AdminLayoutContext";
 import { cn } from "@/lib/utils";
 
-export type AdminPageTransitionStage = "idle" | "leaving" | "hidden" | "entering";
-
 export function AdminPageTransition({
   children,
-  stage,
   transitionKey,
 }: {
   children: ReactNode;
-  stage: AdminPageTransitionStage;
   transitionKey: string;
 }) {
   const { locale, settings } = useAdminLayout();
   const rootRef = useRef<HTMLDivElement>(null);
   const textRecords = useRef(new WeakMap<Text, { original: string; rendered: string }>());
   const attributeRecords = useRef(new WeakMap<Element, Map<string, { original: string; rendered: string }>>());
+  const [animating, setAnimating] = useState(() => settings.pageTransition !== "none");
+
+  useEffect(() => {
+    if (settings.pageTransition === "none") setAnimating(false);
+  }, [settings.pageTransition]);
 
   useEffect(() => {
     const currentContainer = rootRef.current;
@@ -80,10 +81,10 @@ export function AdminPageTransition({
   return (
     <div
       ref={rootRef}
-      key={transitionKey}
+      onAnimationEnd={() => setAnimating(false)}
       className={cn(
         "admin-page-transition min-w-0",
-        stage !== "idle" && `admin-page-transition--${stage}`,
+        animating && "admin-page-transition--entering",
         settings.pageTransition === "none" && "admin-page-transition--none",
         settings.pageTransition === "fade" && "admin-page-transition--fade",
       )}

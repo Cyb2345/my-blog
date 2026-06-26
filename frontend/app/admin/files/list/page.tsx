@@ -19,7 +19,9 @@ import {
 } from "@/components/admin/DataTableToolbar";
 import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
 import { Button } from "@/components/ui/Button";
+import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn, formatDate, getAssetUrl } from "@/lib/utils";
 import type { MediaAsset, Paginated } from "@/types/blog";
@@ -37,6 +39,7 @@ type DeleteState = { ids: number[]; name?: string } | null;
 const emptyFilters: Filters = { keyword: "", fileType: "", storageType: "", startTime: "", endTime: "" };
 const emptyPage: Paginated<MediaAsset> = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
 const defaultSettings: TableSettings = { bordered: true, striped: true, headerBackground: true, density: "default", visibleColumns: [] };
+const fileListPageCacheKey = "admin-page-cache:files-list";
 
 function formatBytes(value: number) {
   if (value < 1024) return `${value} B`;
@@ -74,7 +77,7 @@ function FilePreview({ item, large = false }: { item: MediaAsset; large?: boolea
 }
 
 export default function AdminFileListPage() {
-  const [data, setData] = useState(emptyPage);
+  const [data, setData] = useState<Paginated<MediaAsset>>(() => readAdminPageCache<Paginated<MediaAsset>>(fileListPageCacheKey) ?? emptyPage);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [applied, setApplied] = useState<Filters>(emptyFilters);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -105,6 +108,7 @@ export default function AdminFileListPage() {
       if (applied.endTime) query.set("end_time", applied.endTime);
       const result = await adminRequest<Paginated<MediaAsset>>(`/admin/files?${query.toString()}`);
       setData(result);
+      writeAdminPageCache(fileListPageCacheKey, result);
       if (result.page !== page) setPage(result.page);
       setJumpPage(String(result.page));
       setSelected(new Set());
@@ -212,6 +216,7 @@ export default function AdminFileListPage() {
               </tr>
             </thead>
             <tbody>
+              {loading && !data.items.length ? <TableSkeletonRows columns={8} rows={6} cellClassName={cellClass} /> : null}
               {data.items.map((item, index) => (
                 <tr key={item.id} className={cn("border-t border-ink/10 dark:border-[var(--border-soft)]", settings.striped && index % 2 === 1 && "bg-paper/45 dark:bg-white/[0.03]")}>
                   <td className={cn("text-center", cellClass)}><input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} aria-label={`选择 ${item.original_name}`} /></td>

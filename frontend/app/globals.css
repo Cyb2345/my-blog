@@ -298,32 +298,14 @@ select:focus {
   min-height: 1px;
   backface-visibility: hidden;
   transform-origin: top center;
-  will-change: opacity, transform;
-}
-
-.admin-page-transition--leaving {
-  opacity: 0;
-  transform: translateY(8px) scale(0.992);
-  pointer-events: none;
-  transition: opacity 210ms cubic-bezier(0.4, 0, 0.2, 1), transform 210ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.admin-page-transition--hidden {
-  opacity: 0;
-  transform: translateY(8px) scale(0.992);
-  pointer-events: none;
 }
 
 .admin-page-transition--entering {
-  animation: admin-page-enter 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: admin-page-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 
 .admin-page-transition--fade {
-  transform: none;
-}
-
-.admin-page-transition--fade.admin-page-transition--leaving,
-.admin-page-transition--fade.admin-page-transition--hidden {
   transform: none;
 }
 
@@ -408,7 +390,7 @@ html[data-admin-font-size="large"] .admin-shell {
 @keyframes admin-page-enter {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.992);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
