@@ -44,6 +44,12 @@
 
 后台主题状态保存到 localStorage。
 
+## 设置中心持久化
+
+后台设置中心保存布局和主题偏好到 localStorage。页面切换动画使用 `admin_page_transition`，可选值为 `none`、`fade`、`slide-right`、`slide-up`、`slide-down`、`zoom`。
+
+页面切换动画不是主题色的一部分，但必须和主题设置一样即时生效、刷新后恢复，并尊重 `prefers-reduced-motion: reduce`。系统减少动画开启时，页面切换动画应实际禁用，不允许为了主题效果保留额外入场动画。
+
 ## 禁止
 
 - 禁止页面里随机写 hex / rgb / rgba 颜色。

@@ -2,8 +2,27 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import { translateAdminText, useAdminLayout } from "@/components/admin/AdminLayoutContext";
+import {
+  type AdminPageTransition as AdminPageTransitionMode,
+  translateAdminText,
+  useAdminLayout,
+} from "@/components/admin/AdminLayoutContext";
 import { cn } from "@/lib/utils";
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!query) return;
+    const sync = () => setPrefersReducedMotion(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  return prefersReducedMotion;
+}
 
 export function AdminPageTransition({
   children,
@@ -13,14 +32,16 @@ export function AdminPageTransition({
   transitionKey: string;
 }) {
   const { locale, settings } = useAdminLayout();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const pageTransition: AdminPageTransitionMode = prefersReducedMotion ? "none" : settings.pageTransition;
   const rootRef = useRef<HTMLDivElement>(null);
   const textRecords = useRef(new WeakMap<Text, { original: string; rendered: string }>());
   const attributeRecords = useRef(new WeakMap<Element, Map<string, { original: string; rendered: string }>>());
-  const [animating, setAnimating] = useState(() => settings.pageTransition !== "none");
+  const [animating, setAnimating] = useState(() => pageTransition !== "none");
 
   useEffect(() => {
-    if (settings.pageTransition === "none") setAnimating(false);
-  }, [settings.pageTransition]);
+    if (pageTransition === "none") setAnimating(false);
+  }, [pageTransition]);
 
   useEffect(() => {
     const currentContainer = rootRef.current;
@@ -81,12 +102,13 @@ export function AdminPageTransition({
   return (
     <div
       ref={rootRef}
-      onAnimationEnd={() => setAnimating(false)}
+      onAnimationEnd={(event) => {
+        if (event.currentTarget === event.target) setAnimating(false);
+      }}
       className={cn(
         "admin-page-transition min-w-0",
         animating && "admin-page-transition--entering",
-        settings.pageTransition === "none" && "admin-page-transition--none",
-        settings.pageTransition === "fade" && "admin-page-transition--fade",
+        `admin-page-transition--${pageTransition}`,
       )}
     >
       {children}

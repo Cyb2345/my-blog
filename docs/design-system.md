@@ -175,4 +175,4 @@ font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
 
 ## 动画
 
-页面切换只允许轻量 `opacity` 和 `translateY(6px)`，持续 180ms 到 220ms。大表格、侧边栏、顶部栏、标签栏不得参与页面切换动画。
+页面切换只允许通过 `AdminPageTransition` 使用轻量 `opacity` 和 `transform` 动画，支持 `none`、`fade`、`slide-right`、`slide-up`、`slide-down`、`zoom`。具体效果、性能限制和设置中心交互以 `docs/motion-guidelines.md` 为准。大表格、侧边栏、顶部栏、标签栏不得参与页面切换动画。

@@ -3,6 +3,7 @@
 import { Check, Settings2, X } from "lucide-react";
 
 import {
+  adminPageTransitionOptions,
   adminPrimaryColors,
   type AdminLayoutSettings,
   useAdminLayout,
@@ -67,6 +68,7 @@ function SegmentedSetting<Value extends string>({
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
           className={cn(
             "min-h-9 rounded-md px-3 text-sm font-black",
             value === option.value
@@ -189,14 +191,10 @@ export function AdminSettingsDrawer({
           </SettingSection>
 
           <SettingSection title={t("页面切换动画")}>
-            <CustomSelect
+            <SegmentedSetting
               value={settings.pageTransition}
-              onChange={(value) => update("pageTransition", value as AdminLayoutSettings["pageTransition"])}
-              options={[
-                { label: t("滑动淡入"), value: "slide" },
-                { label: t("仅淡入"), value: "fade" },
-                { label: t("关闭动画"), value: "none" },
-              ]}
+              onChange={(value) => update("pageTransition", value)}
+              options={adminPageTransitionOptions.map((option) => ({ ...option, label: t(option.label) }))}
             />
           </SettingSection>
 

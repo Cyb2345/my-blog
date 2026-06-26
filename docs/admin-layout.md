@@ -76,10 +76,17 @@ AdminLayout
 
 ## PageTransition
 
-页面切换动画只包裹主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。默认动画：
+页面切换动画只包裹主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。后台 Layout 必须稳定挂载，路由切换时只替换 `AdminPageTransition` 内部的 `PageContent`。
 
-- opacity 0 -> 1
-- translateY(6px) -> 0
-- 200ms
+`AdminPageTransition` 根据 localStorage 中的 `admin_page_transition` 读取动画模式：
 
-用户选择关闭动画后必须完全禁用 transition 和 animation。
+- `none`：无动画。
+- `fade`：淡入淡出，默认值。
+- `slide-right`：新页面从左侧轻微进入。
+- `slide-up`：新页面从下方轻微上浮进入。
+- `slide-down`：新页面从上方轻微下落进入。
+- `zoom`：新页面从轻微缩小恢复到正常大小。
+
+用户选择关闭动画后必须完全禁用页面切换的 transition 和 animation。用户设备开启 `prefers-reduced-motion: reduce` 时，页面切换动画必须实际禁用。
+
+页面切换动画不能阻塞路由切换和数据加载。点击菜单后应立即 `router.push`，新页面立即渲染；接口慢时由页面内部的 skeleton/loading 状态承接。

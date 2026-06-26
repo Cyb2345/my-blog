@@ -5,7 +5,7 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 export type AdminLocale = "zh-CN" | "en-US";
 export type AdminBoxStyle = "border" | "shadow";
 export type AdminContainerWidth = "full" | "fixed";
-export type AdminPageTransition = "slide" | "fade" | "none";
+export type AdminPageTransition = "none" | "fade" | "slide-right" | "slide-up" | "slide-down" | "zoom";
 export type AdminRadius = "sm" | "md" | "lg";
 export type AdminFontSize = "small" | "default" | "large";
 
@@ -49,11 +49,24 @@ const defaultSettings: AdminLayoutSettings = {
   showLanguage: true,
   showProgress: true,
   autoCloseSettings: false,
-  pageTransition: "slide",
+  pageTransition: "fade",
   radius: "md",
   fontSize: "default",
   menuWidth: 256,
 };
+
+export const adminPageTransitionOptions: Array<{ label: string; value: AdminPageTransition }> = [
+  { label: "无动画", value: "none" },
+  { label: "淡入淡出", value: "fade" },
+  { label: "向右滑动", value: "slide-right" },
+  { label: "向上滑动", value: "slide-up" },
+  { label: "向下滑动", value: "slide-down" },
+  { label: "缩放", value: "zoom" },
+];
+
+const pageTransitionValues = new Set<AdminPageTransition>(
+  adminPageTransitionOptions.map((option) => option.value),
+);
 
 const storageKeys: Record<keyof AdminLayoutSettings, string> = {
   sidebarCollapsed: "admin_sidebar_collapsed",
@@ -147,6 +160,12 @@ const englishLabels: Record<string, string> = {
   显示顶部进度条: "Show top progress",
   自动关闭设置中心: "Auto-close settings",
   页面切换动画: "Page transition",
+  无动画: "No animation",
+  淡入淡出: "Fade",
+  向右滑动: "Slide right",
+  向上滑动: "Slide up",
+  向下滑动: "Slide down",
+  缩放: "Zoom",
   滑动淡入: "Slide and fade",
   仅淡入: "Fade only",
   关闭动画: "No transition",
@@ -240,9 +259,18 @@ export function translateAdminText(label: string, locale: AdminLocale) {
 function parseStoredValue<Key extends keyof AdminLayoutSettings>(
   key: Key,
   raw: string | null,
+  prefersReducedMotion = false,
 ): AdminLayoutSettings[Key] {
-  if (raw === null) return defaultSettings[key];
+  if (raw === null) {
+    if (key === "pageTransition" && prefersReducedMotion) return "none" as AdminLayoutSettings[Key];
+    return defaultSettings[key];
+  }
   const fallback = defaultSettings[key];
+  if (key === "pageTransition") {
+    if (raw === "slide") return "slide-up" as AdminLayoutSettings[Key];
+    if (pageTransitionValues.has(raw as AdminPageTransition)) return raw as AdminLayoutSettings[Key];
+    return fallback as AdminLayoutSettings[Key];
+  }
   if (typeof fallback === "boolean") return (raw === "true") as AdminLayoutSettings[Key];
   if (typeof fallback === "number") {
     const value = Number(raw);
@@ -275,10 +303,12 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const restored = { ...defaultSettings };
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     (Object.keys(storageKeys) as Array<keyof AdminLayoutSettings>).forEach((key) => {
       (restored[key] as AdminLayoutSettings[typeof key]) = parseStoredValue(
         key,
         window.localStorage.getItem(storageKeys[key]),
+        prefersReducedMotion,
       );
     });
     const storedLocale = window.localStorage.getItem("admin_language");
