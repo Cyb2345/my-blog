@@ -4,7 +4,6 @@
   --motion-slow: 300ms;
   --motion-page-fade: 200ms;
   --motion-page-slide: 220ms;
-  --motion-page-zoom-exit: 180ms;
   --motion-page-zoom-enter: 220ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);

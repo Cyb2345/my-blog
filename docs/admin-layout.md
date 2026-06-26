@@ -85,10 +85,10 @@ AdminLayout
 - `slide-right`：新页面从左侧轻微进入。
 - `slide-up`：新页面从下方轻微上浮进入。
 - `slide-down`：新页面从上方轻微下落进入。
-- `zoom`：旧主内容快照轻微缩小并淡出，新主内容同步从 `scale(0.97)` 放大淡入，不设置等待空场。
+- `zoom`：只让新主内容从 `scale(0.97)` 放大淡入，不保留旧主内容快照，不设置等待空场。
 
 用户选择关闭动画后必须完全禁用页面切换的 transition 和 animation。用户设备开启 `prefers-reduced-motion: reduce` 时，页面切换动画必须实际禁用。
 
 页面切换动画不能阻塞路由切换和数据加载。点击菜单后应立即 `router.push`，新页面立即渲染；接口慢时由页面内部的 skeleton/loading 状态承接。
 
-缩放模式需要旧主内容离场动画时，只能在 `AdminPageTransition` 内部创建旧主内容视觉层或快照；不得把 Sidebar、TopBar、Tabs、SettingsDrawer 纳入缩放范围，也不得让 Layout 随路由切换重新挂载。
+页面动画以当前路由 pathname 为唯一 key。不得手动维护 `displayLocation` 或等待离场结束后再切换页面，也不得把 Sidebar、TopBar、Tabs、SettingsDrawer 纳入缩放范围。
