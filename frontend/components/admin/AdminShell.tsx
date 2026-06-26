@@ -480,6 +480,10 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     }, pageEnterMs + 80);
   }
 
+  function capturePageTransition() {
+    window.dispatchEvent(new CustomEvent("admin:page-transition-capture"));
+  }
+
   function navigate(href: string) {
     if (!href) return;
     const targetUrl = new URL(href, window.location.origin);
@@ -491,6 +495,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
       router.push(targetPath);
       return;
     }
+    capturePageTransition();
     setProgressVisible(true);
     router.push(targetPath);
   }
@@ -518,6 +523,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   function refreshPage() {
     if (refreshing) return;
     setRefreshing(true);
+    capturePageTransition();
     setProgressVisible(true);
     setRefreshKey((value) => value + 1);
     window.dispatchEvent(new CustomEvent("admin:refresh"));
@@ -615,7 +621,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
 
         <main className="admin-content min-w-0 p-4 md:p-6">
           <div className={cn("admin-content-inner mx-auto w-full", settings.containerWidth === "fixed" && "max-w-[1440px]")}>
-            <AdminPageTransition key={`${pathname}-${refreshKey}`} transitionKey={`${pathname}-${refreshKey}`}>
+            <AdminPageTransition transitionKey={`${pathname}-${refreshKey}`}>
               {children}
             </AdminPageTransition>
           </div>

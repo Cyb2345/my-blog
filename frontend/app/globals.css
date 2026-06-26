@@ -297,10 +297,43 @@ select:focus {
 }
 
 .admin-page-transition {
+  position: relative;
+  isolation: isolate;
   width: 100%;
   min-height: 1px;
   backface-visibility: hidden;
-  transform-origin: top center;
+  transform-origin: center center;
+}
+
+.admin-page-transition::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+}
+
+.admin-page-transition__page {
+  position: relative;
+  z-index: 1;
+  transform-origin: center center;
+}
+
+.admin-page-transition__exit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admin-page-transition__snapshot {
+  width: 100%;
+  min-width: 0;
+  transform-origin: center center;
+  animation: admin-page-zoom-exit var(--motion-page-zoom-exit, 160ms) var(--ease-standard) both;
+  will-change: opacity, transform;
 }
 
 .admin-page-transition--entering {
@@ -324,7 +357,20 @@ select:focus {
 }
 
 .admin-page-transition--zoom.admin-page-transition--entering {
-  animation: admin-page-zoom var(--motion-page-zoom, 200ms) var(--ease-emphasized) both;
+  animation: admin-page-zoom-enter var(--motion-page-zoom-enter, 220ms) var(--ease-standard) both;
+}
+
+.admin-page-transition--zoom-with-exit.admin-page-transition--entering {
+  animation-delay: var(--motion-page-zoom-enter-delay, 170ms);
+}
+
+.admin-page-transition--zoom-switching::before {
+  background: color-mix(in srgb, var(--color-text) 7%, var(--color-bg-muted));
+  opacity: 1;
+}
+
+.dark .admin-page-transition--zoom-switching::before {
+  background: color-mix(in srgb, var(--color-bg) 86%, black);
 }
 
 .admin-page-transition--fade,
@@ -338,6 +384,10 @@ select:focus {
   transition: none !important;
   transform: none !important;
   will-change: auto;
+}
+
+.admin-page-transition--none::before {
+  opacity: 0;
 }
 
 html.admin-fullscreen-transitioning .admin-shell {
@@ -450,10 +500,21 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-zoom {
+@keyframes admin-page-zoom-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes admin-page-zoom-enter {
   from {
     opacity: 0;
-    transform: scale(0.985);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -1056,6 +1117,13 @@ html.theme-transitioning *::after {
     opacity: 1 !important;
     transform: none !important;
     will-change: auto !important;
+  }
+
+  .admin-page-transition::before,
+  .admin-page-transition__snapshot {
+    animation: none !important;
+    opacity: 0 !important;
+    transform: none !important;
   }
 }
 

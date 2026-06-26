@@ -35,13 +35,64 @@ export function AdminPageTransition({
   const prefersReducedMotion = usePrefersReducedMotion();
   const pageTransition: AdminPageTransitionMode = prefersReducedMotion ? "none" : settings.pageTransition;
   const rootRef = useRef<HTMLDivElement>(null);
+  const currentPageRef = useRef<HTMLDivElement>(null);
+  const exitLayerRef = useRef<HTMLDivElement>(null);
+  const zoomSwitchingTimer = useRef<number | null>(null);
   const textRecords = useRef(new WeakMap<Text, { original: string; rendered: string }>());
   const attributeRecords = useRef(new WeakMap<Element, Map<string, { original: string; rendered: string }>>());
-  const [animating, setAnimating] = useState(() => pageTransition !== "none");
+  const [animationState, setAnimationState] = useState(() => ({
+    animating: pageTransition !== "none",
+    key: transitionKey,
+  }));
+  const [zoomSwitching, setZoomSwitching] = useState(false);
+
+  let animating = animationState.animating;
+  if (animationState.key !== transitionKey) {
+    animating = pageTransition !== "none";
+    setAnimationState({ animating, key: transitionKey });
+  }
 
   useEffect(() => {
-    if (pageTransition === "none") setAnimating(false);
+    if (pageTransition !== "none") return;
+    setAnimationState((current) => current.animating ? { ...current, animating: false } : current);
+    setZoomSwitching(false);
+    if (zoomSwitchingTimer.current) {
+      window.clearTimeout(zoomSwitchingTimer.current);
+      zoomSwitchingTimer.current = null;
+    }
+    exitLayerRef.current?.replaceChildren();
   }, [pageTransition]);
+
+  useEffect(() => () => {
+    if (zoomSwitchingTimer.current) window.clearTimeout(zoomSwitchingTimer.current);
+  }, []);
+
+  useEffect(() => {
+    function captureZoomExitSnapshot() {
+      if (pageTransition !== "zoom" || prefersReducedMotion) return;
+      const source = currentPageRef.current;
+      const exitLayer = exitLayerRef.current;
+      if (!source || !exitLayer) return;
+
+      const snapshot = source.cloneNode(true) as HTMLElement;
+      snapshot.className = "admin-page-transition__snapshot";
+      snapshot.setAttribute("aria-hidden", "true");
+      snapshot.setAttribute("inert", "");
+      snapshot.addEventListener("animationend", () => snapshot.remove(), { once: true });
+
+      if (zoomSwitchingTimer.current) window.clearTimeout(zoomSwitchingTimer.current);
+      exitLayer.replaceChildren(snapshot);
+      setZoomSwitching(true);
+      zoomSwitchingTimer.current = window.setTimeout(() => {
+        exitLayer.replaceChildren();
+        setZoomSwitching(false);
+        zoomSwitchingTimer.current = null;
+      }, 450);
+    }
+
+    window.addEventListener("admin:page-transition-capture", captureZoomExitSnapshot);
+    return () => window.removeEventListener("admin:page-transition-capture", captureZoomExitSnapshot);
+  }, [pageTransition, prefersReducedMotion]);
 
   useEffect(() => {
     const currentContainer = rootRef.current;
@@ -102,16 +153,34 @@ export function AdminPageTransition({
   return (
     <div
       ref={rootRef}
-      onAnimationEnd={(event) => {
-        if (event.currentTarget === event.target) setAnimating(false);
-      }}
       className={cn(
         "admin-page-transition min-w-0",
-        animating && "admin-page-transition--entering",
         `admin-page-transition--${pageTransition}`,
+        pageTransition === "zoom" && zoomSwitching && "admin-page-transition--zoom-switching",
       )}
     >
-      {children}
+      <div ref={exitLayerRef} className="admin-page-transition__exit-layer" aria-hidden="true" />
+      <div
+        key={transitionKey}
+        ref={currentPageRef}
+        onAnimationEnd={(event) => {
+          if (event.currentTarget !== event.target) return;
+          setAnimationState((current) => current.key === transitionKey ? { ...current, animating: false } : current);
+          setZoomSwitching(false);
+          if (zoomSwitchingTimer.current) {
+            window.clearTimeout(zoomSwitchingTimer.current);
+            zoomSwitchingTimer.current = null;
+          }
+        }}
+        className={cn(
+          "admin-page-transition__page min-w-0",
+          animating && "admin-page-transition--entering",
+          `admin-page-transition--${pageTransition}`,
+          pageTransition === "zoom" && zoomSwitching && "admin-page-transition--zoom-with-exit",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }

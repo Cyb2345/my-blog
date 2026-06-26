@@ -9,7 +9,9 @@
 - `--motion-slow: 300ms`
 - `--motion-page-fade: 200ms`
 - `--motion-page-slide: 220ms`
-- `--motion-page-zoom: 200ms`
+- `--motion-page-zoom-exit: 160ms`
+- `--motion-page-zoom-enter: 220ms`
+- `--motion-page-zoom-enter-delay: 170ms`
 - `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)`
 - `--ease-out: cubic-bezier(0, 0, 0.2, 1)`
 - `--ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1)`
@@ -25,7 +27,7 @@
 - `slide-right`：向右滑动。`opacity: 0 -> 1`，`translateX(-12px) -> translateX(0)`，推荐 200ms 到 240ms。
 - `slide-up`：向上滑动。`opacity: 0 -> 1`，`translateY(10px) -> translateY(0)`，推荐 200ms 到 240ms。
 - `slide-down`：向下滑动。`opacity: 0 -> 1`，`translateY(-10px) -> translateY(0)`，推荐 200ms 到 240ms。
-- `zoom`：缩放。`opacity: 0 -> 1`，`scale(0.985) -> scale(1)`，推荐 180ms 到 240ms。
+- `zoom`：缩放。旧页面主内容先 `opacity: 1 -> 0`、`scale(1) -> scale(0.96)` 离场，主内容区域短暂露出过场背景，新页面再 `opacity: 0 -> 1`、`scale(0.96) -> scale(1)` 入场。离场 140ms 到 180ms，入场 180ms 到 240ms，总时长 320ms 到 420ms，不得超过 450ms。
 
 默认值：
 
@@ -41,6 +43,8 @@
 4. 接口慢时页面内部显示骨架屏或加载态。
 
 禁止采用“旧页面先消失、主区域清空、等待接口、再显示新页面”的方式。页面切换动画不能阻塞路由切换、接口请求或数据加载。
+
+缩放模式是唯一允许有旧页面离场层的页面切换模式。实现时必须在路由切换前捕获当前主内容视觉快照或保留旧主内容层，然后在新页面立即渲染的同时播放旧层 exit 动画。不得为了等待 exit 动画而延迟 `router.push` 或延迟新页面组件挂载。
 
 ## 性能限制
 
@@ -68,6 +72,7 @@
 - 对大表格行使用复杂入场动画。
 - 表格宽度因动画跳动。
 - 侧边栏、顶部栏、标签栏闪烁。
+- 缩放使用 `scale(0.8)`、`scale(0.9)` 等过大幅度。
 
 ## 弹窗
 
