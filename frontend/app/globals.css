@@ -1,55 +1,58 @@
 @import "highlight.js/styles/github.css";
+@import "../styles/tokens.css";
+@import "../styles/theme.css";
+@import "../styles/motion.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
-  --background: #fffaf3;
-  --foreground: #1f2933;
-  --bg: #fffaf3;
-  --bg-soft: #f7f0e8;
-  --surface: #ffffff;
-  --surface-card: #ffffff;
-  --surface-soft: #f3f6f3;
-  --border: rgba(31, 41, 51, 0.12);
-  --border-soft: rgba(31, 41, 51, 0.1);
-  --text: #1f2933;
-  --text-secondary: rgba(31, 41, 51, 0.72);
-  --text-muted: rgba(31, 41, 51, 0.52);
-  --hover: #f7fbf8;
-  --active: #eef3ff;
-  --primary: #44708f;
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --bg: var(--color-bg);
+  --bg-soft: var(--color-bg-muted);
+  --surface: var(--color-surface);
+  --surface-card: var(--color-surface);
+  --surface-soft: var(--color-surface-muted);
+  --border: var(--color-border);
+  --border-soft: color-mix(in srgb, var(--color-border) 82%, transparent);
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-muted);
+  --text-muted: var(--color-text-subtle);
+  --hover: var(--color-surface-hover);
+  --active: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  --primary: var(--color-primary);
   --admin-primary: #4f7cff;
-  --success: #5a7f68;
-  --warning: #e7b95f;
-  --danger: #c7775b;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --danger: var(--color-danger);
+  --ease-out: var(--ease-emphasized);
   --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1.08);
 }
 
 :root.dark,
 .dark {
   color-scheme: dark;
-  --background: #0b0b0c;
-  --foreground: #f4f4f5;
-  --bg: #0b0b0c;
-  --bg-soft: #111113;
-  --surface: #161618;
-  --surface-card: #1d1e1f;
-  --surface-soft: #26272f;
-  --border: #333438;
-  --border-soft: #27282c;
-  --text: #f4f4f5;
-  --text-secondary: #c7c8ce;
-  --text-muted: #8f929c;
-  --hover: #222326;
-  --active: #262833;
-  --primary: #4f7cff;
-  --admin-primary: #4f7cff;
-  --success: #6fd34f;
-  --warning: #f2a93b;
-  --danger: #ff5d6c;
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --bg: var(--color-bg);
+  --bg-soft: var(--color-bg-muted);
+  --surface: var(--color-surface);
+  --surface-card: color-mix(in srgb, var(--color-surface) 88%, white);
+  --surface-soft: var(--color-surface-muted);
+  --border: var(--color-border);
+  --border-soft: color-mix(in srgb, var(--color-border) 78%, transparent);
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-muted);
+  --text-muted: var(--color-text-subtle);
+  --hover: var(--color-surface-hover);
+  --active: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  --primary: var(--color-primary);
+  --admin-primary: var(--color-primary);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --danger: var(--color-danger);
 }
 
 * {
@@ -70,7 +73,7 @@ body {
   overflow-x: clip;
   background:
     radial-gradient(circle at top left, rgba(231, 185, 95, 0.18), transparent 28rem),
-    linear-gradient(180deg, #fffaf3 0%, #f7fbf8 42%, #f7f0e8 100%);
+    linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface-hover) 42%, var(--color-bg-muted) 100%);
   color: var(--foreground);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;

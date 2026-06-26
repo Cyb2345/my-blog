@@ -1,0 +1,56 @@
+"use client";
+
+import type { FormEventHandler, ReactNode } from "react";
+import { RotateCcw, Search } from "lucide-react";
+
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+
+type AdminSearchFormProps = {
+  children: ReactNode;
+  onSubmit: FormEventHandler<HTMLFormElement>;
+  onReset?: () => void;
+  actions?: ReactNode;
+  submitText?: string;
+  resetText?: string;
+  className?: string;
+  contentClassName?: string;
+};
+
+export function AdminSearchForm({
+  children,
+  onSubmit,
+  onReset,
+  actions,
+  submitText = "查询",
+  resetText = "重置",
+  className,
+  contentClassName,
+}: AdminSearchFormProps) {
+  return (
+    <form
+      onSubmit={onSubmit}
+      className={cn("rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm", className)}
+    >
+      <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto]", contentClassName)}>
+        {children}
+        <div className="flex items-end gap-2">
+          {actions ?? (
+            <>
+              <Button type="submit">
+                <Search className="h-4 w-4" aria-hidden="true" />
+                {submitText}
+              </Button>
+              {onReset ? (
+                <Button type="button" variant="ghost" onClick={onReset}>
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  {resetText}
+                </Button>
+              ) : null}
+            </>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+}

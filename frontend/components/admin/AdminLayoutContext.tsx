@@ -254,6 +254,9 @@ function parseStoredValue<Key extends keyof AdminLayoutSettings>(
 function applyLayoutSettings(settings: AdminLayoutSettings, locale: AdminLocale) {
   const root = document.documentElement;
   root.style.setProperty("--admin-primary", settings.primaryColor);
+  root.style.setProperty("--color-primary", settings.primaryColor);
+  root.style.setProperty("--color-primary-hover", `color-mix(in srgb, ${settings.primaryColor} 84%, black)`);
+  root.style.setProperty("--primary", settings.primaryColor);
   root.style.setProperty("--admin-menu-width", `${settings.menuWidth}px`);
   root.dataset.adminBoxStyle = settings.boxStyle;
   root.dataset.adminContainerWidth = settings.containerWidth;
