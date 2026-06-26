@@ -5,13 +5,15 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { translateAdminText, useAdminLayout } from "@/components/admin/AdminLayoutContext";
 import { cn } from "@/lib/utils";
 
+export type AdminPageTransitionStage = "idle" | "leaving" | "hidden" | "entering";
+
 export function AdminPageTransition({
   children,
-  exiting,
+  stage,
   transitionKey,
 }: {
   children: ReactNode;
-  exiting: boolean;
+  stage: AdminPageTransitionStage;
   transitionKey: string;
 }) {
   const { locale, settings } = useAdminLayout();
@@ -81,7 +83,7 @@ export function AdminPageTransition({
       key={transitionKey}
       className={cn(
         "admin-page-transition min-w-0",
-        exiting && "admin-page-transition--exiting",
+        stage !== "idle" && `admin-page-transition--${stage}`,
         settings.pageTransition === "none" && "admin-page-transition--none",
         settings.pageTransition === "fade" && "admin-page-transition--fade",
       )}
