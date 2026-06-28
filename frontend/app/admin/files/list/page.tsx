@@ -1,26 +1,23 @@
 "use client";
 
-import { Archive, ChevronLeft, ChevronRight, Copy, Eye, FileQuestion, FileText, Image as ImageIcon, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Archive, Copy, Eye, FileQuestion, FileText, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal } from "@/components/admin/AdminModal";
-import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
-import { CustomSelect } from "@/components/admin/CustomSelect";
-import {
-  DataTableToolbar,
-  type TableSettings,
-  tableDensityCellClass,
-  useTableSettings,
-} from "@/components/admin/DataTableToolbar";
+import { AdminPage } from "@/components/admin/AdminPage";
+import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
+import { type TableSettings, useTableSettings } from "@/components/admin/DataTableToolbar";
 import { DateTimePicker } from "@/components/admin/DateTimePicker";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
-import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Pagination } from "@/components/ui/Pagination";
+import { Select } from "@/components/ui/Select";
 import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn, formatDate, getAssetUrl } from "@/lib/utils";
@@ -38,21 +35,29 @@ type DeleteState = { ids: number[]; name?: string } | null;
 
 const emptyFilters: Filters = { keyword: "", fileType: "", storageType: "", startTime: "", endTime: "" };
 const emptyPage: Paginated<MediaAsset> = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
-const defaultSettings: TableSettings = { bordered: true, striped: true, headerBackground: true, density: "default", visibleColumns: [] };
+const pageSizeOptions = [10, 20, 50];
 const fileListPageCacheKey = "admin-page-cache:files-list";
+const fileListColumnOptions = [
+  { key: "preview", label: "文件预览" },
+  { key: "name", label: "文件名", locked: true },
+  { key: "type", label: "文件类型" },
+  { key: "size", label: "文件大小" },
+  { key: "storage", label: "存储器" },
+  { key: "createdAt", label: "上传时间" },
+  { key: "actions", label: "操作", locked: true },
+];
+const defaultSettings: TableSettings = {
+  bordered: true,
+  striped: true,
+  headerBackground: true,
+  density: "default",
+  visibleColumns: fileListColumnOptions.map((column) => column.key),
+};
 
 function formatBytes(value: number) {
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function pageNumbers(current: number, total: number) {
-  const count = Math.min(Math.max(total, 1), 7);
-  let start = Math.max(1, current - Math.floor(count / 2));
-  const end = Math.min(Math.max(total, 1), start + count - 1);
-  start = Math.max(1, end - count + 1);
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function isImage(item: MediaAsset) {
@@ -62,7 +67,7 @@ function isImage(item: MediaAsset) {
 function FilePreview({ item, large = false }: { item: MediaAsset; large?: boolean }) {
   const boxClass = large ? "max-h-[58vh] max-w-full" : "h-12 w-16";
   if (isImage(item)) {
-    return <img src={getAssetUrl(item.url)} alt={item.original_name} className={cn(boxClass, "rounded-md object-contain ring-1 ring-ink/10 dark:ring-[var(--border-soft)]")} />;
+    return <img src={getAssetUrl(item.url)} alt={item.original_name} className={cn(boxClass, "rounded-md object-contain ring-1 ring-[var(--color-border)]")} />;
   }
   const Icon = item.mime_type.includes("pdf") || item.mime_type.includes("document")
     ? FileText
@@ -70,9 +75,24 @@ function FilePreview({ item, large = false }: { item: MediaAsset; large?: boolea
       ? Archive
       : FileQuestion;
   return (
-    <span className={cn("grid place-items-center rounded-md bg-paper text-ink/45 ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-muted)] dark:ring-[var(--border-soft)]", boxClass)}>
-      <Icon className={large ? "h-16 w-16" : "h-6 w-6"} />
+    <span className={cn("grid place-items-center rounded-md bg-[var(--color-bg-muted)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]", boxClass)}>
+      <Icon className={large ? "h-16 w-16" : "h-6 w-6"} aria-hidden="true" />
     </span>
+  );
+}
+
+function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+  return (
+    <p
+      className={cn(
+        "notice-pop rounded-md px-3 py-2 text-sm font-bold",
+        variant === "error"
+          ? "bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] text-[var(--color-danger)]"
+          : "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)]",
+      )}
+    >
+      {children}
+    </p>
   );
 }
 
@@ -85,16 +105,12 @@ export default function AdminFileListPage() {
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [jumpPage, setJumpPage] = useState("1");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [settings, setSettings] = useTableSettings("admin-table-settings:files-list", defaultSettings);
-  const cellClass = tableDensityCellClass[settings.density];
-  const numbers = useMemo(() => pageNumbers(data.page, data.pages), [data.page, data.pages]);
-  const allSelected = data.items.length > 0 && data.items.every((item) => selected.has(item.id));
+  const [settings, setSettings] = useTableSettings("admin-table-settings:files-list", defaultSettings, fileListColumnOptions);
 
   async function load() {
     setLoading(true);
@@ -110,7 +126,6 @@ export default function AdminFileListPage() {
       setData(result);
       writeAdminPageCache(fileListPageCacheKey, result);
       if (result.page !== page) setPage(result.page);
-      setJumpPage(String(result.page));
       setSelected(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "文件列表加载失败");
@@ -167,106 +182,226 @@ export default function AdminFileListPage() {
     }
   }
 
-  function toggle(id: number) {
+  function toggleSelected(item: MediaAsset, checked: boolean) {
     setSelected((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (checked) next.add(item.id);
+      else next.delete(item.id);
       return next;
     });
   }
 
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(data.items.map((item) => item.id)));
+  function toggleCurrentPage(checked: boolean) {
+    setSelected(checked ? new Set(data.items.map((item) => item.id)) : new Set());
   }
 
   function goToPage(value: number) {
     setPage(Math.min(Math.max(value, 1), Math.max(data.pages, 1)));
   }
 
+  const columns = useMemo<Array<AdminDataTableColumn<MediaAsset>>>(
+    () => [
+      {
+        key: "preview",
+        title: "文件预览",
+        width: 100,
+        align: "center",
+        hidden: !settings.visibleColumns.includes("preview"),
+        render: (item) => (
+          <button type="button" onClick={() => setPreview(item)} className="mx-auto block" title={item.url}>
+            <FilePreview item={item} />
+          </button>
+        ),
+      },
+      {
+        key: "name",
+        title: "文件名",
+        minWidth: 240,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("name"),
+        render: (item) => <span className="font-black text-[var(--color-text)]">{item.original_name}</span>,
+      },
+      {
+        key: "type",
+        title: "文件类型",
+        width: 120,
+        hidden: !settings.visibleColumns.includes("type"),
+        render: (item) => item.mime_type.split("/").pop()?.toUpperCase(),
+      },
+      {
+        key: "size",
+        title: "文件大小",
+        width: 120,
+        hidden: !settings.visibleColumns.includes("size"),
+        render: (item) => formatBytes(item.size),
+      },
+      {
+        key: "storage",
+        title: "存储器",
+        width: 180,
+        hidden: !settings.visibleColumns.includes("storage"),
+        render: (item) => (
+          <StatusTag
+            status={item.storage_type}
+            label={item.storage_name || (item.storage_type === "local" ? "本地磁盘" : item.storage_type.toUpperCase())}
+          />
+        ),
+      },
+      {
+        key: "createdAt",
+        title: "上传时间",
+        width: 180,
+        hidden: !settings.visibleColumns.includes("createdAt"),
+        render: (item) => <span className="text-[var(--color-text-muted)]">{formatDate(item.created_at)}</span>,
+      },
+      {
+        key: "actions",
+        title: "操作",
+        width: 160,
+        align: "center",
+        hidden: !settings.visibleColumns.includes("actions"),
+        render: (item) => (
+          <RowActions
+            actions={[
+              { key: "preview", label: "预览", icon: <Eye className={rowActionIconClass} aria-hidden="true" />, variant: "neutral", onClick: () => setPreview(item) },
+              { key: "copy", label: "复制 URL", icon: <Copy className={rowActionIconClass} aria-hidden="true" />, variant: "edit", onClick: () => void copyUrl(item.url) },
+              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />, variant: "delete", onClick: () => setDeleteState({ ids: [item.id], name: item.original_name }) },
+            ]}
+          />
+        ),
+      },
+    ],
+    [settings.visibleColumns],
+  );
+
   return (
-    <>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
+    <AdminPage title="文件列表" description="管理上传资源、复制访问地址和删除无效文件。">
+      {error ? <Notice variant="error">{error}</Notice> : null}
+      {notice ? <Notice variant="success">{notice}</Notice> : null}
 
-      <form onSubmit={query} className="mb-4 grid gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)] sm:grid-cols-2 xl:grid-cols-4">
-        <AdminField label="文件名"><input value={filters.keyword} onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} placeholder="请输入文件名" className={inputClass} /></AdminField>
-        <AdminField label="文件类型"><CustomSelect value={filters.fileType} onChange={(value) => setFilters((current) => ({ ...current, fileType: value }))} options={[{ label: "全部", value: "" }, { label: "图片", value: "image" }, { label: "PDF", value: "pdf" }, { label: "文档", value: "document" }, { label: "压缩包", value: "zip" }]} /></AdminField>
-        <AdminField label="存储器"><CustomSelect value={filters.storageType} onChange={(value) => setFilters((current) => ({ ...current, storageType: value }))} options={[{ label: "全部", value: "" }, { label: "本地磁盘", value: "local" }, { label: "Cloudflare R2", value: "r2" }, { label: "S3 Compatible", value: "s3" }]} /></AdminField>
-        <AdminField label="开始时间"><DateTimePicker value={filters.startTime} onChange={(value) => setFilters((current) => ({ ...current, startTime: value }))} /></AdminField>
-        <AdminField label="结束时间"><DateTimePicker value={filters.endTime} onChange={(value) => setFilters((current) => ({ ...current, endTime: value }))} /></AdminField>
-        <div className="flex items-end gap-2 sm:col-span-2 xl:col-span-3 xl:justify-end">
-          <Button type="submit"><Search className="h-4 w-4" />查询</Button>
-          <Button type="button" variant="ghost" onClick={reset}><RotateCcw className="h-4 w-4" />重置</Button>
-        </div>
-      </form>
+      <AdminSearchForm onSubmit={query} onReset={reset} loading={loading} contentClassName="sm:grid-cols-2 xl:grid-cols-4">
+        <Input label="文件名" value={filters.keyword} onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} placeholder="请输入文件名" />
+        <Select
+          label="文件类型"
+          value={filters.fileType}
+          onChange={(event) => setFilters((current) => ({ ...current, fileType: event.target.value }))}
+          options={[
+            { label: "全部", value: "" },
+            { label: "图片", value: "image" },
+            { label: "PDF", value: "pdf" },
+            { label: "文档", value: "document" },
+            { label: "压缩包", value: "zip" },
+          ]}
+        />
+        <Select
+          label="存储器"
+          value={filters.storageType}
+          onChange={(event) => setFilters((current) => ({ ...current, storageType: event.target.value }))}
+          options={[
+            { label: "全部", value: "" },
+            { label: "本地磁盘", value: "local" },
+            { label: "Cloudflare R2", value: "r2" },
+            { label: "S3 Compatible", value: "s3" },
+          ]}
+        />
+        <AdminField label="开始时间">
+          <DateTimePicker value={filters.startTime} onChange={(value) => setFilters((current) => ({ ...current, startTime: value }))} />
+        </AdminField>
+        <AdminField label="结束时间">
+          <DateTimePicker value={filters.endTime} onChange={(value) => setFilters((current) => ({ ...current, endTime: value }))} />
+        </AdminField>
+      </AdminSearchForm>
 
-      <section className="overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-[var(--border-soft)]">
-          <Button type="button" variant="danger" disabled={!selected.size} onClick={() => setDeleteState({ ids: Array.from(selected) })}><Trash2 className="h-4 w-4" />批量删除</Button>
-          <DataTableToolbar settings={settings} onSettingsChange={setSettings} onRefresh={() => void load()} refreshing={loading} enableColumns={false} />
-        </div>
-        <div className="overflow-x-auto">
-          <table className={cn("admin-table w-full min-w-[980px] table-fixed border-collapse", settings.bordered && "[&_td]:border-r [&_th]:border-r [&_td]:border-ink/10 [&_th]:border-ink/10 dark:[&_td]:border-[var(--border-soft)] dark:[&_th]:border-[var(--border-soft)]")}>
-            <colgroup><col className="w-14" /><col className="w-[100px]" /><col /><col className="w-[120px]" /><col className="w-[120px]" /><col className="w-[180px]" /><col className="w-[180px]" /><col className="w-[160px]" /></colgroup>
-            <thead className={cn(settings.headerBackground && "bg-paper dark:bg-[var(--bg-soft)]")}>
-              <tr>
-                <th className={cn("text-center", cellClass)}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="选择当前页文件" /></th>
-                {["文件预览", "文件名", "文件类型", "文件大小", "存储器", "上传时间", "操作"].map((label) => <th key={label} className={cn(cellClass, label === "操作" && "text-center")}>{label}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && !data.items.length ? <TableSkeletonRows columns={8} rows={6} cellClassName={cellClass} /> : null}
-              {data.items.map((item, index) => (
-                <tr key={item.id} className={cn("border-t border-ink/10 dark:border-[var(--border-soft)]", settings.striped && index % 2 === 1 && "bg-paper/45 dark:bg-white/[0.03]")}>
-                  <td className={cn("text-center", cellClass)}><input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} aria-label={`选择 ${item.original_name}`} /></td>
-                  <td className={cellClass}><button type="button" onClick={() => setPreview(item)} className="mx-auto block" title={item.url}><FilePreview item={item} /></button></td>
-                  <td className={cn("font-black text-ink dark:text-[var(--text)]", cellClass)}><span className="block truncate" title={`${item.original_name}\n${item.url}`}>{item.original_name}</span></td>
-                  <td className={cellClass}>{item.mime_type.split("/").pop()?.toUpperCase()}</td>
-                  <td className={cellClass}>{formatBytes(item.size)}</td>
-                  <td className={cellClass}><span className="inline-flex max-w-full truncate rounded-md bg-[color-mix(in_srgb,var(--primary)_14%,transparent)] px-2 py-1 text-xs font-black text-blue-700 ring-1 ring-[color-mix(in_srgb,var(--primary)_28%,transparent)] dark:text-blue-100" title={item.storage_name || item.storage_type}>{item.storage_name || (item.storage_type === "local" ? "本地磁盘" : item.storage_type.toUpperCase())}</span></td>
-                  <td className={cellClass}>{formatDate(item.created_at)}</td>
-                  <td className={cellClass}>
-                    <AdminTableActions>
-                      <AdminTableActionButton variant="neutral" onClick={() => setPreview(item)} title="预览" aria-label="预览"><Eye className={adminTableActionIconClass} /></AdminTableActionButton>
-                      <AdminTableActionButton variant="edit" onClick={() => void copyUrl(item.url)} title="复制 URL" aria-label="复制 URL"><Copy className={adminTableActionIconClass} /></AdminTableActionButton>
-                      <AdminTableActionButton variant="delete" onClick={() => setDeleteState({ ids: [item.id], name: item.original_name })} title="删除" aria-label="删除"><Trash2 className={adminTableActionIconClass} /></AdminTableActionButton>
-                    </AdminTableActions>
-                  </td>
-                </tr>
-              ))}
-              {!data.items.length && !loading ? <tr><td colSpan={8} className="p-10 text-center font-bold text-ink/45 dark:text-[var(--text-muted)]">暂无文件资源</td></tr> : null}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 p-4 text-sm font-bold dark:border-[var(--border-soft)]">
-          <span>共 {data.total} 条</span>
-          <CustomSelect value={String(pageSize)} onChange={(value) => { setPageSize(Number(value)); setPage(1); }} options={[10, 20, 50].map((value) => ({ label: `${value}条/页`, value: String(value) }))} className="w-32" />
-          <button type="button" disabled={data.page <= 1} onClick={() => goToPage(data.page - 1)} className="interactive inline-flex h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:opacity-50 dark:bg-[var(--surface-soft)]"><ChevronLeft className="h-4 w-4" />上一页</button>
-          {numbers.map((number) => <button key={number} type="button" onClick={() => goToPage(number)} className={cn("h-10 min-w-10 rounded-md px-3", number === data.page ? "bg-[var(--primary)] text-white" : "bg-paper dark:bg-[var(--surface-soft)]")}>{number}</button>)}
-          <button type="button" disabled={data.page >= data.pages} onClick={() => goToPage(data.page + 1)} className="interactive inline-flex h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:opacity-50 dark:bg-[var(--surface-soft)]">下一页<ChevronRight className="h-4 w-4" /></button>
-          <span>前往</span><input value={jumpPage} onChange={(event) => setJumpPage(event.target.value.replace(/\D/g, ""))} className={cn(inputClass, "w-20 text-center")} /><span>页</span>
-          <Button type="button" variant="ghost" onClick={() => goToPage(Number(jumpPage))}>跳转</Button>
-        </div>
-      </section>
+      <AdminDataTable
+        columns={columns}
+        data={data.items}
+        rowKey="id"
+        settings={settings}
+        loading={loading}
+        emptyText="暂无文件资源"
+        minWidth={980}
+        selectedRowKeys={selected}
+        allSelected={data.items.length > 0 && data.items.every((item) => selected.has(item.id))}
+        onSelectRow={toggleSelected}
+        onSelectAll={toggleCurrentPage}
+        getCheckboxLabel={(item) => `选择 ${item.original_name}`}
+        toolbar={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button type="button" variant="danger" disabled={!selected.size} onClick={() => setDeleteState({ ids: Array.from(selected) })}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              批量删除
+            </Button>
+            <AdminTableToolbar
+              settings={settings}
+              onSettingsChange={setSettings}
+              columns={fileListColumnOptions}
+              onRefresh={() => void load()}
+              refreshing={loading}
+              enableRefresh
+              enableDensity
+              enableColumns
+              enableStyle
+            />
+          </div>
+        }
+        pagination={
+          <Pagination
+            page={data.page || page}
+            totalPages={data.pages}
+            total={data.total}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            loading={loading}
+            onPageChange={goToPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
+          />
+        }
+      />
 
       <AdminModal open={Boolean(preview)} title={preview?.original_name ?? "文件预览"} size="lg" onClose={() => setPreview(null)}>
         {preview ? (
           <div className="grid gap-5">
-            <div className="grid min-h-56 place-items-center rounded-lg bg-paper p-4 dark:bg-[var(--bg-soft)]">
+            <div className="grid min-h-56 place-items-center rounded-lg bg-[var(--color-bg-muted)] p-4">
               {preview.mime_type.includes("pdf") ? <iframe src={getAssetUrl(preview.url)} title={preview.original_name} className="h-[55vh] w-full rounded-md bg-white" /> : <FilePreview item={preview} large />}
             </div>
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              {[["文件名", preview.original_name], ["文件类型", preview.mime_type], ["文件大小", formatBytes(preview.size)], ["存储器", preview.storage_name || preview.storage_type], ["Object Key", preview.object_key], ["上传时间", formatDate(preview.created_at)], ["URL", preview.url]].map(([label, value]) => (
-                <div key={label} className="grid gap-1 rounded-md bg-paper p-3 dark:bg-[var(--bg-soft)] md:last:col-span-2"><p className="text-xs font-black text-ink/45 dark:text-[var(--text-muted)]">{label}</p><p className="break-all font-bold text-ink/75 dark:text-[var(--text-secondary)]">{value}</p></div>
+              {[
+                ["文件名", preview.original_name],
+                ["文件类型", preview.mime_type],
+                ["文件大小", formatBytes(preview.size)],
+                ["存储器", preview.storage_name || preview.storage_type],
+                ["Object Key", preview.object_key],
+                ["上传时间", formatDate(preview.created_at)],
+                ["URL", preview.url],
+              ].map(([label, value]) => (
+                <div key={label} className="grid gap-1 rounded-md bg-[var(--color-bg-muted)] p-3 md:last:col-span-2">
+                  <p className="text-xs font-black text-[var(--color-text-subtle)]">{label}</p>
+                  <p className="break-all font-bold text-[var(--color-text-muted)]">{value}</p>
+                </div>
               ))}
             </div>
-            <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setPreview(null)}>关闭</Button><Button type="button" onClick={() => void copyUrl(preview.url)}><Copy className="h-4 w-4" />复制 URL</Button></div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPreview(null)}>关闭</Button>
+              <Button type="button" onClick={() => void copyUrl(preview.url)}>
+                <Copy className="h-4 w-4" aria-hidden="true" />
+                复制 URL
+              </Button>
+            </div>
           </div>
         ) : null}
       </AdminModal>
 
-      <DeleteConfirmDialog open={Boolean(deleteState)} description={deleteState?.name ? `确定删除文件「${deleteState.name}」吗？` : `确定删除选中的 ${deleteState?.ids.length ?? 0} 个文件吗？`} error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteState(null)} onConfirm={() => void confirmDelete()} />
-    </>
+      <DeleteConfirmDialog
+        open={Boolean(deleteState)}
+        description={deleteState?.name ? `确定删除文件「${deleteState.name}」吗？` : `确定删除选中的 ${deleteState?.ids.length ?? 0} 个文件吗？`}
+        error={deleteError}
+        loading={deleting}
+        onClose={() => !deleting && setDeleteState(null)}
+        onConfirm={() => void confirmDelete()}
+      />
+    </AdminPage>
   );
 }

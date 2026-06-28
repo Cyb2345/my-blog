@@ -20,6 +20,7 @@ export type AdminDataTableColumn<Row> = {
   headerClassName?: string;
   ellipsis?: boolean;
   hidden?: boolean;
+  sticky?: "right";
   render?: (row: Row, index: number) => ReactNode;
 };
 
@@ -32,10 +33,12 @@ export type AdminDataTableProps<Row> = {
   skeletonRows?: number;
   emptyText?: ReactNode;
   minWidth?: number | string;
-  selectedRowKeys?: Set<Key>;
+  selectedRowKeys?: ReadonlySet<Key>;
   onSelectRow?: (row: Row, checked: boolean) => void;
   onSelectAll?: (checked: boolean) => void;
   allSelected?: boolean;
+  getCheckboxLabel?: (row: Row, index: number) => string;
+  rowClassName?: (row: Row, index: number) => string | undefined;
   pagination?: ReactNode;
   toolbar?: ReactNode;
   className?: string;
@@ -66,6 +69,8 @@ export function AdminDataTable<Row>({
   onSelectRow,
   onSelectAll,
   allSelected,
+  getCheckboxLabel,
+  rowClassName,
   pagination,
   toolbar,
   className,
@@ -111,6 +116,7 @@ export function AdminDataTable<Row>({
                   key={column.key}
                   className={cn(
                     cellClass,
+                    column.sticky === "right" && "sticky right-0 z-10 bg-[var(--color-bg-muted)]",
                     column.align === "center" && "text-center",
                     column.align === "right" && "text-right",
                     column.headerClassName,
@@ -131,6 +137,7 @@ export function AdminDataTable<Row>({
                   className={cn(
                     "border-t border-[var(--color-border)] transition-colors hover:bg-[var(--admin-table-hover)]",
                     mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--color-text)_3%,transparent)]",
+                    rowClassName?.(row, rowIndex),
                   )}
                 >
                   {selectable ? (
@@ -139,7 +146,7 @@ export function AdminDataTable<Row>({
                         type="checkbox"
                         checked={selectedRowKeys?.has(key)}
                         onChange={(event) => onSelectRow?.(row, event.target.checked)}
-                        aria-label={`选择第 ${rowIndex + 1} 行`}
+                        aria-label={getCheckboxLabel?.(row, rowIndex) ?? `选择第 ${rowIndex + 1} 行`}
                       />
                     </td>
                   ) : null}
@@ -154,6 +161,8 @@ export function AdminDataTable<Row>({
                         key={column.key}
                         className={cn(
                           cellClass,
+                          column.sticky === "right" && "sticky right-0 bg-[var(--color-surface)]",
+                          column.sticky === "right" && mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--color-text)_3%,var(--color-surface))]",
                           column.align === "center" && "text-center",
                           column.align === "right" && "text-right",
                           column.ellipsis && "truncate",

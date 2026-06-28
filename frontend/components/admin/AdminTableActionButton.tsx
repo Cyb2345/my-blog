@@ -11,15 +11,15 @@ type AdminTableActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<AdminTableActionVariant, string> = {
   edit:
-    "bg-ocean text-white ring-ocean/30 hover:bg-ocean/90 dark:bg-[var(--primary)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_45%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--primary)_84%,white)]",
+    "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] ring-[color-mix(in_srgb,var(--admin-primary)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--admin-primary)_18%,transparent)]",
   delete:
-    "bg-red-100 text-red-700 ring-red-200 hover:bg-red-200 dark:bg-rose-500/20 dark:text-rose-100 dark:ring-rose-400/40 dark:hover:bg-rose-500/30",
+    "bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] text-[var(--color-danger)] ring-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)]",
   warning:
-    "bg-amber-100 text-amber-800 ring-amber-200 hover:bg-amber-200 dark:bg-amber-400/20 dark:text-amber-100 dark:ring-amber-300/40 dark:hover:bg-amber-400/30",
+    "bg-[color-mix(in_srgb,var(--color-warning)_16%,transparent)] text-[var(--color-warning)] ring-[color-mix(in_srgb,var(--color-warning)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-warning)_22%,transparent)]",
   success:
-    "bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20 dark:hover:bg-emerald-400/20",
+    "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-success)_18%,transparent)]",
   neutral:
-    "bg-paper text-ink/65 ring-ink/10 hover:bg-white hover:text-ink dark:bg-white/10 dark:text-[var(--text-secondary)] dark:ring-white/10 dark:hover:bg-white/15 dark:hover:text-[var(--text)]",
+    "bg-[var(--color-bg-muted)] text-[var(--color-text-muted)] ring-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]",
 };
 
 export const adminTableActionIconClass = "h-4 w-4";

@@ -13,6 +13,7 @@ const defaultStatusMap: Record<string, { label: string; variant: TagVariant }> =
   disabled: { label: "禁用", variant: "danger" },
   published: { label: "已发布", variant: "success" },
   draft: { label: "草稿", variant: "warning" },
+  deleted: { label: "已删除", variant: "danger" },
   pending: { label: "待处理", variant: "warning" },
   approved: { label: "已通过", variant: "success" },
   rejected: { label: "已拒绝", variant: "danger" },
@@ -22,6 +23,9 @@ const defaultStatusMap: Record<string, { label: string; variant: TagVariant }> =
   false: { label: "否", variant: "neutral" },
   normal: { label: "正常", variant: "success" },
   abnormal: { label: "异常", variant: "danger" },
+  local: { label: "本地磁盘", variant: "info" },
+  r2: { label: "Cloudflare R2", variant: "primary" },
+  s3: { label: "S3 Compatible", variant: "info" },
 };
 
 export function StatusTag({ status, label, map }: StatusTagProps) {

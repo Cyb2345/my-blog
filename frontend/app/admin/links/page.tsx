@@ -1,26 +1,25 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Edit, Plus, RotateCcw, Search, Trash2, Upload } from "lucide-react";
+import { Edit, Plus, Trash2, Upload } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
-import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
+import { AdminPage } from "@/components/admin/AdminPage";
+import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
 import { CustomSelect } from "@/components/admin/CustomSelect";
-import {
-  DataTableToolbar,
-  type TableSettings,
-  tableDensityCellClass,
-  useTableSettings,
-} from "@/components/admin/DataTableToolbar";
+import { type TableSettings, useTableSettings } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
-import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Pagination } from "@/components/ui/Pagination";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, formatDate, getAssetUrl } from "@/lib/utils";
 import type { FriendLink, MediaAsset, Paginated } from "@/types/blog";
@@ -29,21 +28,52 @@ type LinkModalState = { mode: "create" | "edit"; item?: FriendLink };
 type DeleteState = { ids: number[]; name?: string } | null;
 
 const emptyPage: Paginated<FriendLink> = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
+const pageSizeOptions = [10, 20, 50];
 const settingsKey = "admin-table-settings:site-links";
+const linkColumnOptions = [
+  { key: "avatar", label: "头像" },
+  { key: "name", label: "名称", locked: true },
+  { key: "url", label: "地址" },
+  { key: "description", label: "简介" },
+  { key: "email", label: "邮箱" },
+  { key: "sortOrder", label: "排序" },
+  { key: "status", label: "状态" },
+  { key: "createdAt", label: "创建时间" },
+  { key: "actions", label: "操作", locked: true },
+];
 const defaultSettings: TableSettings = {
   bordered: true,
   striped: true,
   headerBackground: true,
   density: "default",
-  visibleColumns: [],
+  visibleColumns: linkColumnOptions.map((column) => column.key),
+};
+const linkStatusMap = {
+  active: { label: "上架", variant: "success" as const },
+  inactive: { label: "下架", variant: "danger" as const },
 };
 
-function pageNumbers(current: number, total: number) {
-  const count = Math.min(Math.max(total, 1), 7);
-  let start = Math.max(1, current - Math.floor(count / 2));
-  const end = Math.min(Math.max(total, 1), start + count - 1);
-  start = Math.max(1, end - count + 1);
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+  return (
+    <p
+      className={cn(
+        "notice-pop rounded-md px-3 py-2 text-sm font-bold",
+        variant === "error"
+          ? "bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] text-[var(--color-danger)]"
+          : "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)]",
+      )}
+    >
+      {children}
+    </p>
+  );
+}
+
+function AvatarThumb({ item }: { item: FriendLink }) {
+  return (
+    <div className="mx-auto grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-[var(--color-bg-muted)] text-sm font-black text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
+      {item.avatar ? <img src={getAssetUrl(item.avatar)} alt="" className="h-full w-full object-cover" /> : item.name.slice(0, 1)}
+    </div>
+  );
 }
 
 export default function AdminLinksPage() {
@@ -56,7 +86,6 @@ export default function AdminLinksPage() {
   const [appliedStatus, setAppliedStatus] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [jumpPage, setJumpPage] = useState("1");
   const [modal, setModal] = useState<LinkModalState | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -70,10 +99,7 @@ export default function AdminLinksPage() {
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressItem | null>(null);
-  const [settings, setSettings] = useTableSettings(settingsKey, defaultSettings);
-  const cellClass = tableDensityCellClass[settings.density];
-  const numbers = useMemo(() => pageNumbers(data.page, data.pages), [data.page, data.pages]);
-  const allSelected = data.items.length > 0 && data.items.every((item) => selected.has(item.id));
+  const [settings, setSettings] = useTableSettings(settingsKey, defaultSettings, linkColumnOptions);
 
   async function load(nextPage = page, nextSize = pageSize, nextName = appliedName, nextStatus = appliedStatus) {
     setLoading(true);
@@ -85,7 +111,6 @@ export default function AdminLinksPage() {
       const result = await adminRequest<Paginated<FriendLink>>(`/admin/links?${query.toString()}`);
       setData(result);
       setPage(result.page);
-      setJumpPage(String(result.page));
       setSelected(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "友链列表加载失败");
@@ -104,7 +129,7 @@ export default function AdminLinksPage() {
 
   function query(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAppliedName(name);
+    setAppliedName(name.trim());
     setAppliedStatus(status);
     setPage(1);
   }
@@ -216,103 +241,207 @@ export default function AdminLinksPage() {
     }
   }
 
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(data.items.map((item) => item.id)));
-  }
-
-  function toggle(id: number) {
+  function toggleSelected(item: FriendLink, checked: boolean) {
     setSelected((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (checked) next.add(item.id);
+      else next.delete(item.id);
       return next;
     });
+  }
+
+  function toggleCurrentPage(checked: boolean) {
+    setSelected(checked ? new Set(data.items.map((item) => item.id)) : new Set());
   }
 
   function goToPage(value: number) {
     setPage(Math.min(Math.max(value, 1), Math.max(data.pages, 1)));
   }
 
+  const columns = useMemo<Array<AdminDataTableColumn<FriendLink>>>(
+    () => [
+      {
+        key: "avatar",
+        title: "头像",
+        width: 96,
+        align: "center",
+        hidden: !settings.visibleColumns.includes("avatar"),
+        render: (item) => <AvatarThumb item={item} />,
+      },
+      {
+        key: "name",
+        title: "名称",
+        width: 160,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("name"),
+        render: (item) => <span className="font-black text-[var(--color-text)]">{item.name}</span>,
+      },
+      {
+        key: "url",
+        title: "地址",
+        width: 220,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("url"),
+        render: (item) => item.url,
+      },
+      {
+        key: "description",
+        title: "简介",
+        minWidth: 220,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("description"),
+        render: (item) => item.description || "-",
+      },
+      {
+        key: "email",
+        title: "邮箱",
+        width: 190,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("email"),
+        render: (item) => item.email || "-",
+      },
+      {
+        key: "sortOrder",
+        title: "排序",
+        width: 90,
+        hidden: !settings.visibleColumns.includes("sortOrder"),
+        render: (item) => <span className="font-bold text-[var(--color-text-muted)]">{item.sort_order}</span>,
+      },
+      {
+        key: "status",
+        title: "状态",
+        width: 100,
+        hidden: !settings.visibleColumns.includes("status"),
+        render: (item) => <StatusTag status={item.status} map={linkStatusMap} />,
+      },
+      {
+        key: "createdAt",
+        title: "创建时间",
+        width: 180,
+        hidden: !settings.visibleColumns.includes("createdAt"),
+        render: (item) => <span className="text-[var(--color-text-muted)]">{formatDate(item.created_at)}</span>,
+      },
+      {
+        key: "actions",
+        title: "操作",
+        width: 130,
+        align: "center",
+        hidden: !settings.visibleColumns.includes("actions"),
+        render: (item) => (
+          <RowActions
+            actions={[
+              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} aria-hidden="true" />, variant: "edit", onClick: () => openModal({ mode: "edit", item }) },
+              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />, variant: "delete", onClick: () => setDeleteState({ ids: [item.id], name: item.name }) },
+            ]}
+          />
+        ),
+      },
+    ],
+    [settings.visibleColumns],
+  );
+
   return (
-    <>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
+    <AdminPage title="友链管理" description="管理前台友链展示、头像和上架状态。">
+      {error ? <Notice variant="error">{error}</Notice> : null}
+      {notice ? <Notice variant="success">{notice}</Notice> : null}
 
-      <form onSubmit={query} className="mb-4 grid gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)] xl:grid-cols-[1fr_1fr_auto]">
-        <AdminField label="友链名称"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入友链名称" className={inputClass} /></AdminField>
-        <AdminField label="状态">
-          <CustomSelect value={status} onChange={setStatus} options={[{ label: "全部", value: "" }, { label: "上架", value: "active" }, { label: "下架", value: "inactive" }]} />
-        </AdminField>
-        <div className="flex items-end gap-2">
-          <Button type="submit"><Search className="h-4 w-4" />查询</Button>
-          <Button type="button" variant="ghost" onClick={reset}><RotateCcw className="h-4 w-4" />重置</Button>
-        </div>
-      </form>
+      <AdminSearchForm onSubmit={query} onReset={reset} loading={loading}>
+        <Input label="友链名称" value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入友链名称" />
+        <Select
+          label="状态"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          options={[
+            { label: "全部", value: "" },
+            { label: "上架", value: "active" },
+            { label: "下架", value: "inactive" },
+          ]}
+        />
+      </AdminSearchForm>
 
-      <section className="overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-[var(--border-soft)]">
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={() => openModal({ mode: "create" })}><Plus className="h-4 w-4" />新增</Button>
-            <Button type="button" variant="danger" disabled={!selected.size} onClick={() => setDeleteState({ ids: Array.from(selected) })}><Trash2 className="h-4 w-4" />批量删除</Button>
+      <AdminDataTable
+        columns={columns}
+        data={data.items}
+        rowKey="id"
+        settings={settings}
+        loading={loading}
+        emptyText="暂无友链数据"
+        minWidth={1280}
+        selectedRowKeys={selected}
+        allSelected={data.items.length > 0 && data.items.every((item) => selected.has(item.id))}
+        onSelectRow={toggleSelected}
+        onSelectAll={toggleCurrentPage}
+        getCheckboxLabel={(item) => `选择 ${item.name}`}
+        toolbar={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="ghost" onClick={() => openModal({ mode: "create" })}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                新增
+              </Button>
+              <Button type="button" variant="danger" disabled={!selected.size} onClick={() => setDeleteState({ ids: Array.from(selected) })}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                批量删除
+              </Button>
+            </div>
+            <AdminTableToolbar
+              settings={settings}
+              onSettingsChange={setSettings}
+              columns={linkColumnOptions}
+              onRefresh={() => void load()}
+              refreshing={loading}
+              enableRefresh
+              enableDensity
+              enableColumns
+              enableStyle
+            />
           </div>
-          <DataTableToolbar settings={settings} onSettingsChange={setSettings} onRefresh={() => void load()} refreshing={loading} enableColumns={false} />
-        </div>
-        <div className="overflow-x-auto">
-          <table className={cn("admin-table w-full min-w-[1280px] table-fixed border-collapse", settings.bordered && "[&_td]:border-r [&_th]:border-r [&_td]:border-ink/10 [&_th]:border-ink/10 dark:[&_td]:border-[var(--border-soft)] dark:[&_th]:border-[var(--border-soft)]")}>
-            <colgroup>
-              <col className="w-14" /><col className="w-[96px]" /><col className="w-[160px]" /><col className="w-[220px]" /><col /><col className="w-[190px]" /><col className="w-[90px]" /><col className="w-[100px]" /><col className="w-[180px]" /><col className="w-[130px]" />
-            </colgroup>
-            <thead className={cn(settings.headerBackground && "bg-paper dark:bg-[var(--bg-soft)]")}>
-              <tr>
-                <th className={cn("text-center", cellClass)}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="选择当前页友链" /></th>
-                {["头像", "名称", "地址", "简介", "邮箱", "排序", "状态", "创建时间", "操作"].map((label) => <th key={label} className={cn(cellClass, label === "操作" && "text-center")}>{label}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && !data.items.length ? <TableSkeletonRows columns={10} rows={6} cellClassName={cellClass} /> : null}
-              {data.items.map((item, index) => (
-                <tr key={item.id} className={cn("border-t border-ink/10 dark:border-[var(--border-soft)]", settings.striped && index % 2 === 1 && "bg-paper/45 dark:bg-white/[0.03]")}>
-                  <td className={cn("text-center", cellClass)}><input type="checkbox" checked={selected.has(item.id)} onChange={() => toggle(item.id)} aria-label={`选择 ${item.name}`} /></td>
-                  <td className={cellClass}><div className="mx-auto grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-paper ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:ring-[var(--border-soft)]">{item.avatar ? <img src={getAssetUrl(item.avatar)} alt="" className="h-full w-full object-cover" /> : <span className="font-black">{item.name.slice(0, 1)}</span>}</div></td>
-                  <td className={cn("font-black text-ink dark:text-[var(--text)]", cellClass)}><span className="block truncate" title={item.name}>{item.name}</span></td>
-                  <td className={cellClass}><span className="block truncate" title={item.url}>{item.url}</span></td>
-                  <td className={cellClass}><span className="block truncate" title={item.description ?? ""}>{item.description || "-"}</span></td>
-                  <td className={cellClass}><span className="block truncate" title={item.email ?? ""}>{item.email || "-"}</span></td>
-                  <td className={cellClass}>{item.sort_order}</td>
-                  <td className={cellClass}><span className={cn("rounded-md px-2 py-1 text-xs font-black ring-1", item.status === "active" ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-200" : "bg-rose-500/10 text-rose-700 ring-rose-500/20 dark:text-rose-200")}>{item.status === "active" ? "上架" : "下架"}</span></td>
-                  <td className={cellClass}>{formatDate(item.created_at)}</td>
-                  <td className={cellClass}>
-                    <AdminTableActions>
-                      <AdminTableActionButton variant="edit" onClick={() => openModal({ mode: "edit", item })} title="编辑" aria-label="编辑"><Edit className={adminTableActionIconClass} /></AdminTableActionButton>
-                      <AdminTableActionButton variant="delete" onClick={() => setDeleteState({ ids: [item.id], name: item.name })} title="删除" aria-label="删除"><Trash2 className={adminTableActionIconClass} /></AdminTableActionButton>
-                    </AdminTableActions>
-                  </td>
-                </tr>
-              ))}
-              {!data.items.length && !loading ? <tr><td colSpan={10} className="p-10 text-center font-bold text-ink/45 dark:text-[var(--text-muted)]">暂无友链数据</td></tr> : null}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 p-4 text-sm font-bold dark:border-[var(--border-soft)]">
-          <span>共 {data.total} 条</span>
-          <CustomSelect value={String(pageSize)} onChange={(value) => { setPageSize(Number(value)); setPage(1); }} options={[10, 20, 50].map((value) => ({ label: `${value}条/页`, value: String(value) }))} className="w-32" />
-          <button type="button" disabled={data.page <= 1} onClick={() => goToPage(data.page - 1)} className="interactive inline-flex h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:opacity-50 dark:bg-[var(--surface-soft)]"><ChevronLeft className="h-4 w-4" />上一页</button>
-          {numbers.map((number) => <button key={number} type="button" onClick={() => goToPage(number)} className={cn("h-10 min-w-10 rounded-md px-3", number === data.page ? "bg-[var(--primary)] text-white" : "bg-paper dark:bg-[var(--surface-soft)]")}>{number}</button>)}
-          <button type="button" disabled={data.page >= data.pages} onClick={() => goToPage(data.page + 1)} className="interactive inline-flex h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:opacity-50 dark:bg-[var(--surface-soft)]">下一页<ChevronRight className="h-4 w-4" /></button>
-          <span>前往</span><input value={jumpPage} onChange={(event) => setJumpPage(event.target.value.replace(/\D/g, ""))} className={cn(inputClass, "w-20 text-center")} /><span>页</span>
-          <Button type="button" variant="ghost" onClick={() => goToPage(Number(jumpPage))}>跳转</Button>
-        </div>
-      </section>
+        }
+        pagination={
+          <Pagination
+            page={data.page || page}
+            totalPages={data.pages}
+            total={data.total}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            loading={loading}
+            onPageChange={goToPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
+          />
+        }
+      />
 
-      <AdminModal open={Boolean(modal)} title={modal?.mode === "edit" ? "编辑友链" : "新增友链"} size="md" onClose={closeModal}>
-        <form key={modal?.item?.id ?? "new"} onSubmit={save} className="grid gap-4">
+      <AdminModal
+        open={Boolean(modal)}
+        title={modal?.mode === "edit" ? "编辑友链" : "新增友链"}
+        size="md"
+        onClose={closeModal}
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={closeModal} disabled={saving || uploadingAvatar}>取消</Button>
+            <Button type="submit" form="link-form" loading={saving} disabled={uploadingAvatar}>确定</Button>
+          </>
+        }
+      >
+        <form id="link-form" key={modal?.item?.id ?? "new"} onSubmit={save} className="grid gap-4">
           <ModalError message={modalError} />
           <div className="grid gap-4 md:grid-cols-2">
-            <AdminField label="友链名称 *"><input name="name" required defaultValue={modal?.item?.name ?? ""} placeholder="请输入友链名称" className={inputClass} /></AdminField>
-            <AdminField label="友链地址 *"><input name="url" required type="url" defaultValue={modal?.item?.url ?? ""} placeholder="https://" className={inputClass} /></AdminField>
-            <AdminField label="友链邮箱"><input name="email" type="email" defaultValue={modal?.item?.email ?? ""} placeholder="name@example.com" className={inputClass} /></AdminField>
-            <AdminField label="排序"><input name="sort_order" type="number" defaultValue={modal?.item?.sort_order ?? 0} className={inputClass} /></AdminField>
-            <AdminField label="状态"><CustomSelect name="status" value={modalStatus} onChange={setModalStatus} options={[{ label: "上架", value: "active" }, { label: "下架", value: "inactive" }]} /></AdminField>
+            <Input name="name" label="友链名称" required defaultValue={modal?.item?.name ?? ""} placeholder="请输入友链名称" />
+            <Input name="url" label="友链地址" required type="url" defaultValue={modal?.item?.url ?? ""} placeholder="https://" />
+            <Input name="email" label="友链邮箱" type="email" defaultValue={modal?.item?.email ?? ""} placeholder="name@example.com" />
+            <Input name="sort_order" label="排序" type="number" defaultValue={modal?.item?.sort_order ?? 0} />
+            <Select
+              label="状态"
+              value={modalStatus}
+              onChange={(event) => setModalStatus(event.target.value)}
+              options={[
+                { label: "上架", value: "active" },
+                { label: "下架", value: "inactive" },
+              ]}
+            />
             <AdminField label="从文件列表选择头像">
               <CustomSelect
                 value={avatarUrl}
@@ -324,17 +453,17 @@ export default function AdminLinksPage() {
           </div>
           <AdminField label="头像 URL">
             <div className="grid gap-3">
-              <input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="可输入 URL、上传或从文件列表选择" className={inputClass} />
-              <label className="interactive inline-flex min-h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-paper px-3 py-2 text-sm font-bold ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:ring-[var(--border-soft)]">
-                <Upload className="h-4 w-4" />{uploadingAvatar ? "上传中..." : "上传头像"}
+              <Input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="可输入 URL、上传或从文件列表选择" />
+              <label className="interactive inline-flex min-h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-[var(--color-bg-muted)] px-3 py-2 text-sm font-bold text-[var(--color-text)] ring-1 ring-[var(--color-border)]">
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                {uploadingAvatar ? "上传中..." : "上传头像"}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={uploadingAvatar} onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)} />
               </label>
               <UploadProgress item={uploadProgress} />
-              {avatarUrl ? <img src={getAssetUrl(avatarUrl)} alt="头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-ink/10 dark:ring-[var(--border-soft)]" /> : null}
+              {avatarUrl ? <img src={getAssetUrl(avatarUrl)} alt="头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-[var(--color-border)]" /> : null}
             </div>
           </AdminField>
-          <AdminField label="友链简介"><textarea name="description" rows={3} defaultValue={modal?.item?.description ?? ""} className={inputClass} /></AdminField>
-          <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={closeModal}>取消</Button><Button type="submit" disabled={saving || uploadingAvatar}>{saving ? "提交中..." : "确定"}</Button></div>
+          <Textarea name="description" label="友链简介" rows={3} defaultValue={modal?.item?.description ?? ""} />
         </form>
       </AdminModal>
 
@@ -346,6 +475,6 @@ export default function AdminLinksPage() {
         onClose={() => !deleting && setDeleteState(null)}
         onConfirm={() => void confirmDelete()}
       />
-    </>
+    </AdminPage>
   );
 }

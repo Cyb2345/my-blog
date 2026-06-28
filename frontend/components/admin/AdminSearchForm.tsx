@@ -13,6 +13,7 @@ type AdminSearchFormProps = {
   actions?: ReactNode;
   submitText?: string;
   resetText?: string;
+  loading?: boolean;
   className?: string;
   contentClassName?: string;
 };
@@ -24,6 +25,7 @@ export function AdminSearchForm({
   actions,
   submitText = "查询",
   resetText = "重置",
+  loading = false,
   className,
   contentClassName,
 }: AdminSearchFormProps) {
@@ -37,12 +39,12 @@ export function AdminSearchForm({
         <div className="flex items-end gap-2">
           {actions ?? (
             <>
-              <Button type="submit">
+              <Button type="submit" loading={loading}>
                 <Search className="h-4 w-4" aria-hidden="true" />
                 {submitText}
               </Button>
               {onReset ? (
-                <Button type="button" variant="ghost" onClick={onReset}>
+                <Button type="button" variant="ghost" onClick={onReset} disabled={loading}>
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                   {resetText}
                 </Button>

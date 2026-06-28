@@ -12,7 +12,7 @@ type DialogProps = {
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   onClose: () => void;
 };
 
@@ -21,6 +21,7 @@ const sizes = {
   md: "max-w-2xl",
   lg: "max-w-4xl",
   xl: "max-w-[1200px]",
+  full: "h-[96vh] max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)]",
 };
 
 export function Dialog({ open, title, description, children, footer, size = "md", onClose }: DialogProps) {
