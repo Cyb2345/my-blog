@@ -1,28 +1,11 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import {
-  type AdminPageTransition as AdminPageTransitionMode,
   translateAdminText,
   useAdminLayout,
 } from "@/components/admin/AdminLayoutContext";
-import { cn } from "@/lib/utils";
-
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (!query) return;
-    const sync = () => setPrefersReducedMotion(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
-
-  return prefersReducedMotion;
-}
 
 export function AdminPageTransition({
   children,
@@ -31,9 +14,7 @@ export function AdminPageTransition({
   children: ReactNode;
   transitionKey: string;
 }) {
-  const { locale, settings } = useAdminLayout();
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const pageTransition: AdminPageTransitionMode = prefersReducedMotion ? "none" : settings.pageTransition;
+  const { locale } = useAdminLayout();
   const rootRef = useRef<HTMLDivElement>(null);
   const textRecords = useRef(new WeakMap<Text, { original: string; rendered: string }>());
   const attributeRecords = useRef(new WeakMap<Element, Map<string, { original: string; rendered: string }>>());
@@ -97,21 +78,9 @@ export function AdminPageTransition({
   return (
     <div
       ref={rootRef}
-      className={cn(
-        "admin-page-transition min-w-0",
-        `admin-page-transition--${pageTransition}`,
-      )}
+      className="admin-page-transition admin-page-content min-w-0"
     >
-      <div
-        key={transitionKey}
-        className={cn(
-          "admin-page-transition__page min-w-0",
-          pageTransition !== "none" && "admin-page-transition--entering",
-          `admin-page-transition--${pageTransition}`,
-        )}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

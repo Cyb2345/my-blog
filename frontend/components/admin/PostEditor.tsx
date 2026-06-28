@@ -2,13 +2,13 @@
 
 import { Columns2, Eye, Image as ImageIcon, PencilLine, Save, Upload, WandSparkles, X } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { CustomSelect } from "@/components/admin/CustomSelect";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
+import { useAdminViewTransitionNavigate } from "@/components/admin/useAdminViewTransitionNavigate";
 import { MarkdownView } from "@/components/blog/MarkdownView";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
 import { normalizeYuqueMarkdown } from "@/lib/markdown";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ function resolveAssetUrl(url: string) {
 }
 
 export function PostEditor({ postId }: Props) {
-  const router = useRouter();
+  const navigate = useAdminViewTransitionNavigate();
   const [post, setPost] = useState<Post | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -155,7 +155,7 @@ export function PostEditor({ postId }: Props) {
           body: JSON.stringify(payload),
         });
       }
-      router.push("/admin/posts");
+      navigate("/admin/posts");
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -339,9 +339,9 @@ export function PostEditor({ postId }: Props) {
           <Save className="h-4 w-4" aria-hidden="true" />
           保存
         </Button>
-        <LinkButton href="/admin/posts" variant="ghost">
+        <Button type="button" variant="ghost" onClick={() => navigate("/admin/posts")}>
           返回
-        </LinkButton>
+        </Button>
       </div>
     </form>
   );

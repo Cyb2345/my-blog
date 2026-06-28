@@ -289,6 +289,7 @@ function applyLayoutSettings(settings: AdminLayoutSettings, locale: AdminLocale)
   root.dataset.adminBoxStyle = settings.boxStyle;
   root.dataset.adminContainerWidth = settings.containerWidth;
   root.dataset.adminTransition = settings.pageTransition;
+  root.dataset.pageTransition = settings.pageTransition;
   root.dataset.adminRadius = settings.radius;
   root.dataset.adminFontSize = settings.fontSize;
   root.lang = locale === "en-US" ? "en" : "zh-CN";
@@ -330,6 +331,10 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
   ) {
     setSettings((current) => ({ ...current, [key]: value }));
     window.localStorage.setItem(storageKeys[key], String(value));
+    if (key === "pageTransition") {
+      document.documentElement.dataset.adminTransition = String(value);
+      document.documentElement.dataset.pageTransition = String(value);
+    }
   }
 
   function setLocale(nextLocale: AdminLocale) {

@@ -16,7 +16,7 @@
 
 ## 页面切换
 
-后台页面切换由 `AdminPageTransition` 统一实现，只能包裹后台主内容区域。`AdminSidebar`、`AdminTopBar`、`AdminTabs`、设置中心、通知面板和用户菜单不得参与页面切换动画，也不得因页面切换重新挂载。
+后台页面切换由 `useAdminViewTransitionNavigate` 统一触发浏览器原生 View Transition API，并由 `AdminPageTransition` 限定后台主内容区域。`AdminPageTransition` 只作为主内容容器和 `view-transition-name: admin-page-content` 的挂载点，不得维护延迟路由状态或给新页面追加入场动画 class。`AdminSidebar`、`AdminTopBar`、`AdminTabs`、设置中心、通知面板和用户菜单不得参与页面切换动画，也不得因页面切换重新挂载。
 
 支持的 `admin_page_transition` 值：
 
@@ -36,13 +36,15 @@
 页面切换逻辑必须是：
 
 1. 路由立即切换。
-2. 新页面立即渲染。
-3. 新页面执行轻量进入动画。
+2. 支持 View Transition API 时通过 `document.startViewTransition(() => navigate(targetPath))` 生成主内容旧/新快照。
+3. 新页面立即渲染，并由 `::view-transition-old(admin-page-content)` / `::view-transition-new(admin-page-content)` 执行轻量过渡。
 4. 接口慢时页面内部显示骨架屏或加载态。
 
 禁止采用“旧页面先消失、主区域清空、等待接口、再显示新页面”的方式。页面切换动画不能阻塞路由切换、接口请求或数据加载。
 
-缩放模式以稳定为先，默认不保留旧页面离场层。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得使用旧页面快照、黑色/深色空场背景或入场延迟来制造离场效果。
+所有后台菜单、标签页、快捷入口和后台内链跳转必须走 `useAdminViewTransitionNavigate`。浏览器不支持 View Transition API、用户选择 `none` 或系统开启 `prefers-reduced-motion: reduce` 时，必须直接普通路由跳转，不调用 `startViewTransition`。
+
+缩放模式以稳定为先，快照动画只允许使用轻量 opacity 和小幅 scale。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景或入场延迟。
 
 ## 性能限制
 
@@ -107,4 +109,4 @@ hover 只允许轻量属性：
 - 向下滑动
 - 缩放
 
-选择后立即写入 localStorage 的 `admin_page_transition`，下一次后台页面切换立即生效，刷新页面后保持上次选择。当前选中项必须有明确激活状态。
+选择后立即写入 localStorage 的 `admin_page_transition`，并同步到 `document.documentElement.dataset.pageTransition`，下一次后台页面切换立即生效，刷新页面后保持上次选择。当前选中项必须有明确激活状态。

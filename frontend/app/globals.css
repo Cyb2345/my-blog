@@ -304,49 +304,68 @@ select:focus {
   backface-visibility: hidden;
   background: transparent;
   transform-origin: center center;
+  view-transition-name: admin-page-content;
 }
 
-.admin-page-transition__page {
-  position: relative;
-  z-index: 1;
-  transform-origin: center center;
+html[data-page-transition="none"] .admin-page-transition {
+  view-transition-name: none;
 }
 
-.admin-page-transition--entering {
-  will-change: opacity, transform;
+html.admin-view-transitioning::view-transition-group(admin-page-content) {
+  animation-duration: var(--motion-page-slide, 220ms);
+  animation-timing-function: var(--ease-standard);
 }
 
-.admin-page-transition--fade.admin-page-transition--entering {
-  animation: admin-page-fade var(--motion-page-fade, 200ms) var(--ease-emphasized) both;
+html.admin-view-transitioning::view-transition-old(admin-page-content),
+html.admin-view-transitioning::view-transition-new(admin-page-content) {
+  height: 100%;
+  mix-blend-mode: normal;
+  overflow: clip;
 }
 
-.admin-page-transition--slide-right.admin-page-transition--entering {
-  animation: admin-page-slide-right var(--motion-page-slide, 220ms) var(--ease-emphasized) both;
+html.admin-view-transitioning[data-page-transition="none"]::view-transition-old(admin-page-content),
+html.admin-view-transitioning[data-page-transition="none"]::view-transition-new(admin-page-content) {
+  animation: none;
 }
 
-.admin-page-transition--slide-up.admin-page-transition--entering {
-  animation: admin-page-slide-up var(--motion-page-slide, 220ms) var(--ease-emphasized) both;
+html.admin-view-transitioning[data-page-transition="fade"]::view-transition-old(admin-page-content) {
+  animation: admin-vt-fade-out 160ms var(--ease-standard) both;
 }
 
-.admin-page-transition--slide-down.admin-page-transition--entering {
-  animation: admin-page-slide-down var(--motion-page-slide, 220ms) var(--ease-emphasized) both;
+html.admin-view-transitioning[data-page-transition="fade"]::view-transition-new(admin-page-content) {
+  animation: admin-vt-fade-in var(--motion-page-fade, 200ms) var(--ease-standard) both;
 }
 
-.admin-page-transition--zoom.admin-page-transition--entering {
-  animation: admin-page-zoom-enter var(--motion-page-zoom-enter, 220ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-old(admin-page-content) {
+  animation: admin-vt-slide-right-out 180ms var(--ease-standard) both;
 }
 
-.admin-page-transition--fade,
-.admin-page-transition--none {
-  transform: none;
+html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-new(admin-page-content) {
+  animation: admin-vt-slide-right-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
 }
 
-.admin-page-transition--none {
-  animation: none !important;
-  opacity: 1;
-  transition: none !important;
-  transform: none !important;
-  will-change: auto;
+html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-old(admin-page-content) {
+  animation: admin-vt-slide-up-out 180ms var(--ease-standard) both;
+}
+
+html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-new(admin-page-content) {
+  animation: admin-vt-slide-up-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
+}
+
+html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-old(admin-page-content) {
+  animation: admin-vt-slide-down-out 180ms var(--ease-standard) both;
+}
+
+html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-new(admin-page-content) {
+  animation: admin-vt-slide-down-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
+}
+
+html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-old(admin-page-content) {
+  animation: admin-vt-zoom-out 180ms var(--ease-standard) both;
+}
+
+html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-new(admin-page-content) {
+  animation: admin-vt-zoom-in var(--motion-page-zoom-enter, 220ms) var(--ease-standard) both;
 }
 
 html.admin-fullscreen-transitioning .admin-shell {
@@ -417,7 +436,16 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-fade {
+@keyframes admin-vt-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-vt-fade-in {
   from {
     opacity: 0;
   }
@@ -426,7 +454,18 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-slide-right {
+@keyframes admin-vt-slide-right-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+@keyframes admin-vt-slide-right-in {
   from {
     opacity: 0;
     transform: translateX(-12px);
@@ -437,7 +476,18 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-slide-up {
+@keyframes admin-vt-slide-up-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes admin-vt-slide-up-in {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -448,7 +498,18 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-slide-down {
+@keyframes admin-vt-slide-down-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes admin-vt-slide-down-in {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -459,10 +520,21 @@ html[data-admin-font-size="large"] .admin-shell {
   }
 }
 
-@keyframes admin-page-zoom-enter {
+@keyframes admin-vt-zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes admin-vt-zoom-in {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.975);
   }
   to {
     opacity: 1;
@@ -1046,7 +1118,9 @@ html.theme-transitioning *::after {
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
-  ::view-transition-new(root) {
+  ::view-transition-new(root),
+  html.admin-view-transitioning::view-transition-old(admin-page-content),
+  html.admin-view-transitioning::view-transition-new(admin-page-content) {
     animation-duration: 1ms;
   }
 

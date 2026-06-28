@@ -76,9 +76,11 @@ AdminLayout
 
 ## PageTransition
 
-页面切换动画只包裹主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。后台 Layout 必须稳定挂载，路由切换时只替换 `AdminPageTransition` 内部的 `PageContent`。
+页面切换动画只作用于主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。后台 Layout 必须稳定挂载，路由切换时只替换 `AdminPageTransition` 内部的 `PageContent`。
 
-`AdminPageTransition` 根据 localStorage 中的 `admin_page_transition` 读取动画模式：
+后台路由跳转必须统一使用 `useAdminViewTransitionNavigate`。支持 View Transition API 时，hook 调用 `document.startViewTransition(() => navigate(targetPath))`；不支持、用户选择无动画或系统开启减少动画时，直接普通路由跳转。`AdminPageTransition` 只负责承载主内容和挂载 `view-transition-name: admin-page-content`，不得再维护子页面 key 入场动画。
+
+`useAdminViewTransitionNavigate` 根据 localStorage 中的 `admin_page_transition` 和 `html[data-page-transition]` 读取动画模式：
 
 - `none`：无动画。
 - `fade`：淡入淡出，默认值。
@@ -91,4 +93,4 @@ AdminLayout
 
 页面切换动画不能阻塞路由切换和数据加载。点击菜单后应立即 `router.push`，新页面立即渲染；接口慢时由页面内部的 skeleton/loading 状态承接。
 
-页面动画以当前路由 pathname 为唯一 key。不得手动维护 `displayLocation` 或等待离场结束后再切换页面，也不得把 Sidebar、TopBar、Tabs、SettingsDrawer 纳入缩放范围。
+页面动画以当前路由为唯一事实来源。不得手动维护 `displayLocation` 或等待离场结束后再切换页面，也不得把 Sidebar、TopBar、Tabs、SettingsDrawer 纳入缩放范围。

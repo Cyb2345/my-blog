@@ -48,6 +48,7 @@ import { AdminPageTransition } from "@/components/admin/AdminPageTransition";
 import { AdminSettingsDrawer } from "@/components/admin/AdminSettingsDrawer";
 import { AdminTabs, type AdminTab } from "@/components/admin/AdminTabs";
 import { AdminTopBar } from "@/components/admin/AdminTopBar";
+import { useAdminViewTransitionNavigate } from "@/components/admin/useAdminViewTransitionNavigate";
 import { adminRequest, getToken } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
 import type { AdminMenuItem, SiteConfig } from "@/types/blog";
@@ -357,6 +358,7 @@ function SidebarContent({
 
 function AdminShellContent({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const viewTransitionNavigate = useAdminViewTransitionNavigate();
   const pathname = usePathname();
   const current = normalizeAdminPath(pathname);
   const { settings, updateSetting } = useAdminLayout();
@@ -487,11 +489,11 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (targetPath === currentPath) return;
     if (targetAdminPath === current) {
-      router.push(targetPath);
+      viewTransitionNavigate(targetPath);
       return;
     }
     setProgressVisible(true);
-    router.push(targetPath);
+    viewTransitionNavigate(targetPath);
   }
 
   function handleLinkCapture(event: ReactMouseEvent<HTMLDivElement>) {
@@ -524,16 +526,14 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   }
 
   function closeTab(href: string) {
-    setTabs((currentTabs) => {
-      const index = currentTabs.findIndex((tab) => tab.href === href);
-      if (index < 0 || currentTabs[index].pinned) return currentTabs;
-      const nextTabs = currentTabs.filter((tab) => tab.href !== href);
-      if (href === current) {
-        const nextTab = currentTabs[index - 1] || currentTabs[index + 1] || dashboardTab;
-        window.setTimeout(() => navigate(nextTab.href), 0);
-      }
-      return nextTabs;
-    });
+    const index = tabs.findIndex((tab) => tab.href === href);
+    if (index < 0 || tabs[index].pinned) return;
+
+    const nextTabs = tabs.filter((tab) => tab.href !== href);
+    const nextTab = tabs[index - 1] || tabs[index + 1] || dashboardTab;
+    setTabs(nextTabs);
+
+    if (href === current) navigate(nextTab.href);
   }
 
   if (!ready) {
