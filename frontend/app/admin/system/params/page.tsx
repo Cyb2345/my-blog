@@ -1,26 +1,26 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Edit, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
-import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
+import { AdminPage } from "@/components/admin/AdminPage";
+import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
 import { CustomSelect } from "@/components/admin/CustomSelect";
 import {
-  DataTableToolbar,
   type TableSettings,
-  tableDensityCellClass,
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { ParamValueField } from "@/components/admin/ParamValueField";
-import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
-import { Button } from "@/components/ui/Button";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -51,12 +51,22 @@ const systemFilterOptions = [
 ];
 const paramTableSettingsKey = "admin-table-settings:system-params";
 const paramPageCacheKey = "admin-page-cache:system-params";
+const paramColumnOptions = [
+  { key: "name", label: "参数名称", locked: true },
+  { key: "key", label: "参数键名" },
+  { key: "value", label: "参数键值" },
+  { key: "effect", label: "生效状态" },
+  { key: "isSystem", label: "系统内置" },
+  { key: "createdAt", label: "创建时间" },
+  { key: "updatedAt", label: "更新时间" },
+  { key: "actions", label: "操作", locked: true },
+];
 const defaultParamTableSettings: TableSettings = {
   bordered: true,
   striped: true,
   headerBackground: true,
   density: "default",
-  visibleColumns: ["name", "key", "value", "effect", "isSystem", "createdAt", "updatedAt", "actions"],
+  visibleColumns: paramColumnOptions.map((column) => column.key),
 };
 
 const hotUpdateKeys = new Set([
@@ -101,15 +111,6 @@ function formatDateTime(value?: string | null) {
     .replace(/\//g, "-");
 }
 
-function getPageNumbers(current: number, total: number) {
-  const totalPages = Math.max(total, 1);
-  const count = Math.min(totalPages, 7);
-  let start = Math.max(1, current - Math.floor(count / 2));
-  const end = Math.min(totalPages, start + count - 1);
-  start = Math.max(1, end - count + 1);
-  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
-}
-
 function isSensitiveParamKey(key: string) {
   const normalized = key.trim().toLowerCase();
   if (
@@ -128,12 +129,20 @@ function isSensitiveParamKey(key: string) {
 }
 
 function getEffectHint(key: string) {
-  if (hotUpdateKeys.has(key)) return { label: "立即生效", className: "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20" };
-  if (restartKeys.has(key)) return { label: "重启后生效", className: "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20" };
-  if (frontendReservedKeys.has(key)) return { label: "需前端接入", className: "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20" };
-  if (featureReservedKeys.has(key)) return { label: "预留配置", className: "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]" };
-  return { label: "保存后生效", className: "bg-paper text-ink/60 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]" };
+  if (hotUpdateKeys.has(key)) return { status: "hot", label: "立即生效", className: "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20" };
+  if (restartKeys.has(key)) return { status: "restart", label: "重启后生效", className: "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20" };
+  if (frontendReservedKeys.has(key)) return { status: "frontend", label: "需前端接入", className: "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20" };
+  if (featureReservedKeys.has(key)) return { status: "feature", label: "预留配置", className: "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]" };
+  return { status: "default", label: "保存后生效", className: "bg-paper text-ink/60 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]" };
 }
+
+const effectStatusMap = {
+  hot: { label: "立即生效", variant: "success" },
+  restart: { label: "重启后生效", variant: "warning" },
+  frontend: { label: "需前端接入", variant: "primary" },
+  feature: { label: "预留配置", variant: "info" },
+  default: { label: "保存后生效", variant: "neutral" },
+} as const;
 
 function displayParamValue(param: SystemParam) {
   if (param.key === "sys_captcha_type") {
@@ -155,12 +164,11 @@ function displayParamValue(param: SystemParam) {
 
 export default function AdminParamsPage() {
   const [pageData, setPageData] = useState<ParamPage>(() => readAdminPageCache<ParamPage>(paramPageCacheKey) ?? emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(paramTableSettingsKey, defaultParamTableSettings);
+  const [tableSettings, setTableSettings] = useTableSettings(paramTableSettingsKey, defaultParamTableSettings, paramColumnOptions);
   const [filters, setFilters] = useState<ParamFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<ParamFilters>(emptyFilters);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [jumpPage, setJumpPage] = useState("1");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [modal, setModal] = useState<ParamModalState | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
@@ -173,8 +181,6 @@ export default function AdminParamsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const tableCellPadding = tableDensityCellClass[tableSettings.density];
-  const pageNumbers = useMemo(() => getPageNumbers(pageData.page, pageData.pages), [pageData.page, pageData.pages]);
   const allCurrentPageSelected = pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id));
 
   async function load(currentPage = pageNumber, currentPageSize = pageSize, currentFilters = appliedFilters) {
@@ -193,7 +199,6 @@ export default function AdminParamsPage() {
       setPageData(normalized);
       writeAdminPageCache(paramPageCacheKey, normalized);
       setPageNumber(normalized.page);
-      setJumpPage(String(normalized.page || 1));
       setSelectedIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "参数列表加载失败");
@@ -372,288 +377,143 @@ export default function AdminParamsPage() {
     }
   }
 
-  function goToPage(nextPage: number) {
-    const totalPages = Math.max(pageData.pages, 1);
-    setPageNumber(Math.min(Math.max(nextPage, 1), totalPages));
-  }
-
-  function handleJump() {
-    const target = Number(jumpPage || pageData.page);
-    if (!Number.isFinite(target)) return;
-    goToPage(target);
-  }
-
   const modalItem = modal?.item;
   const modalSensitive = modalItem ? isSensitiveParamKey(modalItem.key) : false;
   const modalHint = getEffectHint(modalItem?.key ?? "");
+  const columns = useMemo<Array<AdminDataTableColumn<SystemParam>>>(
+    () => [
+      {
+        key: "name",
+        title: "参数名称",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("name"),
+        ellipsis: true,
+        render: (param) => <span className="font-black text-foreground">{param.name}</span>,
+      },
+      {
+        key: "key",
+        title: "参数键名",
+        width: 220,
+        hidden: !tableSettings.visibleColumns.includes("key"),
+        ellipsis: true,
+        render: (param) => <span className="font-mono text-xs font-bold text-muted-foreground">{param.key}</span>,
+      },
+      {
+        key: "value",
+        title: "参数键值",
+        width: 240,
+        hidden: !tableSettings.visibleColumns.includes("value"),
+        ellipsis: true,
+        render: (param) => displayParamValue(param),
+      },
+      {
+        key: "effect",
+        title: "生效状态",
+        width: 140,
+        hidden: !tableSettings.visibleColumns.includes("effect"),
+        render: (param) => {
+          const hint = getEffectHint(param.key);
+          return <StatusTag status={hint.status} label={hint.label} map={effectStatusMap} />;
+        },
+      },
+      {
+        key: "isSystem",
+        title: "系统内置",
+        width: 110,
+        hidden: !tableSettings.visibleColumns.includes("isSystem"),
+        render: (param) => <StatusTag status={param.is_system} label={param.is_system ? "是" : "否"} />,
+      },
+      {
+        key: "createdAt",
+        title: "创建时间",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("createdAt"),
+        render: (param) => formatDateTime(param.created_at),
+      },
+      {
+        key: "updatedAt",
+        title: "更新时间",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("updatedAt"),
+        render: (param) => formatDateTime(param.updated_at),
+      },
+      {
+        key: "actions",
+        title: "操作",
+        width: 140,
+        align: "center",
+        sticky: "right",
+        hidden: !tableSettings.visibleColumns.includes("actions"),
+        render: (param) => (
+          <RowActions
+            actions={[
+              {
+                key: "edit",
+                label: "编辑",
+                icon: <Edit className={rowActionIconClass} aria-hidden="true" />,
+                variant: "edit",
+                onClick: () => openModal({ mode: "edit", item: param }),
+              },
+              {
+                key: "delete",
+                label: param.is_system ? "系统内置参数不允许删除" : "删除",
+                icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />,
+                variant: "delete",
+                disabled: param.is_system,
+                onClick: () => openSingleDelete(param),
+              },
+            ]}
+          />
+        ),
+      },
+    ],
+    [tableSettings.visibleColumns],
+  );
 
   return (
-    <>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
-
-      <form
-        onSubmit={handleQuery}
-        className="mb-4 grid gap-4 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)] xl:grid-cols-[minmax(0,1fr)_auto]"
-      >
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            参数名称
-            <input
-              value={filters.name}
-              onChange={(event) => setFilters((current) => ({ ...current, name: event.target.value }))}
-              placeholder="请输入参数名称"
-              className={inputClass}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            参数键名
-            <input
-              value={filters.key}
-              onChange={(event) => setFilters((current) => ({ ...current, key: event.target.value }))}
-              placeholder="请输入参数键名"
-              className={inputClass}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            系统内置
-            <CustomSelect
-              value={filters.is_system}
-              onChange={(value) => setFilters((current) => ({ ...current, is_system: value }))}
-              options={systemFilterOptions}
-            />
-          </label>
-        </div>
-        <div className="flex flex-wrap items-end gap-2 xl:justify-end">
-          <Button type="submit" disabled={loading} className="min-h-10 px-4">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            查询
+    <AdminPage
+      title="参数管理"
+      description="维护后台运行参数、功能开关和前端可读配置。"
+      actions={
+        <>
+          <Button type="button" variant="ghost" onClick={() => openModal({ mode: "create" })}>
+            <Plus className="size-4" aria-hidden="true" />
+            新增
           </Button>
-          <Button type="button" variant="ghost" onClick={handleReset} disabled={loading} className="min-h-10 px-4">
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            重置
+          <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
+            <Trash2 className="size-4" aria-hidden="true" />
+            批量删除
           </Button>
-        </div>
-      </form>
+        </>
+      }
+    >
+      {error ? <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
+      {notice ? <p className="notice-pop mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
 
-      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-[var(--border-soft)]">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" onClick={() => openModal({ mode: "create" })}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              新增
-            </Button>
-            <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              批量删除
-            </Button>
-          </div>
-          <DataTableToolbar
-            settings={tableSettings}
-            onSettingsChange={setTableSettings}
-            onRefresh={() => void load(pageData.page, pageSize, appliedFilters)}
-            refreshing={loading}
-            enableRefresh
-            enableDensity
-            enableColumns={false}
-            enableStyle
-          />
-        </div>
+      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
+        <Input label="参数名称" value={filters.name} onChange={(event) => setFilters((current) => ({ ...current, name: event.target.value }))} placeholder="请输入参数名称" />
+        <Input label="参数键名" value={filters.key} onChange={(event) => setFilters((current) => ({ ...current, key: event.target.value }))} placeholder="请输入参数键名" />
+        <AdminField label="系统内置">
+          <CustomSelect value={filters.is_system} onChange={(value) => setFilters((current) => ({ ...current, is_system: value }))} options={systemFilterOptions} />
+        </AdminField>
+      </AdminSearchForm>
 
-        <div className="overflow-x-auto">
-          <table
-            className={cn(
-              "admin-table w-full min-w-[1320px] table-fixed border-collapse text-sm",
-              tableSettings.bordered &&
-                "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-[var(--border-soft)] dark:[&_th]:border-[var(--border-soft)]",
-            )}
-          >
-            <colgroup>
-              <col className="w-14" />
-              <col className="w-[180px]" />
-              <col className="w-[220px]" />
-              <col className="w-[240px]" />
-              <col className="w-[140px]" />
-              <col className="w-[110px]" />
-              <col className="w-[180px]" />
-              <col className="w-[180px]" />
-              <col className="w-[140px]" />
-            </colgroup>
-            <thead
-              className={cn(
-                "text-left text-ink/60 dark:text-[var(--text-muted)]",
-                tableSettings.headerBackground && "bg-paper dark:bg-[var(--bg-soft)]",
-              )}
-            >
-              <tr>
-                <th className={cn("text-center", tableCellPadding)}>
-                  <input type="checkbox" checked={allCurrentPageSelected} onChange={toggleCurrentPage} aria-label="选择当前页参数" />
-                </th>
-                <th className={tableCellPadding}>参数名称</th>
-                <th className={tableCellPadding}>参数键名</th>
-                <th className={tableCellPadding}>参数键值</th>
-                <th className={tableCellPadding}>生效状态</th>
-                <th className={tableCellPadding}>系统内置</th>
-                <th className={tableCellPadding}>创建时间</th>
-                <th className={tableCellPadding}>更新时间</th>
-                <th
-                  className={cn(
-                    "sticky right-0 z-10 text-center",
-                    tableCellPadding,
-                    tableSettings.headerBackground ? "bg-paper dark:bg-[var(--bg-soft)]" : "bg-white dark:bg-[var(--surface)]",
-                  )}
-                >
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && !pageData.items.length ? (
-                <TableSkeletonRows columns={9} rows={6} cellClassName={tableCellPadding} />
-              ) : null}
-              {pageData.items.map((param, rowIndex) => {
-                const rowStriped = tableSettings.striped && rowIndex % 2 === 1;
-                const hint = getEffectHint(param.key);
-                return (
-                  <tr
-                    key={param.id}
-                    className={cn(
-                      "transition-colors hover:bg-paper/60 dark:hover:bg-[var(--hover)]",
-                      tableSettings.bordered && "border-t border-ink/10 dark:border-[var(--border-soft)]",
-                      rowStriped && "bg-paper/40 dark:bg-white/[0.03]",
-                    )}
-                  >
-                    <td className={cn("text-center", tableCellPadding)}>
-                      <input type="checkbox" checked={selectedIds.has(param.id)} onChange={() => toggleSelect(param.id)} aria-label={`选择参数 ${param.name}`} />
-                    </td>
-                    <td className={cn("font-black text-ink dark:text-[var(--text)]", tableCellPadding)}>
-                      <span className="block truncate" title={param.name}>{param.name}</span>
-                    </td>
-                    <td className={cn("font-mono text-xs font-bold text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={param.key}>{param.key}</span>
-                    </td>
-                    <td className={cn("font-bold text-ink/70 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={displayParamValue(param)}>{displayParamValue(param)}</span>
-                    </td>
-                    <td className={tableCellPadding}>
-                      <span className={cn("inline-flex rounded-md px-2 py-1 text-xs font-black ring-1", hint.className)}>{hint.label}</span>
-                    </td>
-                    <td className={tableCellPadding}>
-                      <span
-                        className={cn(
-                          "inline-flex rounded-md px-2 py-1 text-xs font-black ring-1",
-                          param.is_system
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20"
-                            : "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-white/10 dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]",
-                        )}
-                      >
-                        {param.is_system ? "是" : "否"}
-                      </span>
-                    </td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(param.created_at)}</td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(param.updated_at)}</td>
-                    <td
-                      className={cn(
-                        "sticky right-0",
-                        tableCellPadding,
-                        rowStriped ? "bg-paper dark:bg-[var(--surface)]" : "bg-white dark:bg-[var(--surface)]",
-                      )}
-                    >
-                      <AdminTableActions>
-                        <AdminTableActionButton
-                          variant="edit"
-                          onClick={() => openModal({ mode: "edit", item: param })}
-                          aria-label="编辑"
-                          title="编辑"
-                        >
-                          <Edit className={adminTableActionIconClass} aria-hidden="true" />
-                        </AdminTableActionButton>
-                        <AdminTableActionButton
-                          variant="delete"
-                          onClick={() => openSingleDelete(param)}
-                          disabled={param.is_system}
-                          className={param.is_system ? "bg-slate-100 text-slate-400 ring-slate-200 dark:bg-white/5 dark:text-[var(--text-muted)] dark:ring-[var(--border-soft)]" : undefined}
-                          aria-label={param.is_system ? "系统内置参数不允许删除" : "删除"}
-                          title={param.is_system ? "系统内置参数不允许删除" : "删除"}
-                        >
-                          <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
-                        </AdminTableActionButton>
-                      </AdminTableActions>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!pageData.items.length && !loading ? (
-                <tr>
-                  <td colSpan={9} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-[var(--text-muted)]">
-                    暂无参数
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-[var(--border-soft)] dark:text-[var(--text-secondary)]">
-          <span>共 {pageData.total} 条</span>
-          <CustomSelect
-            value={String(pageSize)}
-            onChange={(value) => {
-              setPageSize(Number(value));
-              setPageNumber(1);
-            }}
-            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
-            className="w-32"
-          />
-          <button
-            type="button"
-            disabled={pageData.page <= 1}
-            onClick={() => goToPage(pageData.page - 1)}
-            className="interactive inline-flex min-h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[var(--surface-soft)]"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            上一页
-          </button>
-          <div className="flex flex-wrap gap-1">
-            {pageNumbers.map((number) => (
-              <button
-                key={number}
-                type="button"
-                onClick={() => goToPage(number)}
-                className={cn(
-                  "interactive h-10 min-w-10 rounded-md px-3",
-                  number === pageData.page
-                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
-                    : "bg-paper text-ink/70 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
-                )}
-              >
-                {number}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            disabled={pageData.page >= pageData.pages || pageData.pages <= 0}
-            onClick={() => goToPage(pageData.page + 1)}
-            className="interactive inline-flex min-h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[var(--surface-soft)]"
-          >
-            下一页
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <span>前往</span>
-          <input
-            value={jumpPage}
-            onChange={(event) => setJumpPage(event.target.value.replace(/\D/g, ""))}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleJump();
-            }}
-            className="h-10 w-20 rounded-md border border-ink/10 bg-white px-3 text-center outline-none dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)]"
-            aria-label="跳转页码"
-          />
-          <span>页</span>
-          <Button type="button" variant="ghost" onClick={handleJump} className="min-h-10 px-3">跳转</Button>
-        </div>
-      </section>
+      <AdminDataTable
+        columns={columns}
+        data={pageData.items}
+        rowKey="id"
+        settings={tableSettings}
+        loading={loading}
+        emptyText="暂无参数"
+        minWidth={1320}
+        selectedRowKeys={selectedIds}
+        allSelected={allCurrentPageSelected}
+        onSelectRow={(param) => toggleSelect(param.id)}
+        onSelectAll={toggleCurrentPage}
+        getCheckboxLabel={(param) => `选择参数 ${param.name}`}
+        toolbar={<AdminTableToolbar settings={tableSettings} onSettingsChange={setTableSettings} columns={paramColumnOptions} onRefresh={() => void load(pageData.page, pageSize, appliedFilters)} refreshing={loading} />}
+        pagination={<Pagination page={pageData.page} totalPages={pageData.pages} total={pageData.total} pageSize={pageSize} pageSizeOptions={pageSizeOptions} loading={loading} onPageChange={setPageNumber} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPageNumber(1); }} />}
+      />
 
       <AdminModal open={Boolean(modal)} title={modal?.mode === "edit" ? "编辑参数" : "新增参数"} size="md" onClose={closeModal}>
         <form key={modalItem?.id ?? "new"} onSubmit={saveParam} className="grid gap-4">
@@ -708,6 +568,6 @@ export default function AdminParamsPage() {
         onClose={closeDeleteDialog}
         onConfirm={() => void confirmDelete()}
       />
-    </>
+    </AdminPage>
   );
 }

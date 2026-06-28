@@ -37,7 +37,7 @@ import { CustomSelect } from "@/components/admin/CustomSelect";
 import { PostCategorySelect, PostTagEditorSelect } from "@/components/admin/PostSelectControls";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { MarkdownView } from "@/components/blog/MarkdownView";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { normalizeYuqueMarkdown } from "@/lib/markdown";
 import { cn, getAssetUrl, normalizeSlug } from "@/lib/utils";

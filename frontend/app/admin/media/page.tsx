@@ -1,12 +1,15 @@
 "use client";
 
-import { Image as ImageIcon, Upload, XCircle } from "lucide-react";
+import { Upload, XCircle } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminPage } from "@/components/admin/AdminPage";
 import { CustomSelect } from "@/components/admin/CustomSelect";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import type { MediaAsset } from "@/types/blog";
@@ -94,40 +97,42 @@ export default function AdminMediaPage() {
   }
 
   return (
-    <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">Media</p>
-        <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">媒体库</h1>
-      </div>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
+    <AdminPage title="媒体库" description="上传、预览和停用后台可复用的图片资源。">
+      {error ? <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
+      {notice ? <p className="notice-pop mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
 
       <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
-        <form onSubmit={handleUpload} className="motion-surface grid gap-4 rounded-lg border border-ink/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-          <h2 className="text-lg font-black text-ink dark:text-slate-100">上传图片</h2>
-          <AdminField label="图片文件">
-            <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
-          </AdminField>
-          <AdminField label="用途">
-            <CustomSelect
-              value={usageType}
-              onChange={(value) => setUsageType(value as MediaAsset["usage_type"])}
-              options={Object.entries(usageLabels).map(([value, label]) => ({ value, label }))}
-            />
-          </AdminField>
-          <UploadProgress item={uploadProgress} />
-          <Button type="submit" disabled={uploading}>
-            <Upload className="h-4 w-4" aria-hidden="true" />
-            {uploading ? "上传中..." : "上传图片"}
-          </Button>
-        </form>
+        <Card className="motion-surface h-fit">
+          <CardHeader>
+            <CardTitle>上传图片</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpload} className="grid gap-4">
+              <AdminField label="图片文件">
+                <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
+              </AdminField>
+              <AdminField label="用途">
+                <CustomSelect
+                  value={usageType}
+                  onChange={(value) => setUsageType(value as MediaAsset["usage_type"])}
+                  options={Object.entries(usageLabels).map(([value, label]) => ({ value, label }))}
+                />
+              </AdminField>
+              <UploadProgress item={uploadProgress} />
+              <Button type="submit" disabled={uploading}>
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                {uploading ? "上传中..." : "上传图片"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         <div className="motion-list grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
-            <article key={item.id} className="interactive-card overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-              <div className="relative bg-paper dark:bg-slate-950">
+            <article key={item.id} className="interactive-card overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+              <div className="relative bg-muted">
                 {item.is_active ? null : (
-                  <span className="absolute left-3 top-3 z-10 rounded-md bg-red-600 px-2 py-1 text-xs font-black text-white">
+                  <span className="absolute left-3 top-3 z-10 rounded-md bg-destructive px-2 py-1 text-xs font-black text-destructive-foreground">
                     已停用
                   </span>
                 )}
@@ -135,11 +140,11 @@ export default function AdminMediaPage() {
               </div>
               <div className="grid gap-3 p-4">
                 <div>
-                  <h2 className="truncate text-sm font-black text-ink dark:text-slate-100">{item.original_name}</h2>
-                  <p className="mt-1 text-xs font-bold text-ink/45 dark:text-slate-500">{usageLabels[item.usage_type]} / {(item.size / 1024).toFixed(1)} KB</p>
-                  <p className="mt-1 text-xs font-bold text-ink/45 dark:text-slate-500">{formatDate(item.created_at)}</p>
+                  <h2 className="truncate text-sm font-black text-foreground">{item.original_name}</h2>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">{usageLabels[item.usage_type]} / {(item.size / 1024).toFixed(1)} KB</p>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">{formatDate(item.created_at)}</p>
                 </div>
-                <div className="rounded-md bg-paper p-2 text-xs font-bold text-ink/55 dark:bg-slate-950 dark:text-slate-400">
+                <div className="rounded-md bg-muted p-2 text-xs font-bold text-muted-foreground">
                   <p className="break-all">{item.url}</p>
                 </div>
                 {item.is_active ? (
@@ -152,15 +157,10 @@ export default function AdminMediaPage() {
             </article>
           ))}
           {!items.length ? (
-            <div className="grid min-h-52 place-items-center rounded-lg border border-dashed border-ink/15 bg-white text-ink/45 dark:border-white/10 dark:bg-slate-900 dark:text-slate-500">
-              <div className="text-center">
-                <ImageIcon className="mx-auto h-8 w-8" aria-hidden="true" />
-                <p className="mt-2 text-sm font-bold">暂无媒体资源</p>
-              </div>
-            </div>
+            <Empty title="暂无媒体资源" description="上传图片后会显示在这里。" className="md:col-span-2 xl:col-span-3" />
           ) : null}
         </div>
       </div>
-    </>
+    </AdminPage>
   );
 }

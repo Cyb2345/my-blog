@@ -3,19 +3,18 @@
 import { Copy, Edit, EyeOff, Eye, Image, Plus, Trash2, Upload } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
 import { inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
-import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
+import { AdminPage } from "@/components/admin/AdminPage";
 import { CustomSelect } from "@/components/admin/CustomSelect";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { ImagePicker } from "@/components/admin/ImagePicker";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
-import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
 import type { MediaAsset, NavigationItem, SiteConfig } from "@/types/blog";
@@ -349,12 +348,12 @@ function formatBytes(value: number) {
 
 function SiteConfigSkeleton() {
   return (
-    <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-      <div className="border-b border-ink/10 px-4 py-4 dark:border-white/10 sm:px-5">
+    <section className="motion-surface overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+      <div className="border-b border-border px-4 py-4 sm:px-5">
         <Skeleton className="h-5 w-36" />
         <Skeleton className="mt-3 h-4 w-64 max-w-full" />
       </div>
-      <div className="grid divide-y divide-ink/10 dark:divide-white/10">
+      <div className="grid divide-y divide-border">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_minmax(180px,260px)_auto] sm:items-center sm:px-5">
             <div className="grid gap-2">
@@ -731,12 +730,12 @@ export function SiteConfigManager({
 
   function renderConfigGroup() {
     return (
-      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <div className="border-b border-ink/10 px-4 py-4 dark:border-white/10 sm:px-5">
+      <section className="motion-surface overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+        <div className="border-b border-border px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-ink dark:text-[var(--text)]">{activeTab.label}</h2>
-              <p className="mt-1 text-sm font-bold text-ink/50 dark:text-[var(--text-muted)]">{activeTab.description}</p>
+              <h2 className="text-lg font-black text-foreground">{activeTab.label}</h2>
+              <p className="mt-1 text-sm font-bold text-muted-foreground">{activeTab.description}</p>
             </div>
             {activeGroup === "brand" ? (
               <Button type="button" variant="ghost" onClick={() => openUploadDialog("general")}>
@@ -746,7 +745,7 @@ export function SiteConfigManager({
             ) : null}
           </div>
         </div>
-        <div className="grid divide-y divide-ink/10 dark:divide-white/10">
+        <div className="grid divide-y divide-border">
           {activeConfigItems.map((item) => (
             <ConfigItemRow
               key={item.key}
@@ -761,13 +760,19 @@ export function SiteConfigManager({
     );
   }
 
+  const pageMeta = allowedGroups.includes("basic")
+    ? { title: "站点配置", description: "维护站点基础信息、品牌资源和前台可见配置。" }
+    : allowedGroups.includes("hero")
+      ? { title: "首页配置", description: "维护首页 Hero、公告、背景策略和背景资源。" }
+      : { title: "登录页配置", description: "维护后台登录页背景策略和背景资源。" };
+
   return (
-    <>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
+    <AdminPage title={pageMeta.title} description={pageMeta.description}>
+      {error ? <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
+      {notice ? <p className="notice-pop mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
 
       <div className="mb-4 overflow-x-auto">
-        <div className="flex min-w-max gap-2 rounded-lg border border-ink/10 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="flex min-w-max gap-2 rounded-lg border border-border bg-card p-2 shadow-sm">
           {visibleTabs.map((group) => (
             <button
               key={group.key}
@@ -776,8 +781,8 @@ export function SiteConfigManager({
               className={cn(
                 "interactive rounded-md px-4 py-2 text-sm font-black transition-colors duration-150",
                 activeGroup === group.key
-                  ? "bg-ocean text-white dark:bg-sky-400 dark:text-white"
-                  : "text-ink/60 hover:bg-paper hover:text-ink dark:text-slate-300 dark:hover:bg-white/10",
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
               {group.label}
@@ -852,7 +857,7 @@ export function SiteConfigManager({
         onClose={closeDeleteDialog}
         onConfirm={() => void confirmDelete()}
       />
-    </>
+    </AdminPage>
   );
 }
 
@@ -874,27 +879,27 @@ function ConfigItemRow({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-3 px-4 py-4 sm:px-5 md:grid-cols-[minmax(12rem,1.05fr)_minmax(0,2fr)_2.5rem] md:items-center">
       <div className="min-w-0">
-        <p className="font-black text-ink dark:text-slate-100">{item.label}</p>
-        <p className="mt-1 text-xs font-bold leading-5 text-ink/45 dark:text-slate-500">{item.description}</p>
+        <p className="font-black text-foreground">{item.label}</p>
+        <p className="mt-1 text-xs font-bold leading-5 text-muted-foreground">{item.description}</p>
       </div>
       <div className="col-span-2 min-w-0 md:col-span-1">
         {image ? (
-          <div className="flex min-w-0 items-center gap-3 rounded-md bg-paper px-3 py-2 dark:bg-slate-950">
-            <img src={getAssetUrl(image.url)} alt={assetLabel(image)} className="h-12 w-16 shrink-0 rounded-md object-cover ring-1 ring-ink/10 dark:ring-white/10" />
+          <div className="flex min-w-0 items-center gap-3 rounded-md bg-muted px-3 py-2">
+            <img src={getAssetUrl(image.url)} alt={assetLabel(image)} className="h-12 w-16 shrink-0 rounded-md object-cover ring-1 ring-border" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-black text-ink dark:text-slate-100" title={assetLabel(image)}>{assetLabel(image)}</p>
-              <p className="truncate text-xs font-bold text-ink/45 dark:text-slate-500" title={image.url}>{image.url}</p>
+              <p className="truncate text-sm font-black text-foreground" title={assetLabel(image)}>{assetLabel(image)}</p>
+              <p className="truncate text-xs font-bold text-muted-foreground" title={image.url}>{image.url}</p>
             </div>
           </div>
         ) : (
-          <p className="truncate rounded-md bg-paper px-3 py-2 text-sm font-bold text-ink/60 dark:bg-slate-950 dark:text-slate-400" title={value}>
+          <p className="truncate rounded-md bg-muted px-3 py-2 text-sm font-bold text-muted-foreground" title={value}>
             {value}
           </p>
         )}
       </div>
       <button
         type="button"
-        className="interactive row-start-1 grid h-10 w-10 place-items-center justify-self-end rounded-md bg-white/70 text-ocean ring-1 ring-ink/10 hover:bg-white dark:bg-white/10 dark:text-sky-200 dark:ring-white/10 dark:hover:bg-white/15 md:row-auto"
+        className="interactive row-start-1 grid h-10 w-10 place-items-center justify-self-end rounded-md bg-secondary text-secondary-foreground ring-1 ring-border hover:bg-accent hover:text-accent-foreground md:row-auto"
         onClick={onEdit}
         aria-label={`编辑${item.label}`}
         title="编辑"
@@ -942,8 +947,8 @@ function ConfigEditDialog({
         <form id="site-config-edit-form" onSubmit={onSubmit} className="grid gap-5">
           <ModalError message={error} />
           <div>
-            <p className="text-sm font-black text-ink dark:text-slate-100">{item.label}</p>
-            <p className="mt-1 text-xs font-bold leading-5 text-ink/50 dark:text-slate-500">{item.description}</p>
+            <p className="text-sm font-black text-foreground">{item.label}</p>
+            <p className="mt-1 text-xs font-bold leading-5 text-muted-foreground">{item.description}</p>
           </div>
           {item.type === "textarea" ? (
             <textarea
@@ -970,12 +975,12 @@ function ConfigEditDialog({
                 className={cn(
                   "interactive flex min-h-11 items-center justify-between rounded-md border px-4 text-sm font-black",
                   value === "true"
-                    ? "border-ocean/30 bg-ocean/10 text-ocean dark:border-[color-mix(in_srgb,var(--primary)_44%,transparent)] dark:bg-[color-mix(in_srgb,var(--primary)_18%,transparent)] dark:text-white"
-                    : "border-ink/10 bg-paper text-ink/55 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text-muted)]",
+                    ? "border-primary/30 bg-accent text-accent-foreground"
+                    : "border-border bg-muted text-muted-foreground",
                 )}
               >
                 <span>{value === "true" ? "开启" : "关闭"}</span>
-                <span className={cn("relative h-6 w-11 rounded-full transition-colors", value === "true" ? "bg-ocean dark:bg-[var(--primary)]" : "bg-ink/18 dark:bg-[var(--surface-soft)]")}>
+                <span className={cn("relative h-6 w-11 rounded-full transition-colors", value === "true" ? "bg-primary" : "bg-border")}>
                   <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform", value === "true" ? "translate-x-6" : "translate-x-1")} />
                 </span>
               </button>
@@ -1011,88 +1016,91 @@ function NavigationConfigTable({
   onToggle: (item: NavigationItem) => void;
   onDelete: (item: NavigationItem) => void;
 }) {
+  const columns = useMemo<Array<AdminDataTableColumn<NavigationItem>>>(
+    () => [
+      {
+        key: "label",
+        title: "名称",
+        width: 150,
+        ellipsis: true,
+        render: (item) => <span className="font-black text-foreground">{item.label}</span>,
+      },
+      {
+        key: "href",
+        title: "链接",
+        minWidth: 260,
+        ellipsis: true,
+        render: (item) => item.href,
+      },
+      {
+        key: "sort",
+        title: "排序",
+        width: 100,
+        render: (item) => item.sort_order,
+      },
+      {
+        key: "target",
+        title: "打开方式",
+        width: 120,
+        render: (item) => (item.target === "blank" ? "新窗口" : "当前页"),
+      },
+      {
+        key: "status",
+        title: "状态",
+        width: 100,
+        render: (item) => <StatusTag status={item.is_visible ? "active" : "inactive"} label={item.is_visible ? "显示" : "隐藏"} />,
+      },
+      {
+        key: "actions",
+        title: "操作",
+        width: 160,
+        align: "center",
+        sticky: "right",
+        render: (item) => (
+          <RowActions
+            actions={[
+              {
+                key: "toggle",
+                label: item.is_visible ? "禁用" : "启用",
+                icon: item.is_visible ? <EyeOff className={rowActionIconClass} aria-hidden="true" /> : <Eye className={rowActionIconClass} aria-hidden="true" />,
+                variant: "success",
+                onClick: () => onToggle(item),
+              },
+              {
+                key: "edit",
+                label: "编辑",
+                icon: <Edit className={rowActionIconClass} aria-hidden="true" />,
+                variant: "edit",
+                onClick: () => onEdit(item),
+              },
+              {
+                key: "delete",
+                label: "删除",
+                icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />,
+                variant: "delete",
+                onClick: () => onDelete(item),
+              },
+            ]}
+          />
+        ),
+      },
+    ],
+    [onDelete, onEdit, onToggle],
+  );
+
   return (
-    <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-white/10">
+    <section className="motion-surface overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <div>
-          <h2 className="text-lg font-black text-ink dark:text-slate-100">导航配置</h2>
-          <p className="mt-1 text-sm font-bold text-ink/50 dark:text-slate-400">新增和编辑都通过弹窗完成。</p>
+          <h2 className="text-lg font-black text-foreground">导航配置</h2>
+          <p className="mt-1 text-sm font-bold text-muted-foreground">新增和编辑都通过弹窗完成。</p>
         </div>
         <Button type="button" variant="ghost" onClick={onCreate}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           新增导航
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="admin-table w-full min-w-[860px] table-fixed text-sm">
-          <colgroup>
-            <col className="w-[150px]" />
-            <col />
-            <col className="w-[100px]" />
-            <col className="w-[120px]" />
-            <col className="w-[100px]" />
-            <col className="w-[220px]" />
-          </colgroup>
-          <thead className="bg-paper text-left text-ink/60 dark:bg-slate-950/80 dark:text-slate-400">
-            <tr>
-              <th className="p-3">名称</th>
-              <th className="p-3">链接</th>
-              <th className="p-3">排序</th>
-              <th className="p-3">打开方式</th>
-              <th className="p-3">状态</th>
-              <th className="p-3 text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-t border-ink/10 transition-colors hover:bg-paper/60 dark:border-white/10 dark:hover:bg-white/5">
-                <td className="p-3 font-black text-ink dark:text-slate-100">{item.label}</td>
-                <td className="truncate p-3 text-ink/65 dark:text-slate-400" title={item.href}>{item.href}</td>
-                <td className="p-3 text-ink/65 dark:text-slate-400">{item.sort_order}</td>
-                <td className="p-3 text-ink/65 dark:text-slate-400">{item.target === "blank" ? "新窗口" : "当前页"}</td>
-                <td className="p-3">
-                  <span className={item.is_visible ? "rounded-md bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200" : "rounded-md bg-red-50 px-2 py-1 text-xs font-black text-red-700 dark:bg-red-500/10 dark:text-red-200"}>
-                    {item.is_visible ? "显示" : "隐藏"}
-                  </span>
-                </td>
-                <td className="p-3">
-                  <AdminTableActions>
-                    <AdminTableActionButton
-                      variant="success"
-                      onClick={() => onToggle(item)}
-                      aria-label={item.is_visible ? "禁用" : "启用"}
-                      title={item.is_visible ? "禁用" : "启用"}
-                    >
-                      {item.is_visible ? <EyeOff className={adminTableActionIconClass} aria-hidden="true" /> : <Eye className={adminTableActionIconClass} aria-hidden="true" />}
-                    </AdminTableActionButton>
-                    <AdminTableActionButton
-                      variant="edit"
-                      onClick={() => onEdit(item)}
-                      aria-label="编辑"
-                      title="编辑"
-                    >
-                      <Edit className={adminTableActionIconClass} aria-hidden="true" />
-                    </AdminTableActionButton>
-                    <AdminTableActionButton
-                      variant="delete"
-                      onClick={() => onDelete(item)}
-                      aria-label="删除"
-                      title="删除"
-                    >
-                      <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
-                    </AdminTableActionButton>
-                  </AdminTableActions>
-                </td>
-              </tr>
-            ))}
-            {!items.length ? (
-              <tr>
-                <td colSpan={6} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">暂无导航数据</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <AdminDataTable columns={columns} data={items} rowKey="id" emptyText="暂无导航数据" minWidth={860} className="rounded-none border-x-0 border-b-0 shadow-none" />
     </section>
   );
 }
@@ -1133,19 +1141,19 @@ function NavigationEditDialog({
         <form id="navigation-edit-form" key={state.item?.id ?? "new"} onSubmit={onSubmit} className="grid gap-4">
           <ModalError message={error} />
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <label className="grid gap-2 text-sm font-bold text-foreground">
               <span><span className="text-red-500">*</span> 名称</span>
               <input name="label" required defaultValue={state.item?.label ?? ""} placeholder="请输入导航名称" className={inputClass} />
             </label>
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <label className="grid gap-2 text-sm font-bold text-foreground">
               <span><span className="text-red-500">*</span> 链接</span>
               <input name="href" required defaultValue={state.item?.href ?? ""} placeholder="/posts" className={inputClass} />
             </label>
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <label className="grid gap-2 text-sm font-bold text-foreground">
               排序
               <input name="sort_order" type="number" defaultValue={state.item?.sort_order ?? 0} className={inputClass} />
             </label>
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <label className="grid gap-2 text-sm font-bold text-foreground">
               打开方式
               <CustomSelect
                 name="target"
@@ -1157,11 +1165,11 @@ function NavigationEditDialog({
                 ]}
               />
             </label>
-            <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+            <label className="grid gap-2 text-sm font-bold text-foreground">
               图标标识
               <input name="icon" defaultValue={state.item?.icon ?? ""} placeholder="可选，例如 Home" className={inputClass} />
             </label>
-            <label className="flex items-center gap-3 self-end rounded-md border border-ink/10 bg-paper px-3 py-2 text-sm font-bold text-ink dark:border-white/10 dark:bg-slate-950 dark:text-slate-200">
+            <label className="flex items-center gap-3 self-end rounded-md border border-border bg-muted px-3 py-2 text-sm font-bold text-foreground">
               <input name="is_visible" type="checkbox" defaultChecked={state.item?.is_visible ?? true} className="h-4 w-4 accent-blue-500" />
               前台显示
             </label>
@@ -1189,12 +1197,94 @@ function BackgroundResourceList({
   onCopy: (item: MediaAsset) => void;
   onDelete: (item: MediaAsset) => void;
 }) {
+  const columns = useMemo<Array<AdminDataTableColumn<MediaAsset>>>(
+    () => [
+      {
+        key: "thumbnail",
+        title: "缩略图",
+        width: 120,
+        render: (item) => <img src={getAssetUrl(item.url)} alt={assetLabel(item)} className="h-14 w-20 rounded-md object-cover ring-1 ring-border" />,
+      },
+      {
+        key: "file",
+        title: "文件名",
+        width: 220,
+        ellipsis: true,
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate font-black text-foreground" title={assetLabel(item)}>{assetLabel(item)}</p>
+            <p className="mt-1 truncate text-xs font-bold text-muted-foreground">{item.width && item.height ? `${item.width} x ${item.height}` : item.mime_type}</p>
+          </div>
+        ),
+      },
+      {
+        key: "usage",
+        title: "使用位置",
+        width: 120,
+        render: (item) => <StatusTag status={item.usage_type} label={usageLabels[item.usage_type] ?? item.usage_type} map={{ site_hero: { label: "首页背景", variant: "primary" }, login_background: { label: "登录背景", variant: "info" }, general: { label: "品牌资源", variant: "neutral" } }} />,
+      },
+      {
+        key: "url",
+        title: "URL",
+        minWidth: 260,
+        ellipsis: true,
+        render: (item) => item.url,
+      },
+      {
+        key: "size",
+        title: "大小",
+        width: 130,
+        render: (item) => formatBytes(item.size),
+      },
+      {
+        key: "actions",
+        title: "操作",
+        width: 300,
+        align: "right",
+        sticky: "right",
+        render: (item) => {
+          const canSetHome = item.usage_type === "site_hero";
+          const canSetLogin = item.usage_type === "login_background";
+          return (
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" disabled={!canSetHome} onClick={() => onSetHome(item)}>
+                设为首页
+              </Button>
+              <Button type="button" variant="ghost" size="sm" disabled={!canSetLogin} onClick={() => onSetLogin(item)}>
+                设为登录
+              </Button>
+              <RowActions
+                actions={[
+                  {
+                    key: "copy",
+                    label: "复制 URL",
+                    icon: <Copy className={rowActionIconClass} aria-hidden="true" />,
+                    variant: "neutral",
+                    onClick: () => onCopy(item),
+                  },
+                  {
+                    key: "delete",
+                    label: "删除",
+                    icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />,
+                    variant: "delete",
+                    onClick: () => onDelete(item),
+                  },
+                ]}
+              />
+            </div>
+          );
+        },
+      },
+    ],
+    [onCopy, onDelete, onSetHome, onSetLogin],
+  );
+
   return (
-    <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-white/10">
+    <section className="motion-surface overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <div>
-          <h2 className="text-lg font-black text-ink dark:text-slate-100">背景资源</h2>
-          <p className="mt-1 text-sm font-bold text-ink/50 dark:text-slate-400">背景图片上传和设定都在这里处理。</p>
+          <h2 className="text-lg font-black text-foreground">背景资源</h2>
+          <p className="mt-1 text-sm font-bold text-muted-foreground">背景图片上传和设定都在这里处理。</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="ghost" onClick={onUploadHome}>
@@ -1207,79 +1297,7 @@ function BackgroundResourceList({
           </Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="admin-table w-full min-w-[980px] table-fixed text-sm">
-          <colgroup>
-            <col className="w-[120px]" />
-            <col className="w-[220px]" />
-            <col className="w-[120px]" />
-            <col />
-            <col className="w-[130px]" />
-            <col className="w-[300px]" />
-          </colgroup>
-          <thead className="bg-paper text-left text-ink/60 dark:bg-slate-950/80 dark:text-slate-400">
-            <tr>
-              <th className="p-3">缩略图</th>
-              <th className="p-3">文件名</th>
-              <th className="p-3">使用位置</th>
-              <th className="p-3">URL</th>
-              <th className="p-3">大小</th>
-              <th className="p-3 text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => {
-              const canSetHome = item.usage_type === "site_hero";
-              const canSetLogin = item.usage_type === "login_background";
-              return (
-                <tr key={`${item.usage_type}-${item.id}`} className="border-t border-ink/10 transition-colors hover:bg-paper/60 dark:border-white/10 dark:hover:bg-white/5">
-                  <td className="p-3">
-                    <img src={getAssetUrl(item.url)} alt={assetLabel(item)} className="h-14 w-20 rounded-md object-cover ring-1 ring-ink/10 dark:ring-white/10" />
-                  </td>
-                  <td className="p-3">
-                    <p className="truncate font-black text-ink dark:text-slate-100" title={assetLabel(item)}>{assetLabel(item)}</p>
-                    <p className="mt-1 text-xs font-bold text-ink/45 dark:text-slate-500">{item.width && item.height ? `${item.width} x ${item.height}` : item.mime_type}</p>
-                  </td>
-                  <td className="p-3 text-ink/65 dark:text-slate-400">{usageLabels[item.usage_type] ?? item.usage_type}</td>
-                  <td className="truncate p-3 text-ink/55 dark:text-slate-400" title={item.url}>{item.url}</td>
-                  <td className="p-3 text-ink/65 dark:text-slate-400">{formatBytes(item.size)}</td>
-                  <td className="p-3">
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" disabled={!canSetHome} onClick={() => onSetHome(item)}>
-                        设为首页
-                      </Button>
-                      <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" disabled={!canSetLogin} onClick={() => onSetLogin(item)}>
-                        设为登录
-                      </Button>
-                      <AdminTableActionButton
-                        variant="neutral"
-                        onClick={() => onCopy(item)}
-                        aria-label="复制 URL"
-                        title="复制 URL"
-                      >
-                        <Copy className={adminTableActionIconClass} aria-hidden="true" />
-                      </AdminTableActionButton>
-                      <AdminTableActionButton
-                        variant="delete"
-                        onClick={() => onDelete(item)}
-                        aria-label="删除"
-                        title="删除"
-                      >
-                        <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
-                      </AdminTableActionButton>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {!items.length ? (
-              <tr>
-                <td colSpan={6} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-slate-500">暂无背景资源</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <AdminDataTable columns={columns} data={items} rowKey="id" emptyText="暂无背景资源" minWidth={980} className="rounded-none border-x-0 border-b-0 shadow-none" />
     </section>
   );
 }
@@ -1321,7 +1339,7 @@ function BackgroundUploadDialog({
       {state ? (
         <form id="background-upload-form" onSubmit={onSubmit} className="grid gap-5">
           <ModalError message={error} />
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-slate-200">
+          <label className="grid gap-2 text-sm font-bold text-foreground">
             {state.usage === "general" ? "品牌图片" : "背景图片"}
             <input
               name="file"
@@ -1332,7 +1350,7 @@ function BackgroundUploadDialog({
             />
           </label>
           <UploadProgress item={progress} />
-          <p className="rounded-md bg-paper px-3 py-2 text-xs font-bold text-ink/50 dark:bg-slate-950 dark:text-slate-500">
+          <p className="rounded-md bg-muted px-3 py-2 text-xs font-bold text-muted-foreground">
             {state.usage === "general"
               ? "支持 ICO、PNG、SVG、WebP。导入后可用于 Favicon 和前后台 Logo。"
               : "支持 JPG、PNG、WebP。上传后会进入背景资源列表。"}

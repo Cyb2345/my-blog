@@ -2,7 +2,7 @@ import { ArrowRight, Library } from "lucide-react";
 import Link from "next/link";
 
 import { DocsNav } from "@/components/docs/DocsNav";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import { safeApiFetch } from "@/lib/api";
 import { buildDocTree, firstDoc } from "@/lib/docs";
 import { fallbackPage } from "@/lib/fallback";

@@ -12,10 +12,10 @@ import { type TableSettings, useTableSettings } from "@/components/admin/DataTab
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { StatusTag } from "@/components/admin/StatusTag";
-import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { adminRequest } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
 import type { FileStorageConfig, Paginated } from "@/types/blog";

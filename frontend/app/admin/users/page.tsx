@@ -3,8 +3,6 @@
 import {
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Edit,
   KeyRound,
   Plus,
@@ -15,23 +13,24 @@ import {
 } from "lucide-react";
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
 import { AdminField, inputClass } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
+import { AdminPage } from "@/components/admin/AdminPage";
+import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
+import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
 import { CustomSelect } from "@/components/admin/CustomSelect";
 import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
-import {
-  DataTableToolbar,
   type TableSettings,
-  tableDensityCellClass,
   useTableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { adminRequest, adminUpload } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
 import type { AdminRole, AdminUser, MediaAsset, Paginated } from "@/types/blog";
@@ -61,23 +60,24 @@ const emptyPage: UserPage = { items: [], total: 0, page: 1, page_size: 10, pages
 const emptyFilters: UserFilters = { username: "", login_method: "", status: "" };
 const pageSizeOptions = [10, 20, 50];
 const userTableSettingsKey = "admin-table-settings:system-users";
+const userColumnOptions = [
+  { key: "avatar", label: "头像" },
+  { key: "username", label: "用户名", locked: true },
+  { key: "nickname", label: "昵称" },
+  { key: "loginMethod", label: "登录方式" },
+  { key: "loginIp", label: "登录 IP" },
+  { key: "loginLocation", label: "登录地址" },
+  { key: "status", label: "状态" },
+  { key: "lastLoginAt", label: "最后登录时间" },
+  { key: "createdAt", label: "创建时间" },
+  { key: "actions", label: "操作", locked: true },
+];
 const defaultUserTableSettings: TableSettings = {
   bordered: true,
   striped: true,
   headerBackground: true,
   density: "default",
-  visibleColumns: [
-    "avatar",
-    "username",
-    "nickname",
-    "loginMethod",
-    "loginIp",
-    "loginLocation",
-    "status",
-    "lastLoginAt",
-    "createdAt",
-    "actions",
-  ],
+  visibleColumns: userColumnOptions.map((column) => column.key),
 };
 
 const loginMethodOptions = [{ label: "本地账号", value: "local" }];
@@ -288,7 +288,7 @@ function SwitchField({
 
 export default function AdminUsersPage() {
   const [pageData, setPageData] = useState<UserPage>(emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(userTableSettingsKey, defaultUserTableSettings);
+  const [tableSettings, setTableSettings] = useTableSettings(userTableSettingsKey, defaultUserTableSettings, userColumnOptions);
   const [filters, setFilters] = useState<UserFilters>(emptyFilters);
   const [appliedFilters, setAppliedFilters] = useState<UserFilters>(emptyFilters);
   const [roles, setRoles] = useState<AdminRole[]>([]);
@@ -314,8 +314,6 @@ export default function AdminUsersPage() {
   const [avatarUploadProgress, setAvatarUploadProgress] = useState<UploadProgressItem | null>(null);
   const [modalStatus, setModalStatus] = useState("active");
 
-  const tableCellPadding = tableDensityCellClass[tableSettings.density];
-  const pageNumbers = useMemo(() => getPageNumbers(pageData.page, pageData.pages), [pageData.page, pageData.pages]);
   const allCurrentPageSelected = pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id));
 
   async function load(currentPage = pageNumber, currentPageSize = pageSize, currentFilters = appliedFilters) {
@@ -698,288 +696,94 @@ export default function AdminUsersPage() {
     return roles.find((role) => role.code === code)?.name ?? roleFallbackLabel(code);
   }
 
+  const columns = useMemo<Array<AdminDataTableColumn<AdminUser>>>(
+    () => [
+      { key: "avatar", title: "头像", width: 80, hidden: !tableSettings.visibleColumns.includes("avatar"), align: "center", render: (user) => <UserAvatar user={user} /> },
+      { key: "username", title: "用户名", width: 150, hidden: !tableSettings.visibleColumns.includes("username"), ellipsis: true, render: (user) => <span className="font-black text-foreground">{user.username}</span> },
+      { key: "nickname", title: "昵称", width: 150, hidden: !tableSettings.visibleColumns.includes("nickname"), ellipsis: true, render: (user) => user.nickname || "-" },
+      {
+        key: "loginMethod",
+        title: "登录方式",
+        width: 120,
+        hidden: !tableSettings.visibleColumns.includes("loginMethod"),
+        render: (user) => {
+          const loginMethod = getLoginMethod(user);
+          const loginMethodLabel = loginMethodOptions.find((option) => option.value === loginMethod)?.label ?? loginMethod;
+          return <StatusTag status="login" label={loginMethodLabel} map={{ login: { label: loginMethodLabel, variant: "info" } }} />;
+        },
+      },
+      { key: "loginIp", title: "登录 IP", width: 150, hidden: !tableSettings.visibleColumns.includes("loginIp"), ellipsis: true, render: (user) => getLoginIp(user) },
+      { key: "loginLocation", title: "登录地址", width: 180, hidden: !tableSettings.visibleColumns.includes("loginLocation"), ellipsis: true, render: (user) => getLoginLocation(user) },
+      { key: "status", title: "状态", width: 110, hidden: !tableSettings.visibleColumns.includes("status"), render: (user) => <StatusTag status={user.is_active} label={user.is_active ? "启用" : "禁用"} /> },
+      { key: "lastLoginAt", title: "最后登录时间", width: 180, hidden: !tableSettings.visibleColumns.includes("lastLoginAt"), render: (user) => formatDateTime(user.last_login_at) },
+      { key: "createdAt", title: "创建时间", width: 180, hidden: !tableSettings.visibleColumns.includes("createdAt"), render: (user) => formatDateTime(user.created_at) },
+      {
+        key: "actions",
+        title: "操作",
+        width: 160,
+        align: "center",
+        sticky: "right",
+        hidden: !tableSettings.visibleColumns.includes("actions"),
+        render: (user) => (
+          <RowActions
+            actions={[
+              { key: "password", label: "密码重置", icon: <KeyRound className={rowActionIconClass} />, variant: "warning", onClick: () => openPasswordModal(user) },
+              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} />, variant: "edit", onClick: () => openUserModal("edit", user) },
+              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} />, variant: "delete", onClick: () => openSingleDelete(user) },
+            ]}
+          />
+        ),
+      },
+    ],
+    [tableSettings.visibleColumns, roles],
+  );
+
   return (
-    <>
+    <AdminPage
+      title="用户管理"
+      description="管理后台账号、角色、登录方式和 MFA 状态。"
+      actions={
+        <>
+          <Button type="button" variant="ghost" onClick={() => openUserModal("create")}>
+            <Plus className="size-4" aria-hidden="true" />
+            新增
+          </Button>
+          <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
+            <Trash2 className="size-4" aria-hidden="true" />
+            批量删除
+          </Button>
+        </>
+      }
+    >
       {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
       {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
 
-      <form
-        onSubmit={handleQuery}
-        className="mb-4 grid gap-4 rounded-lg border border-ink/10 bg-white p-4 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)] xl:grid-cols-[minmax(0,1fr)_auto]"
-      >
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            用户名
-            <input
-              value={filters.username}
-              onChange={(event) => setFilters((current) => ({ ...current, username: event.target.value }))}
-              placeholder="请输入用户名"
-              className={inputClass}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            登录方式
-            <CustomSelect
-              value={filters.login_method}
-              onChange={(value) => setFilters((current) => ({ ...current, login_method: value }))}
-              options={[{ label: "请选择登录方式", value: "" }, ...loginMethodOptions]}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-bold text-ink dark:text-[var(--text)]">
-            状态
-            <CustomSelect
-              value={filters.status}
-              onChange={(value) => setFilters((current) => ({ ...current, status: value }))}
-              options={[{ label: "请选择状态", value: "" }, ...statusOptions]}
-            />
-          </label>
-        </div>
-        <div className="flex flex-wrap items-end gap-2 xl:justify-end">
-          <Button type="submit" disabled={loading} className="min-h-10 px-4">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            查询
-          </Button>
-          <Button type="button" variant="ghost" onClick={handleReset} disabled={loading} className="min-h-10 px-4">
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            重置
-          </Button>
-        </div>
-      </form>
+      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
+        <Input label="用户名" value={filters.username} onChange={(event) => setFilters((current) => ({ ...current, username: event.target.value }))} placeholder="请输入用户名" />
+        <AdminField label="登录方式">
+          <CustomSelect value={filters.login_method} onChange={(value) => setFilters((current) => ({ ...current, login_method: value }))} options={[{ label: "请选择登录方式", value: "" }, ...loginMethodOptions]} />
+        </AdminField>
+        <AdminField label="状态">
+          <CustomSelect value={filters.status} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} options={[{ label: "请选择状态", value: "" }, ...statusOptions]} />
+        </AdminField>
+      </AdminSearchForm>
 
-      <section className="motion-surface overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 p-4 dark:border-[var(--border-soft)]">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" onClick={() => openUserModal("create")}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              新增
-            </Button>
-            <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              批量删除
-            </Button>
-          </div>
-          <DataTableToolbar
-            settings={tableSettings}
-            onSettingsChange={setTableSettings}
-            onRefresh={() => void load(pageData.page, pageSize, appliedFilters)}
-            refreshing={loading}
-            enableRefresh
-            enableDensity
-            enableColumns={false}
-            enableStyle
-          />
-        </div>
-
-        <div className="overflow-x-auto">
-          <table
-            className={cn(
-              "admin-table w-full min-w-[1500px] table-fixed border-collapse text-sm",
-              tableSettings.bordered &&
-                "[&_td]:border-r [&_td]:border-ink/10 [&_th]:border-r [&_th]:border-ink/10 dark:[&_td]:border-[var(--border-soft)] dark:[&_th]:border-[var(--border-soft)]",
-            )}
-          >
-            <colgroup>
-              <col className="w-14" />
-              <col className="w-20" />
-              <col className="w-[150px]" />
-              <col className="w-[150px]" />
-              <col className="w-[120px]" />
-              <col className="w-[150px]" />
-              <col className="w-[180px]" />
-              <col className="w-[110px]" />
-              <col className="w-[180px]" />
-              <col className="w-[180px]" />
-              <col className="w-[160px]" />
-            </colgroup>
-            <thead
-              className={cn(
-                "text-left text-ink/60 dark:text-[var(--text-muted)]",
-                tableSettings.headerBackground && "bg-paper dark:bg-[var(--bg-soft)]",
-              )}
-            >
-              <tr>
-                <th className={cn("text-center", tableCellPadding)}>
-                  <input type="checkbox" checked={allCurrentPageSelected} onChange={toggleCurrentPage} aria-label="选择当前页用户" />
-                </th>
-                <th className={tableCellPadding}>头像</th>
-                <th className={tableCellPadding}>用户名</th>
-                <th className={tableCellPadding}>昵称</th>
-                <th className={tableCellPadding}>登录方式</th>
-                <th className={tableCellPadding}>登录 IP</th>
-                <th className={tableCellPadding}>登录地址</th>
-                <th className={tableCellPadding}>状态</th>
-                <th className={tableCellPadding}>最后登录时间</th>
-                <th className={tableCellPadding}>创建时间</th>
-                <th
-                  className={cn(
-                    "sticky right-0 z-10 text-center",
-                    tableCellPadding,
-                    tableSettings.headerBackground ? "bg-paper dark:bg-[var(--bg-soft)]" : "bg-white dark:bg-[var(--surface)]",
-                  )}
-                >
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageData.items.map((user, rowIndex) => {
-                const rowStriped = tableSettings.striped && rowIndex % 2 === 1;
-                const loginMethod = getLoginMethod(user);
-                const loginMethodLabel = loginMethodOptions.find((option) => option.value === loginMethod)?.label ?? loginMethod;
-                return (
-                  <tr
-                    key={user.id}
-                    className={cn(
-                      "transition-colors hover:bg-paper/60 dark:hover:bg-[var(--hover)]",
-                      tableSettings.bordered && "border-t border-ink/10 dark:border-[var(--border-soft)]",
-                      rowStriped && "bg-paper/40 dark:bg-white/[0.03]",
-                    )}
-                  >
-                    <td className={cn("text-center", tableCellPadding)}>
-                      <input type="checkbox" checked={selectedIds.has(user.id)} onChange={() => toggleSelect(user.id)} aria-label={`选择用户 ${user.username}`} />
-                    </td>
-                    <td className={tableCellPadding}>
-                      <UserAvatar user={user} />
-                    </td>
-                    <td className={cn("font-black text-ink dark:text-[var(--text)]", tableCellPadding)}>
-                      <span className="block truncate" title={user.username}>{user.username}</span>
-                    </td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={user.nickname || "-"}>{user.nickname || "-"}</span>
-                    </td>
-                    <td className={tableCellPadding}>
-                      <span className="inline-flex rounded-md bg-blue-100 px-2 py-1 text-xs font-black text-blue-800 ring-1 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]">
-                        {loginMethodLabel}
-                      </span>
-                    </td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={getLoginIp(user)}>{getLoginIp(user)}</span>
-                    </td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>
-                      <span className="block truncate" title={getLoginLocation(user)}>{getLoginLocation(user)}</span>
-                    </td>
-                    <td className={tableCellPadding}>
-                      <span
-                        className={cn(
-                          "inline-flex rounded-md px-2 py-1 text-xs font-black ring-1",
-                          user.is_active
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20"
-                            : "bg-red-50 text-red-700 ring-red-100 dark:bg-rose-500/10 dark:text-rose-200 dark:ring-rose-500/20",
-                        )}
-                      >
-                        {user.is_active ? "启用" : "禁用"}
-                      </span>
-                    </td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(user.last_login_at)}</td>
-                    <td className={cn("text-ink/65 dark:text-[var(--text-secondary)]", tableCellPadding)}>{formatDateTime(user.created_at)}</td>
-                    <td
-                      className={cn(
-                        "sticky right-0",
-                        tableCellPadding,
-                        rowStriped ? "bg-paper dark:bg-[var(--surface)]" : "bg-white dark:bg-[var(--surface)]",
-                      )}
-                    >
-                      <AdminTableActions>
-                        <AdminTableActionButton
-                          variant="warning"
-                          onClick={() => openPasswordModal(user)}
-                          aria-label="密码重置"
-                          title="密码重置"
-                        >
-                          <KeyRound className={adminTableActionIconClass} aria-hidden="true" />
-                        </AdminTableActionButton>
-                        <AdminTableActionButton
-                          variant="edit"
-                          onClick={() => openUserModal("edit", user)}
-                          aria-label="编辑"
-                          title="编辑"
-                        >
-                          <Edit className={adminTableActionIconClass} aria-hidden="true" />
-                        </AdminTableActionButton>
-                        <AdminTableActionButton
-                          variant="delete"
-                          onClick={() => openSingleDelete(user)}
-                          aria-label="删除"
-                          title="删除"
-                        >
-                          <Trash2 className={adminTableActionIconClass} aria-hidden="true" />
-                        </AdminTableActionButton>
-                      </AdminTableActions>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!pageData.items.length && !loading ? (
-                <tr>
-                  <td colSpan={11} className="p-10 text-center text-sm font-bold text-ink/45 dark:text-[var(--text-muted)]">
-                    暂无用户
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 border-t border-ink/10 px-4 py-4 text-sm font-bold text-ink/65 dark:border-[var(--border-soft)] dark:text-[var(--text-secondary)]">
-          <span>共 {pageData.total} 条</span>
-          <CustomSelect
-            value={String(pageSize)}
-            onChange={(value) => {
-              setPageSize(Number(value));
-              setPageNumber(1);
-            }}
-            options={pageSizeOptions.map((size) => ({ label: `${size}条/页`, value: String(size) }))}
-            className="w-32"
-          />
-          <button
-            type="button"
-            disabled={pageData.page <= 1}
-            onClick={() => goToPage(pageData.page - 1)}
-            className="interactive inline-flex min-h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[var(--surface-soft)]"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            上一页
-          </button>
-          <div className="flex flex-wrap gap-1">
-            {pageNumbers.map((number) => (
-              <button
-                key={number}
-                type="button"
-                onClick={() => goToPage(number)}
-                className={cn(
-                  "interactive h-10 min-w-10 rounded-md px-3",
-                  number === pageData.page
-                    ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
-                    : "bg-paper text-ink/70 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
-                )}
-              >
-                {number}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            disabled={pageData.page >= pageData.pages || pageData.pages <= 0}
-            onClick={() => goToPage(pageData.page + 1)}
-            className="interactive inline-flex min-h-10 items-center gap-1 rounded-md bg-paper px-3 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[var(--surface-soft)]"
-          >
-            下一页
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </button>
-          <span>前往</span>
-          <input
-            value={jumpPage}
-            onChange={(event) => setJumpPage(event.target.value.replace(/\D/g, ""))}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleJump();
-            }}
-            className="h-10 w-20 rounded-md border border-ink/10 bg-white px-3 text-center outline-none dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)]"
-            aria-label="跳转页码"
-          />
-          <span>页</span>
-          <Button type="button" variant="ghost" onClick={handleJump} className="min-h-10 px-3">跳转</Button>
-        </div>
-      </section>
+      <AdminDataTable
+        columns={columns}
+        data={pageData.items}
+        rowKey="id"
+        settings={tableSettings}
+        loading={loading}
+        emptyText="暂无用户"
+        minWidth={1500}
+        selectedRowKeys={selectedIds}
+        allSelected={allCurrentPageSelected}
+        onSelectRow={(user) => toggleSelect(user.id)}
+        onSelectAll={toggleCurrentPage}
+        getCheckboxLabel={(user) => `选择用户 ${user.username}`}
+        toolbar={<AdminTableToolbar settings={tableSettings} onSettingsChange={setTableSettings} columns={userColumnOptions} onRefresh={() => void load(pageData.page, pageSize, appliedFilters)} refreshing={loading} />}
+        pagination={<Pagination page={pageData.page} totalPages={pageData.pages} total={pageData.total} pageSize={pageSize} pageSizeOptions={pageSizeOptions} loading={loading} onPageChange={setPageNumber} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPageNumber(1); }} />}
+      />
 
       <AdminModal open={modal?.type === "user"} title={modal?.type === "user" && modal.mode === "edit" ? "编辑用户" : "新增用户"} size="lg" onClose={closeModal}>
         {modal?.type === "user" ? (
@@ -1136,6 +940,6 @@ export default function AdminUsersPage() {
         onClose={closeDeleteDialog}
         onConfirm={() => void confirmDelete()}
       />
-    </>
+    </AdminPage>
   );
 }

@@ -1,7 +1,6 @@
 import { forwardRef, type ReactNode, type TextareaHTMLAttributes, useId } from "react";
 
 import { cn } from "@/lib/utils";
-import { inputBaseClass } from "@/components/ui/Input";
 
 type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label?: ReactNode;
@@ -10,22 +9,20 @@ type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
 };
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { id, label, hint, error, className, required, rows = 4, ...props },
+  { id, label, hint, error, className, required, ...props },
   ref,
 ) {
   const generatedId = useId();
   const textareaId = id ?? generatedId;
   const descriptionId = hint || error ? `${textareaId}-description` : undefined;
-
   const textarea = (
     <textarea
       id={textareaId}
       ref={ref}
-      rows={rows}
       required={required}
       aria-invalid={Boolean(error) || undefined}
       aria-describedby={descriptionId}
-      className={cn(inputBaseClass, "min-h-24 resize-y text-sm", error && "border-[var(--color-danger)] focus:border-[var(--color-danger)]", className)}
+      className={cn("min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60", error && "border-destructive focus:border-destructive", className)}
       {...props}
     />
   );
@@ -33,14 +30,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   if (!label) return textarea;
 
   return (
-    <label className="grid gap-2 text-sm font-bold text-[var(--color-text)]" htmlFor={textareaId}>
+    <label className="grid gap-2 text-sm font-bold text-foreground" htmlFor={textareaId}>
       <span>
         {label}
-        {required ? <span className="ml-1 text-[var(--color-danger)]">*</span> : null}
+        {required ? <span className="ml-1 text-destructive">*</span> : null}
       </span>
       {textarea}
-      {error ? <span id={descriptionId} className="text-xs font-bold text-[var(--color-danger)]">{error}</span> : null}
-      {!error && hint ? <span id={descriptionId} className="text-xs font-semibold text-[var(--color-text-subtle)]">{hint}</span> : null}
+      {error ? <span id={descriptionId} className="text-xs font-bold text-destructive">{error}</span> : null}
+      {!error && hint ? <span id={descriptionId} className="text-xs font-semibold text-muted-foreground">{hint}</span> : null}
     </label>
   );
 });

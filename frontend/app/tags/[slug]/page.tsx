@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PostCard } from "@/components/blog/PostCard";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import { safeApiFetch } from "@/lib/api";
 import { fallbackPage, fallbackTags } from "@/lib/fallback";
 import type { Paginated, Post, Tag } from "@/types/blog";

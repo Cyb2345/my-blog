@@ -1,10 +1,7 @@
 "use client";
-
-import { AlertTriangle } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { AdminModal, ModalError } from "@/components/admin/AdminModal";
-import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type DeleteConfirmDialogProps = {
   open: boolean;
@@ -25,37 +22,16 @@ export function DeleteConfirmDialog({
   onClose,
   onConfirm,
 }: DeleteConfirmDialogProps) {
-  function handleClose() {
-    if (loading) return;
-    onClose();
-  }
-
   return (
-    <AdminModal
+    <ConfirmDialog
       open={open}
       title="删除确认"
-      size="sm"
-      onClose={handleClose}
-      footer={
-        <>
-          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading}>
-            取消
-          </Button>
-          <Button type="button" variant="danger" onClick={onConfirm} disabled={loading}>
-            {loading ? "删除中..." : confirmText}
-          </Button>
-        </>
-      }
-    >
-      <div className="grid gap-4">
-        <ModalError message={error} />
-        <div className="flex items-center gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-rose-500/15 dark:text-rose-200">
-            <AlertTriangle className="h-6 w-6" aria-hidden="true" />
-          </span>
-          <p className="text-base font-black text-ink dark:text-[var(--text)]">{description}</p>
-        </div>
-      </div>
-    </AdminModal>
+      description={description}
+      error={error}
+      loading={loading}
+      confirmText={loading ? "删除中..." : confirmText}
+      onClose={onClose}
+      onConfirm={onConfirm}
+    />
   );
 }

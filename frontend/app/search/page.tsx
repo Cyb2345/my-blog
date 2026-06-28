@@ -2,7 +2,7 @@ import { CalendarDays, FileText, Folder, Library, Tag as TagIcon } from "lucide-
 import Link from "next/link";
 
 import { SearchForm } from "@/components/search/SearchForm";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import { safeApiFetch } from "@/lib/api";
 import { excerpt, formatDate } from "@/lib/utils";
 import type { Category, Paginated, Post, Tag } from "@/types/blog";

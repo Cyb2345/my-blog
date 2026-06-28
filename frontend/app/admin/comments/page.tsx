@@ -1,35 +1,60 @@
 "use client";
 
 import { Check, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  AdminTableActionButton,
-  AdminTableActions,
-  adminTableActionIconClass,
-} from "@/components/admin/AdminTableActionButton";
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import { AdminPage } from "@/components/admin/AdminPage";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
+import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
+import { StatusTag } from "@/components/admin/StatusTag";
 import { adminRequest } from "@/lib/auth";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { CommentItem } from "@/types/blog";
+
+function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+  return (
+    <p className={cn("notice-pop rounded-md px-3 py-2 text-sm font-bold", variant === "error" ? "bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] text-destructive" : "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)]")}>
+      {children}
+    </p>
+  );
+}
+
+const statusMap = {
+  pending: { label: "待审核", variant: "warning" as const },
+  approved: { label: "已通过", variant: "success" as const },
+  rejected: { label: "已拒绝", variant: "danger" as const },
+};
 
 export default function AdminCommentsPage() {
   const [items, setItems] = useState<CommentItem[]>([]);
   const [deleteItem, setDeleteItem] = useState<CommentItem | null>(null);
   const [error, setError] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  function load() {
-    adminRequest<CommentItem[]>("/admin/comments").then(setItems).catch((err: Error) => setError(err.message));
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      setItems(await adminRequest<CommentItem[]>("/admin/comments"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "留言列表加载失败");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   async function action(path: string, method = "POST") {
+    setError("");
     try {
       await adminRequest(path, { method });
-      load();
+      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "操作失败");
     }
@@ -42,7 +67,7 @@ export default function AdminCommentsPage() {
     try {
       await adminRequest(`/admin/comments/${deleteItem.id}`, { method: "DELETE" });
       setDeleteItem(null);
-      load();
+      await load();
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -50,48 +75,37 @@ export default function AdminCommentsPage() {
     }
   }
 
-  const statusText: Record<CommentItem["status"], string> = {
-    pending: "待审核",
-    approved: "已通过",
-    rejected: "已拒绝",
-  };
+  const columns = useMemo<Array<AdminDataTableColumn<CommentItem>>>(
+    () => [
+      { key: "nickname", title: "昵称", width: 140, render: (item) => <span className="font-black text-foreground">{item.nickname}</span> },
+      { key: "email", title: "邮箱", width: 190, ellipsis: true, render: (item) => item.email || "-" },
+      { key: "content", title: "内容", minWidth: 320, ellipsis: true, render: (item) => item.content },
+      { key: "status", title: "状态", width: 110, render: (item) => <StatusTag status={item.status} map={statusMap} /> },
+      { key: "createdAt", title: "时间", width: 140, render: (item) => formatDate(item.created_at) },
+      {
+        key: "actions",
+        title: "操作",
+        width: 150,
+        align: "center",
+        render: (item) => (
+          <RowActions
+            actions={[
+              { key: "approve", label: "通过", icon: <Check className={rowActionIconClass} />, variant: "success", onClick: () => void action(`/admin/comments/${item.id}/approve`) },
+              { key: "reject", label: "驳回", icon: <X className={rowActionIconClass} />, variant: "warning", onClick: () => void action(`/admin/comments/${item.id}/reject`) },
+              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} />, variant: "delete", onClick: () => setDeleteItem(item) },
+            ]}
+          />
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <>
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-rose-500/10 dark:text-rose-200">{error}</p> : null}
-      <div className="motion-surface overflow-x-auto rounded-lg border border-ink/10 bg-white shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface)]">
-        <table className="admin-table w-full min-w-[900px] text-sm">
-          <thead className="bg-paper text-left text-ink/60">
-            <tr>
-              <th className="p-3">昵称</th>
-              <th className="p-3">邮箱</th>
-              <th className="p-3">内容</th>
-              <th className="p-3">状态</th>
-              <th className="p-3">时间</th>
-              <th className="p-3">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className="border-t border-ink/10 align-top">
-                <td className="p-3 font-bold">{item.nickname}</td>
-                <td className="p-3 text-ink/60">{item.email}</td>
-                <td className="max-w-md p-3 text-ink/70">{item.content}</td>
-                <td className="p-3 text-ink/60">{statusText[item.status]}</td>
-                <td className="p-3 text-ink/60">{formatDate(item.created_at)}</td>
-                <td className="p-3">
-                  <AdminTableActions>
-                    <AdminTableActionButton variant="success" onClick={() => action(`/admin/comments/${item.id}/approve`)} title="通过" aria-label="通过"><Check className={adminTableActionIconClass} /></AdminTableActionButton>
-                    <AdminTableActionButton variant="warning" onClick={() => action(`/admin/comments/${item.id}/reject`)} title="驳回" aria-label="驳回"><X className={adminTableActionIconClass} /></AdminTableActionButton>
-                    <AdminTableActionButton variant="delete" onClick={() => setDeleteItem(item)} title="删除" aria-label="删除"><Trash2 className={adminTableActionIconClass} /></AdminTableActionButton>
-                  </AdminTableActions>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <AdminPage title="留言管理" description="审核、驳回或删除前台留言。">
+      {error ? <Notice variant="error">{error}</Notice> : null}
+      <AdminDataTable columns={columns} data={items} rowKey="id" loading={loading} emptyText="暂无留言" minWidth={900} />
       <DeleteConfirmDialog open={Boolean(deleteItem)} description={deleteItem ? `确定删除留言「${deleteItem.nickname}」吗？` : "确定删除该留言吗？"} error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteItem(null)} onConfirm={() => void confirmDelete()} />
-    </>
+    </AdminPage>
   );
 }

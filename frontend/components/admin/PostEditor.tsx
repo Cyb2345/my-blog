@@ -8,7 +8,7 @@ import { CustomSelect } from "@/components/admin/CustomSelect";
 import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
 import { useAdminViewTransitionNavigate } from "@/components/admin/useAdminViewTransitionNavigate";
 import { MarkdownView } from "@/components/blog/MarkdownView";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
 import { normalizeYuqueMarkdown } from "@/lib/markdown";
 import { cn } from "@/lib/utils";

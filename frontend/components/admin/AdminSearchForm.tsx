@@ -3,7 +3,7 @@
 import type { FormEventHandler, ReactNode } from "react";
 import { RotateCcw, Search } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type AdminSearchFormProps = {
@@ -32,7 +32,7 @@ export function AdminSearchForm({
   return (
     <form
       onSubmit={onSubmit}
-      className={cn("rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm", className)}
+      className={cn("rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm", className)}
     >
       <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto]", contentClassName)}>
         {children}

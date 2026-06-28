@@ -6,7 +6,7 @@ import {
   type TableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
-import { Empty } from "@/components/ui/Empty";
+import { Empty } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 export type AdminDataTableColumn<Row> = {
@@ -82,14 +82,14 @@ export function AdminDataTable<Row>({
   const columnCount = visibleColumns.length + (selectable ? 1 : 0);
 
   return (
-    <section className={cn("overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm", className)}>
-      {toolbar ? <div className="border-b border-[var(--color-border)] px-4 py-3">{toolbar}</div> : null}
+    <section className={cn("overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm", className)}>
+      {toolbar ? <div className="border-b border-border px-4 py-3">{toolbar}</div> : null}
       <div className="overflow-x-auto">
         <table
           className={cn(
             "admin-table w-full table-fixed border-collapse text-sm",
             mergedSettings.bordered &&
-              "[&_td]:border-r [&_td]:border-[var(--color-border)] [&_th]:border-r [&_th]:border-[var(--color-border)]",
+              "[&_td]:border-r [&_td]:border-border [&_th]:border-r [&_th]:border-border",
           )}
           style={{ minWidth: typeof minWidth === "number" ? `${minWidth}px` : minWidth }}
         >
@@ -99,7 +99,7 @@ export function AdminDataTable<Row>({
               <col key={column.key} style={widthStyle(column.width, column.minWidth)} />
             ))}
           </colgroup>
-          <thead className={cn("text-left text-[var(--color-text-subtle)]", mergedSettings.headerBackground && "bg-[var(--color-bg-muted)]")}>
+          <thead className={cn("text-left text-muted-foreground", mergedSettings.headerBackground && "bg-muted")}>
             <tr>
               {selectable ? (
                 <th className={cn("text-center", cellClass)}>
@@ -108,6 +108,7 @@ export function AdminDataTable<Row>({
                     checked={Boolean(allSelected)}
                     onChange={(event) => onSelectAll?.(event.target.checked)}
                     aria-label="选择当前页"
+                    className="size-4 accent-[var(--primary)]"
                   />
                 </th>
               ) : null}
@@ -116,7 +117,7 @@ export function AdminDataTable<Row>({
                   key={column.key}
                   className={cn(
                     cellClass,
-                    column.sticky === "right" && "sticky right-0 z-10 bg-[var(--color-bg-muted)]",
+                    column.sticky === "right" && "sticky right-0 z-10 bg-muted",
                     column.align === "center" && "text-center",
                     column.align === "right" && "text-right",
                     column.headerClassName,
@@ -135,8 +136,8 @@ export function AdminDataTable<Row>({
                 <tr
                   key={key}
                   className={cn(
-                    "border-t border-[var(--color-border)] transition-colors hover:bg-[var(--admin-table-hover)]",
-                    mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--color-text)_3%,transparent)]",
+                    "border-t border-border transition-colors hover:bg-[var(--admin-table-hover)]",
+                    mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--foreground)_3%,transparent)]",
                     rowClassName?.(row, rowIndex),
                   )}
                 >
@@ -147,6 +148,7 @@ export function AdminDataTable<Row>({
                         checked={selectedRowKeys?.has(key)}
                         onChange={(event) => onSelectRow?.(row, event.target.checked)}
                         aria-label={getCheckboxLabel?.(row, rowIndex) ?? `选择第 ${rowIndex + 1} 行`}
+                        className="size-4 accent-[var(--primary)]"
                       />
                     </td>
                   ) : null}
@@ -161,8 +163,8 @@ export function AdminDataTable<Row>({
                         key={column.key}
                         className={cn(
                           cellClass,
-                          column.sticky === "right" && "sticky right-0 bg-[var(--color-surface)]",
-                          column.sticky === "right" && mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--color-text)_3%,var(--color-surface))]",
+                          column.sticky === "right" && "sticky right-0 bg-card",
+                          column.sticky === "right" && mergedSettings.striped && rowIndex % 2 === 1 && "bg-[color-mix(in_srgb,var(--foreground)_3%,var(--card))]",
                           column.align === "center" && "text-center",
                           column.align === "right" && "text-right",
                           column.ellipsis && "truncate",
@@ -187,7 +189,7 @@ export function AdminDataTable<Row>({
           </tbody>
         </table>
       </div>
-      {pagination ? <div className="border-t border-[var(--color-border)] px-4 py-4">{pagination}</div> : null}
+      {pagination ? <div className="border-t border-border px-4 py-4">{pagination}</div> : null}
     </section>
   );
 }

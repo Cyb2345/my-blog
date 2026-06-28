@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog } from "@/components/ui/dialog";
 
 type AdminModalProps = {
   open: boolean;
@@ -31,7 +31,7 @@ export function AdminModal({
 export function ModalError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="rounded-md bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] px-3 py-2 text-sm font-bold text-[var(--color-danger)]">
+    <p className="rounded-md bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] px-3 py-2 text-sm font-bold text-destructive">
       {message}
     </p>
   );

@@ -6,7 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { API_BASE_URL, setToken } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { CaptchaPayload, Envelope, LoginSuccess } from "@/types/blog";

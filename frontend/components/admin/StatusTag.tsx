@@ -1,4 +1,4 @@
-import { Tag, type TagVariant } from "@/components/ui/Tag";
+import { Tag, type TagVariant } from "@/components/ui/tag";
 
 type StatusTagProps = {
   status: string | boolean | null | undefined;

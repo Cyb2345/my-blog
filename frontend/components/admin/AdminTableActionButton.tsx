@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type AdminTableActionVariant = "edit" | "delete" | "warning" | "success" | "neutral";
@@ -45,7 +46,8 @@ export function AdminTableActionButton({
     <button
       type={type}
       className={cn(
-        "interactive grid h-9 w-9 place-items-center rounded-md ring-1 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
+        buttonVariants({ variant: "ghost", size: "icon" }),
+        "h-9 w-9 rounded-md ring-1 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
         variants[variant],
         className,
       )}

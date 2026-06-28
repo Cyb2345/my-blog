@@ -3,12 +3,17 @@
 import { Activity, AlertCircle, Boxes, Cpu, HardDrive, Info, MemoryStick, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { Button } from "@/components/ui/Button";
+import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import { AdminPage } from "@/components/admin/AdminPage";
+import { StatusTag } from "@/components/admin/StatusTag";
+import { Button } from "@/components/ui/button";
 import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { ServiceMonitor } from "@/types/blog";
 
 const AUTO_REFRESH_MS = 30_000;
+type ContainerMonitor = ServiceMonitor["containers"][number];
+type DiskMonitor = ServiceMonitor["disks"][number];
 
 function formatBytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "0 B";
@@ -53,9 +58,9 @@ function formatDuration(seconds: number) {
 }
 
 function toneForPercent(value: number, warning = 70) {
-  if (value >= 85) return { color: "#ef4444", text: "text-red-600 dark:text-red-300", bg: "bg-red-500" };
-  if (value >= warning) return { color: "#f59e0b", text: "text-amber-600 dark:text-amber-300", bg: "bg-amber-500" };
-  return { color: "#22c55e", text: "text-emerald-600 dark:text-emerald-300", bg: "bg-emerald-500" };
+  if (value >= 85) return { color: "var(--destructive)", text: "text-destructive", bg: "bg-destructive" };
+  if (value >= warning) return { color: "var(--warning)", text: "text-[var(--warning)]", bg: "bg-[var(--warning)]" };
+  return { color: "var(--color-success)", text: "text-[var(--color-success)]", bg: "bg-[var(--color-success)]" };
 }
 
 function PercentDial({ value, warning }: { value: number; warning?: number }) {
@@ -63,12 +68,12 @@ function PercentDial({ value, warning }: { value: number; warning?: number }) {
   const angle = Math.max(0, Math.min(100, value)) * 3.6;
 
   return (
-    <div className="mx-auto grid h-36 w-36 place-items-center rounded-full bg-slate-100 dark:bg-slate-800">
+    <div className="mx-auto grid h-36 w-36 place-items-center rounded-full bg-muted">
       <div
         className="grid h-32 w-32 place-items-center rounded-full"
         style={{ background: `conic-gradient(${tone.color} ${angle}deg, rgba(148, 163, 184, 0.16) 0deg)` }}
       >
-        <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-900">
+        <div className="grid h-24 w-24 place-items-center rounded-full bg-card text-center shadow-inner">
           <span className={cn("text-2xl font-black", tone.text)}>{value.toFixed(1)}%</span>
         </div>
       </div>
@@ -86,10 +91,10 @@ function MonitorCard({
   children: ReactNode;
 }) {
   return (
-    <section className="interactive-card overflow-hidden rounded-lg border border-ink/10 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <div className="flex items-center gap-3 border-b border-ink/10 px-5 py-4 dark:border-white/10">
-        <span className="grid h-9 w-9 place-items-center rounded-md bg-ocean/10 text-ocean dark:bg-sky-400/10 dark:text-sky-300">{icon}</span>
-        <h2 className="text-base font-black text-ink dark:text-slate-100">{title}</h2>
+    <section className="interactive-card overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+        <span className="grid h-9 w-9 place-items-center rounded-md bg-accent text-accent-foreground">{icon}</span>
+        <h2 className="text-base font-black text-foreground">{title}</h2>
       </div>
       <div className="p-5">{children}</div>
     </section>
@@ -98,9 +103,9 @@ function MonitorCard({
 
 function MetricItem({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-4 rounded-md bg-[#f5f7f4] px-4 py-2 dark:bg-white/5">
-      <span className="text-sm font-bold text-ink/55 dark:text-slate-400">{label}</span>
-      <span className="min-w-0 truncate text-right text-sm font-black text-ink dark:text-slate-100">{value}</span>
+    <div className="flex min-h-11 items-center justify-between gap-4 rounded-md bg-muted px-4 py-2">
+      <span className="text-sm font-bold text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate text-right text-sm font-black text-foreground">{value}</span>
     </div>
   );
 }
@@ -110,11 +115,11 @@ function LoadingGrid() {
     <div className="grid gap-4">
       <div className="grid gap-4 xl:grid-cols-2">
         {[0, 1].map((item) => (
-          <div key={item} className="h-72 animate-pulse rounded-lg border border-ink/10 bg-white dark:border-white/10 dark:bg-slate-900" />
+          <div key={item} className="h-72 animate-pulse rounded-lg border border-border bg-card" />
         ))}
       </div>
       {[0, 1, 2].map((item) => (
-        <div key={item} className="h-44 animate-pulse rounded-lg border border-ink/10 bg-white dark:border-white/10 dark:bg-slate-900" />
+        <div key={item} className="h-44 animate-pulse rounded-lg border border-border bg-card" />
       ))}
     </div>
   );
@@ -157,34 +162,130 @@ export default function ServiceMonitorPage() {
   const dataSourceLabel = monitor?.data_source === "prometheus" ? "Prometheus" : "psutil 基础监控";
   const cpuUsage = host?.cpu.usage_percent ?? monitor?.cpu.usage_percent ?? 0;
   const memory = host?.memory ?? monitor?.memory;
+  const containerColumns = useMemo<Array<AdminDataTableColumn<ContainerMonitor>>>(
+    () => [
+      {
+        key: "name",
+        title: "容器名称",
+        minWidth: 180,
+        ellipsis: true,
+        render: (container) => <span className="font-black text-foreground">{container.name}</span>,
+      },
+      {
+        key: "status",
+        title: "运行状态",
+        width: 120,
+        render: (container) => (
+          <StatusTag
+            status={container.status === "running" ? "normal" : "pending"}
+            label={container.status}
+            map={{
+              normal: { label: container.status, variant: "success" },
+              pending: { label: container.status, variant: "warning" },
+            }}
+          />
+        ),
+      },
+      {
+        key: "cpu",
+        title: "CPU 使用率",
+        width: 130,
+        render: (container) => `${container.cpu_usage_percent.toFixed(2)}%`,
+      },
+      {
+        key: "memory",
+        title: "内存使用量",
+        width: 150,
+        render: (container) => formatBytes(container.memory_usage_bytes),
+      },
+      {
+        key: "lastSeen",
+        title: "最后采集时间",
+        width: 190,
+        render: (container) => formatDateTime(container.last_seen ?? undefined),
+      },
+    ],
+    [],
+  );
+  const diskColumns = useMemo<Array<AdminDataTableColumn<DiskMonitor>>>(
+    () => [
+      {
+        key: "mountpoint",
+        title: "盘符路径",
+        minWidth: 180,
+        ellipsis: true,
+        render: (disk) => <span className="font-bold text-foreground">{disk.mountpoint}</span>,
+      },
+      {
+        key: "filesystem",
+        title: "文件系统",
+        width: 150,
+        ellipsis: true,
+        render: (disk) => disk.filesystem,
+      },
+      {
+        key: "total",
+        title: "总大小",
+        width: 130,
+        render: (disk) => formatBytes(disk.total),
+      },
+      {
+        key: "free",
+        title: "可用大小",
+        width: 130,
+        render: (disk) => formatBytes(disk.free),
+      },
+      {
+        key: "used",
+        title: "已用大小",
+        width: 130,
+        render: (disk) => formatBytes(disk.used),
+      },
+      {
+        key: "usage",
+        title: "使用率",
+        width: 220,
+        render: (disk) => {
+          const tone = toneForPercent(disk.usage_percent);
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-muted">
+                <div className={cn("h-full rounded-full", tone.bg)} style={{ width: `${Math.min(100, Math.max(0, disk.usage_percent))}%` }} />
+              </div>
+              <span className={cn("w-16 text-right font-black", tone.text)}>{disk.usage_percent.toFixed(1)}%</span>
+            </div>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="motion-list grid gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm font-bold text-ocean dark:text-sky-300">Monitor</p>
-          <h1 className="mt-2 text-2xl font-black text-ink dark:text-slate-100">服务监控</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/55 dark:text-slate-400">
-            查看当前博客服务所在服务器的 CPU、内存、磁盘和运行环境状态。
-          </p>
-          <p className="mt-2 text-xs font-bold text-ink/45 dark:text-slate-500">
-            最后更新：{lastUpdated}
-            {refreshing ? " · 正在刷新..." : " · 每 30 秒自动刷新"}
-          </p>
-          {monitor ? (
-            <p className="mt-3 inline-flex rounded-full border border-ocean/20 bg-ocean/10 px-3 py-1 text-xs font-black text-ocean dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300">
-              数据来源：{dataSourceLabel}
-            </p>
-          ) : null}
-        </div>
+    <AdminPage
+      title="服务监控"
+      description="查看当前博客服务所在服务器的 CPU、内存、磁盘和运行环境状态。"
+      actions={
         <Button onClick={() => void loadMonitor(true)} disabled={refreshing}>
           <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} aria-hidden="true" />
           刷新
         </Button>
+      }
+    >
+      <div className="grid gap-3">
+        <p className="text-xs font-bold text-muted-foreground">
+          最后更新：{lastUpdated}
+          {refreshing ? " · 正在刷新..." : " · 每 30 秒自动刷新"}
+        </p>
+        {monitor ? (
+          <p className="inline-flex w-fit rounded-full border border-border bg-accent px-3 py-1 text-xs font-black text-accent-foreground">
+            数据来源：{dataSourceLabel}
+          </p>
+        ) : null}
       </div>
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm font-bold">
             <AlertCircle className="h-4 w-4" aria-hidden="true" />
             {error || "监控数据获取失败，请稍后重试"}
@@ -196,7 +297,7 @@ export default function ServiceMonitorPage() {
       ) : null}
 
       {monitor?.warning ? (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+        <div className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] p-4 text-sm font-bold text-[var(--warning)]">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           {monitor.warning}
         </div>
@@ -271,91 +372,14 @@ export default function ServiceMonitorPage() {
           </MonitorCard>
 
           <MonitorCard title="容器监控" icon={<Boxes className="h-5 w-5" aria-hidden="true" />}>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
-                <thead>
-                  <tr className="text-ink/50 dark:text-slate-400">
-                    {["容器名称", "运行状态", "CPU 使用率", "内存使用量", "最后采集时间"].map((label) => (
-                      <th key={label} className="border-b border-ink/10 px-3 py-3 font-black dark:border-white/10">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {monitor.containers.length ? (
-                    monitor.containers.map((container) => (
-                      <tr key={container.name} className="text-ink dark:text-slate-100">
-                        <td className="border-b border-ink/5 px-3 py-4 font-black dark:border-white/5">{container.name}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-1 text-xs font-black",
-                              container.status === "running"
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-200"
-                                : "bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-200",
-                            )}
-                          >
-                            {container.status}
-                          </span>
-                        </td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{container.cpu_usage_percent.toFixed(2)}%</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{formatBytes(container.memory_usage_bytes)}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 text-ink/65 dark:border-white/5 dark:text-slate-400">{formatDateTime(container.last_seen ?? undefined)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-8 text-center text-sm font-bold text-ink/45 dark:text-slate-500">
-                        暂无容器监控数据
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <AdminDataTable columns={containerColumns} data={monitor.containers} rowKey="name" emptyText="暂无容器监控数据" minWidth={720} />
           </MonitorCard>
 
           <MonitorCard title="磁盘信息" icon={<HardDrive className="h-5 w-5" aria-hidden="true" />}>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-left text-sm">
-                <thead>
-                  <tr className="text-ink/50 dark:text-slate-400">
-                    {["盘符路径", "文件系统", "总大小", "可用大小", "已用大小", "使用率"].map((label) => (
-                      <th key={label} className="border-b border-ink/10 px-3 py-3 font-black dark:border-white/10">
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {monitor.disks.map((disk) => {
-                    const tone = toneForPercent(disk.usage_percent);
-
-                    return (
-                      <tr key={`${disk.mountpoint}-${disk.filesystem}`} className="text-ink dark:text-slate-100">
-                        <td className="border-b border-ink/5 px-3 py-4 font-bold dark:border-white/5">{disk.mountpoint}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 text-ink/65 dark:border-white/5 dark:text-slate-400">{disk.filesystem}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{formatBytes(disk.total)}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{formatBytes(disk.free)}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">{formatBytes(disk.used)}</td>
-                        <td className="border-b border-ink/5 px-3 py-4 dark:border-white/5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                              <div className={cn("h-full rounded-full", tone.bg)} style={{ width: `${Math.min(100, Math.max(0, disk.usage_percent))}%` }} />
-                            </div>
-                            <span className={cn("w-16 text-right font-black", tone.text)}>{disk.usage_percent.toFixed(1)}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <AdminDataTable columns={diskColumns} data={monitor.disks} rowKey={(disk) => `${disk.mountpoint}-${disk.filesystem}`} emptyText="暂无磁盘数据" minWidth={760} />
           </MonitorCard>
         </>
       ) : null}
-    </div>
+    </AdminPage>
   );
 }

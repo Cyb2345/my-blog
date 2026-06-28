@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 
 import { PostCard } from "@/components/blog/PostCard";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/empty-state";
 import { safeApiFetch } from "@/lib/api";
 import { fallbackPage } from "@/lib/fallback";
 import type { Paginated, Post } from "@/types/blog";

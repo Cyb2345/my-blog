@@ -16,7 +16,7 @@ const sizeClass = {
 };
 
 export const inputBaseClass =
-  "w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 font-semibold text-[var(--color-text)] outline-none ring-[var(--admin-focus-ring)] transition-[background-color,border-color,box-shadow,color] duration-[var(--motion-fast)] placeholder:text-[var(--color-text-subtle)] focus:border-[var(--admin-primary)] focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60";
+  "flex w-full rounded-md border border-input bg-background px-3 py-2 font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { id, label, hint, error, className, controlSize = "md", required, ...props },
@@ -25,7 +25,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const descriptionId = hint || error ? `${inputId}-description` : undefined;
-
   const input = (
     <input
       id={inputId}
@@ -33,7 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       required={required}
       aria-invalid={Boolean(error) || undefined}
       aria-describedby={descriptionId}
-      className={cn(inputBaseClass, sizeClass[controlSize], error && "border-[var(--color-danger)] focus:border-[var(--color-danger)]", className)}
+      className={cn(inputBaseClass, sizeClass[controlSize], error && "border-destructive focus:border-destructive", className)}
       {...props}
     />
   );
@@ -41,14 +40,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   if (!label) return input;
 
   return (
-    <label className="grid gap-2 text-sm font-bold text-[var(--color-text)]" htmlFor={inputId}>
+    <label className="grid gap-2 text-sm font-bold text-foreground" htmlFor={inputId}>
       <span>
         {label}
-        {required ? <span className="ml-1 text-[var(--color-danger)]">*</span> : null}
+        {required ? <span className="ml-1 text-destructive">*</span> : null}
       </span>
       {input}
-      {error ? <span id={descriptionId} className="text-xs font-bold text-[var(--color-danger)]">{error}</span> : null}
-      {!error && hint ? <span id={descriptionId} className="text-xs font-semibold text-[var(--color-text-subtle)]">{hint}</span> : null}
+      {error ? <span id={descriptionId} className="text-xs font-bold text-destructive">{error}</span> : null}
+      {!error && hint ? <span id={descriptionId} className="text-xs font-semibold text-muted-foreground">{hint}</span> : null}
     </label>
   );
 });

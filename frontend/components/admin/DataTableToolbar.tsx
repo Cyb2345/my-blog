@@ -11,6 +11,9 @@ import {
 } from "react";
 
 import { useAdminLayout } from "@/components/admin/AdminLayoutContext";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export type TableDensity = "compact" | "default" | "loose";
@@ -119,16 +122,12 @@ function ToolPopover({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "absolute right-0 top-[calc(100%+0.5rem)] z-40 min-w-44 origin-top-right rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
-        open ? "visible pointer-events-auto translate-y-0 scale-100 opacity-100" : "invisible pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
-        className,
-      )}
-      aria-hidden={!open}
+    <Popover
+      open={open}
+      className={cn("right-0 top-[calc(100%+0.5rem)] min-w-44", className)}
     >
       {children}
-    </div>
+    </Popover>
   );
 }
 
@@ -144,20 +143,16 @@ function ToolIconButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant={active ? "primary" : "secondary"}
+      size="icon"
       onClick={onClick}
-      className={cn(
-        "interactive grid h-10 w-10 place-items-center rounded-md transition-all duration-200",
-        active
-          ? "bg-ocean text-white dark:bg-[var(--primary)] dark:text-white"
-          : "bg-paper text-ink/55 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:hover:text-[var(--text)]",
-      )}
       aria-label={label}
       title={label}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -182,8 +177,8 @@ export function TableDensitySelector({
             onClose();
           }}
           className={cn(
-            "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-            settings.density === option.value ? "bg-ocean/10 text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/65 dark:text-[var(--text-secondary)]",
+            "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-accent hover:text-accent-foreground",
+            settings.density === option.value ? "bg-accent text-accent-foreground" : "text-muted-foreground",
           )}
         >
           {t(option.label)}
@@ -209,19 +204,18 @@ export function ColumnVisibilityPopover({
       {columns.map((column) => {
         const checked = settings.visibleColumns.includes(column.key);
         return (
-          <label
+          <div
             key={column.key}
             className={cn(
-              "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-              checked ? "text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/60 dark:text-[var(--text-muted)]",
+              "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-accent hover:text-accent-foreground",
+              checked ? "text-primary" : "text-muted-foreground",
               column.locked && "opacity-80",
             )}
           >
-            <input
-              type="checkbox"
+            <Checkbox
               checked={checked}
               disabled={column.locked}
-              onChange={() => {
+              onCheckedChange={() => {
                 if (column.locked) return;
                 onSettingsChange((current) => {
                   const visible = new Set(current.visibleColumns);
@@ -230,19 +224,20 @@ export function ColumnVisibilityPopover({
                   return { ...current, visibleColumns: Array.from(visible) };
                 });
               }}
-              className="h-4 w-4 accent-blue-500"
             />
             {t(column.label)}
-          </label>
+          </div>
         );
       })}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => onSettingsChange((current) => ({ ...current, visibleColumns: columns.map((column) => column.key) }))}
-        className="mt-1 min-h-9 rounded-md bg-paper px-3 text-sm font-black text-ink/65 transition-colors duration-150 hover:text-ink dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
+        className="mt-1 w-full justify-start"
       >
         {t("恢复默认列")}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -262,21 +257,19 @@ export function TableStyleSettings({
         { key: "striped" as const, label: "斑马纹" },
         { key: "headerBackground" as const, label: "表头背景" },
       ].map((option) => (
-        <label
+        <div
           key={option.key}
           className={cn(
-            "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-            settings[option.key] ? "text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" : "text-ink/60 dark:text-[var(--text-muted)]",
+            "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-accent hover:text-accent-foreground",
+            settings[option.key] ? "text-primary" : "text-muted-foreground",
           )}
         >
-          <input
-            type="checkbox"
+          <Checkbox
             checked={settings[option.key]}
-            onChange={() => onSettingsChange((current) => ({ ...current, [option.key]: !current[option.key] }))}
-            className="h-4 w-4 accent-blue-500"
+            onCheckedChange={() => onSettingsChange((current) => ({ ...current, [option.key]: !current[option.key] }))}
           />
           {t(option.label)}
-        </label>
+        </div>
       ))}
     </div>
   );
