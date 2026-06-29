@@ -9,7 +9,8 @@
 - `--motion-slow: 300ms`
 - `--motion-page-fade: 200ms`
 - `--motion-page-slide: 220ms`
-- `--motion-page-zoom-enter: 220ms`
+- `--motion-page-zoom-enter: 240ms`
+- `--motion-page-zoom-exit: 220ms`
 - `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)`
 - `--ease-out: cubic-bezier(0, 0, 0.2, 1)`
 - `--ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1)`
@@ -25,7 +26,7 @@
 - `slide-right`：向右滑动。`opacity: 0 -> 1`，`translateX(-12px) -> translateX(0)`，推荐 200ms 到 240ms。
 - `slide-up`：向上滑动。`opacity: 0 -> 1`，`translateY(10px) -> translateY(0)`，推荐 200ms 到 240ms。
 - `slide-down`：向下滑动。`opacity: 0 -> 1`，`translateY(-10px) -> translateY(0)`，推荐 200ms 到 240ms。
-- `zoom`：缩放。只做新页面入场，`opacity: 0 -> 1`、`scale(0.97) -> scale(1)`，推荐 200ms 到 240ms。不得保留旧页面离场快照，不得设置入场延迟，不得让主内容区域整块变黑或空掉。
+- `zoom`：缩放。参考后台模板的主内容缩放切换，只作用于主内容区域。旧内容只允许 `opacity` 加极轻微 `scale(1 -> 0.992)` / `translateY(0 -> 2px)` 收起，新内容使用 `opacity: 0 -> 1`、`scale(0.965) -> scale(1)`、`translateY(10px) -> translateY(0)` 入场，推荐 220ms 到 240ms。不得设置入场延迟，不得让主内容区域整块变黑或空掉。
 
 默认值：
 
@@ -44,7 +45,7 @@
 
 所有后台菜单、标签页、快捷入口和后台内链跳转必须走 `useAdminViewTransitionNavigate`。浏览器不支持 View Transition API、用户选择 `none` 或系统开启 `prefers-reduced-motion: reduce` 时，必须直接普通路由跳转，不调用 `startViewTransition`。
 
-缩放模式以稳定为先，快照动画只允许使用轻量 opacity 和小幅 scale。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景或入场延迟。
+缩放模式以稳定为先，快照动画只允许使用轻量 opacity、小幅 scale 和小幅 translate。旧快照可以轻微收起作为过渡参考，但必须和新快照交叉出现，避免黑屏、空场或旧页闪回。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景或入场延迟。
 
 ## 性能限制
 
@@ -72,7 +73,7 @@
 - 对大表格行使用复杂入场动画。
 - 表格宽度因动画跳动。
 - 侧边栏、顶部栏、标签栏闪烁。
-- 缩放使用 `scale(0.8)`、`scale(0.9)` 等过大幅度。
+- 缩放使用 `scale(0.8)`、`scale(0.9)` 等过大幅度；后台页面 `zoom` 入场不得低于 `scale(0.965)`。
 
 ## 弹窗
 
