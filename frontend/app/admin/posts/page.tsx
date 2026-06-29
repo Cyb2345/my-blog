@@ -1,13 +1,20 @@
 "use client";
 
 import {
+  BookOpenCheck,
   Edit,
   EyeOff,
+  FileText,
+  Layers3,
+  ListFilter,
   Plus,
+  ScrollText,
   RotateCcw,
   Search,
   Send,
+  Tags,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import {
   FormEvent,
@@ -38,7 +45,15 @@ import {
 } from "@/components/admin/PostSelectControls";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { StatusTag } from "@/components/admin/StatusTag";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Tag as UiTag } from "@/components/ui/tag";
@@ -262,6 +277,61 @@ function Notice({
     >
       {children}
     </p>
+  );
+}
+
+type MetricTone = "primary" | "success" | "warning" | "neutral";
+
+const metricToneClass: Record<MetricTone, string> = {
+  primary: "bg-primary text-primary-foreground ring-primary",
+  success:
+    "bg-[color-mix(in_srgb,var(--color-success)_14%,var(--card))] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_28%,transparent)]",
+  warning:
+    "bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--card))] text-[var(--color-warning)] ring-[color-mix(in_srgb,var(--color-warning)_32%,transparent)]",
+  neutral: "bg-muted text-muted-foreground ring-border",
+};
+
+function formatInteger(value: number) {
+  return new Intl.NumberFormat("zh-CN").format(value);
+}
+
+function PostMetricCard({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  helper: string;
+  icon: LucideIcon;
+  tone?: MetricTone;
+}) {
+  return (
+    <Card className="motion-card">
+      <CardContent className="grid gap-4 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-muted-foreground">{label}</p>
+            <p className="mt-2 text-3xl font-black leading-none text-foreground">
+              {formatInteger(value)}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-md ring-1",
+              metricToneClass[tone],
+            )}
+          >
+            <Icon className="size-5" aria-hidden="true" />
+          </span>
+        </div>
+        <p className="text-xs font-semibold leading-5 text-muted-foreground">
+          {helper}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -560,6 +630,40 @@ export default function AdminPostsPage() {
         total + (visibleColumns[column.key] ? columnWidths[column.key] : 0),
       0,
     );
+  const pagePostStats = useMemo(() => {
+    return page.items.reduce(
+      (result, post) => {
+        if (post.status === "published") result.published += 1;
+        if (post.status === "draft") result.draft += 1;
+        result.views += post.view_count;
+        return result;
+      },
+      { published: 0, draft: 0, views: 0 },
+    );
+  }, [page.items]);
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+    const title = activeQuery.title.trim();
+    const activeCategory = categories.find(
+      (category) => String(category.id) === activeQuery.category_id,
+    );
+    const activeTagNames = activeQuery.tag_ids
+      .map((id) => tags.find((tag) => tag.id === id)?.name)
+      .filter(Boolean);
+
+    if (title) labels.push(`标题：${title}`);
+    if (activeCategory) labels.push(`分类：${activeCategory.name}`);
+    if (activeQuery.tag_ids.length) {
+      labels.push(
+        `标签：${
+          activeTagNames.length
+            ? activeTagNames.join("、")
+            : `${activeQuery.tag_ids.length} 个标签`
+        }`,
+      );
+    }
+    return labels;
+  }, [activeQuery, categories, tags]);
 
   const dataColumns = useMemo<Array<AdminDataTableColumn<Post>>>(
     () =>
@@ -703,14 +807,97 @@ export default function AdminPostsPage() {
   return (
     <AdminPage
       title="文章管理"
-      description="管理博客文章、分类、标签和发布状态。"
+      description="集中维护文章内容、分类标签、发布状态和批量操作。"
+      actions={
+        <Button type="button" onClick={() => setModal({ mode: "create" })}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          新增文章
+        </Button>
+      }
     >
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
+      <section className="motion-list grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <PostMetricCard
+          label="文章总量"
+          value={page.total}
+          helper="当前筛选条件下的全部文章"
+          icon={FileText}
+          tone="primary"
+        />
+        <PostMetricCard
+          label="本页已发布"
+          value={pagePostStats.published}
+          helper={`本页共显示 ${page.items.length} 篇文章`}
+          icon={BookOpenCheck}
+          tone="success"
+        />
+        <PostMetricCard
+          label="本页草稿"
+          value={pagePostStats.draft}
+          helper="需要继续编辑或准备发布"
+          icon={ScrollText}
+          tone="warning"
+        />
+        <PostMetricCard
+          label="本页阅读量"
+          value={pagePostStats.views}
+          helper="当前页文章阅读量合计"
+          icon={Layers3}
+        />
+      </section>
+
+      <Card className="motion-panel">
+        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <ListFilter className="size-4 text-primary" aria-hidden="true" />
+              内容筛选
+            </CardTitle>
+            <CardDescription>
+              筛选条件会作用于文章总量、分页和当前表格数据。
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">第 {page.page || pageNumber} 页</Badge>
+            <Badge variant="outline">{pageSize} 条/页</Badge>
+            <Badge variant={selectedIds.size ? "primary" : "neutral"}>
+              已选 {selectedIds.size}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {activeFilterLabels.length ? (
+              activeFilterLabels.map((label) => (
+                <UiTag key={label} variant="primary">
+                  {label}
+                </UiTag>
+              ))
+            ) : (
+              <span className="text-sm font-semibold text-muted-foreground">
+                当前未启用筛选，展示全部文章。
+              </span>
+            )}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <UiTag variant="neutral">
+              <Tags className="size-3.5" aria-hidden="true" />
+              标签库 {formatInteger(tags.length)}
+            </UiTag>
+            <UiTag variant="neutral">
+              <Layers3 className="size-3.5" aria-hidden="true" />
+              分类 {formatInteger(categories.length)}
+            </UiTag>
+          </div>
+        </CardContent>
+      </Card>
+
       <AdminSearchForm
         onSubmit={handleSearch}
         loading={loading}
+        className="motion-panel"
         actions={
           <>
             <Button type="submit" className="min-w-20">
@@ -763,6 +950,7 @@ export default function AdminPostsPage() {
       <AdminDataTable
         columns={dataColumns}
         data={page.items}
+        className="motion-panel"
         rowKey="id"
         settings={tableSettings}
         loading={loading}
@@ -779,14 +967,6 @@ export default function AdminPostsPage() {
         toolbar={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setModal({ mode: "create" })}
-              >
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                新增
-              </Button>
               <Button
                 type="button"
                 variant="danger"
