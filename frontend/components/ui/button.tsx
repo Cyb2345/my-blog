@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import type {
+  AnchorHTMLAttributes,
+  ButtonHTMLAttributes,
+  ReactNode,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -12,15 +16,25 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--primary)_84%,black)]",
-        primary: "bg-primary text-primary-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--primary)_84%,black)]",
-        secondary: "bg-secondary text-secondary-foreground ring-1 ring-border hover:bg-accent hover:text-accent-foreground",
-        danger: "bg-destructive text-destructive-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--destructive)_84%,black)]",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--destructive)_84%,black)]",
-        ghost: "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
-        outline: "border border-input bg-background text-foreground hover:border-primary hover:text-primary",
+        default:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--primary)_84%,black)]",
+        primary:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--primary)_84%,black)]",
+        secondary:
+          "bg-secondary text-secondary-foreground ring-1 ring-border hover:bg-accent hover:text-accent-foreground",
+        danger:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--destructive)_84%,black)]",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-[color-mix(in_srgb,var(--destructive)_84%,black)]",
+        ghost:
+          "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+        outline:
+          "border border-input bg-background text-foreground hover:border-primary hover:text-primary",
         text: "bg-transparent text-primary shadow-none hover:bg-accent hover:text-accent-foreground",
         link: "bg-transparent p-0 text-primary underline-offset-4 shadow-none hover:underline",
+        inverse: "bg-background text-foreground shadow-sm hover:bg-secondary",
+        glass:
+          "border border-[color-mix(in_srgb,var(--background)_28%,transparent)] bg-[color-mix(in_srgb,var(--background)_14%,transparent)] text-background shadow-sm backdrop-blur-md hover:bg-[color-mix(in_srgb,var(--background)_24%,transparent)]",
       },
       size: {
         sm: "min-h-9 px-3 py-1.5 text-xs",
@@ -37,10 +51,17 @@ export const buttonVariants = cva(
   },
 );
 
-export type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>;
-export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>;
+export type ButtonVariant = NonNullable<
+  VariantProps<typeof buttonVariants>["variant"]
+>;
+export type ButtonSize = NonNullable<
+  VariantProps<typeof buttonVariants>["size"]
+>;
 
-export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "size"> &
+export type ButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "size"
+> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
     loading?: boolean;
@@ -65,7 +86,12 @@ export function Button({
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     >
-      {loading ? <span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
+      {loading ? (
+        <span
+          className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+          aria-hidden="true"
+        />
+      ) : null}
       {children}
     </Comp>
   );
@@ -86,7 +112,11 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   return (
-    <Link href={href} className={cn(buttonVariants({ variant, size }), className)} {...props}>
+    <Link
+      href={href}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    >
       {children}
     </Link>
   );

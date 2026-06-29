@@ -4,6 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 
+import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
 
 type ThemeMode = "light" | "dark";
@@ -16,7 +17,9 @@ type ViewTransition = {
 };
 
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (callback: () => void | Promise<void>) => ViewTransition;
+  startViewTransition?: (
+    callback: () => void | Promise<void>,
+  ) => ViewTransition;
 };
 
 type ThemeAnimationOptions = KeyframeAnimationOptions & {
@@ -53,7 +56,13 @@ function getThemeTransitionOrigin(nextTheme: ThemeMode) {
     : { x: 0, y: window.innerHeight };
 }
 
-export function ThemeToggle({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
+export function ThemeToggle({
+  compact = false,
+  hero = false,
+}: {
+  compact?: boolean;
+  hero?: boolean;
+}) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -72,7 +81,9 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
     const nextTheme: ThemeMode = currentTheme === "dark" ? "light" : "dark";
     const { x, y } = getThemeTransitionOrigin(nextTheme);
     const root = document.documentElement;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     const finishTransition = () => {
       root.classList.remove("theme-transitioning");
@@ -93,7 +104,10 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
     const transitionDocument = document as ViewTransitionDocument;
     if (!transitionDocument.startViewTransition) {
       const mask = createFallbackMask(nextTheme, x, y);
-      window.setTimeout(() => applyTheme(nextTheme, setTheme), THEME_TRANSITION_MS * 0.42);
+      window.setTimeout(
+        () => applyTheme(nextTheme, setTheme),
+        THEME_TRANSITION_MS * 0.42,
+      );
       window.setTimeout(() => {
         mask.remove();
         finishTransition();
@@ -105,13 +119,18 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y),
     );
-    const transition = transitionDocument.startViewTransition(() => applyTheme(nextTheme, setTheme));
+    const transition = transitionDocument.startViewTransition(() =>
+      applyTheme(nextTheme, setTheme),
+    );
 
     try {
       await transition.ready;
       const animation = document.documentElement.animate(
         {
-          clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
         },
         {
           duration: THEME_TRANSITION_MS,
@@ -128,20 +147,19 @@ export function ThemeToggle({ compact = false, hero = false }: { compact?: boole
 
   return (
     <div className="theme-toggle">
-      <button
-        type="button"
+      <IconButton
+        label={label}
         className={cn(
-          "interactive grid h-10 w-10 place-items-center rounded-md bg-white/80 text-ink shadow-sm ring-1 ring-ink/10 hover:text-ocean disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:ring-[var(--border-soft)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
-          hero && "bg-white/10 text-white ring-white/20 hover:bg-white/20 hover:text-white dark:bg-white/10 dark:text-white dark:ring-white/20 dark:hover:text-white",
+          "disabled:hover:translate-y-0",
+          hero &&
+            "border-[color-mix(in_srgb,var(--background)_28%,transparent)] bg-[color-mix(in_srgb,var(--background)_14%,transparent)] text-background hover:bg-[color-mix(in_srgb,var(--background)_24%,transparent)] hover:text-background",
           !compact && "md:h-10 md:w-10",
         )}
         onClick={toggleThemeWithTransition}
         disabled={!mounted || transitioning}
-        aria-label={label}
-        title={label}
       >
         <Icon className="h-4 w-4" aria-hidden="true" />
-      </button>
+      </IconButton>
     </div>
   );
 }

@@ -120,7 +120,9 @@ const fallbackSections: AdminSection[] = [
   {
     label: "监控中心",
     icon: Monitor,
-    children: [{ label: "服务监控", href: "/admin/monitor/service", icon: MonitorCog }],
+    children: [
+      { label: "服务监控", href: "/admin/monitor/service", icon: MonitorCog },
+    ],
   },
   { label: "系统工具", icon: Gamepad2, children: [] },
 ];
@@ -154,11 +156,15 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 const tabsStorageKey = "admin_open_tabs";
-const dashboardTab: AdminTab = { href: "/admin/dashboard", label: "仪表盘", pinned: true };
+const dashboardTab: AdminTab = {
+  href: "/admin/dashboard",
+  label: "仪表盘",
+  pinned: true,
+};
 const pageEnterMs = 220;
 
 function resolveIcon(icon?: string | null) {
-  return icon ? iconMap[icon] ?? LayoutGrid : LayoutGrid;
+  return icon ? (iconMap[icon] ?? LayoutGrid) : LayoutGrid;
 }
 
 function menuToLink(item: AdminMenuItem): AdminLink {
@@ -174,11 +180,13 @@ function menuTreeToSections(items: AdminMenuItem[]): AdminSection[] {
     .filter((item) => item.is_active && item.type !== "button")
     .map((item) => {
       const children = (item.children ?? [])
-        .filter((child) => child.is_active && child.type !== "button" && child.route)
+        .filter(
+          (child) => child.is_active && child.type !== "button" && child.route,
+        )
         .map(menuToLink);
       return {
         label: item.name,
-        href: children.length ? undefined : item.route ?? undefined,
+        href: children.length ? undefined : (item.route ?? undefined),
         icon: resolveIcon(item.icon),
         children,
       };
@@ -189,7 +197,8 @@ function menuTreeToSections(items: AdminMenuItem[]): AdminSection[] {
 function normalizeAdminPath(pathname: string) {
   if (pathname === "/admin") return "/admin/dashboard";
   if (pathname.startsWith("/admin/posts")) return "/admin/content/posts";
-  if (pathname.startsWith("/admin/categories")) return "/admin/content/categories";
+  if (pathname.startsWith("/admin/categories"))
+    return "/admin/content/categories";
   if (pathname.startsWith("/admin/tags")) return "/admin/content/tags";
   if (pathname.startsWith("/admin/links")) return "/admin/site/links";
   if (pathname.startsWith("/admin/comments")) return "/admin/site/messages";
@@ -206,8 +215,11 @@ function isActivePath(current: string, href: string) {
 
 function findBreadcrumb(current: string, sections: AdminSection[]) {
   for (const section of sections) {
-    if (section.href && isActivePath(current, section.href)) return [section.label];
-    const child = section.children.find((item) => isActivePath(current, item.href));
+    if (section.href && isActivePath(current, section.href))
+      return [section.label];
+    const child = section.children.find((item) =>
+      isActivePath(current, item.href),
+    );
     if (child) return [section.label, child.label];
   }
   return ["管理员工作台"];
@@ -236,7 +248,8 @@ function SidebarContent({
 
   function isSectionOpen(section: AdminSection) {
     if (!section.children.length) return false;
-    if (openSections[section.label] !== undefined) return openSections[section.label];
+    if (openSections[section.label] !== undefined)
+      return openSections[section.label];
     return section.children.some((item) => isActivePath(current, item.href));
   }
 
@@ -249,14 +262,24 @@ function SidebarContent({
           onNavigate("/admin/dashboard");
         }}
         className={cn(
-          "interactive flex h-[64px] w-full items-center border-b border-ink/10 font-black dark:border-[var(--border-soft)]",
+          "interactive flex h-[64px] w-full items-center border-b border-border font-black dark:border-[var(--border-soft)]",
           collapsed ? "justify-center px-2" : "gap-3 px-4",
         )}
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-[var(--admin-primary)] text-white">
-          {adminLogo ? <img src={getAssetUrl(adminLogo)} alt="" className="h-full w-full object-contain" /> : "B"}
+          {adminLogo ? (
+            <img
+              src={getAssetUrl(adminLogo)}
+              alt=""
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            "B"
+          )}
         </span>
-        {!collapsed ? <span className="truncate">{t("博客管理系统")}</span> : null}
+        {!collapsed ? (
+          <span className="truncate">{t("博客管理系统")}</span>
+        ) : null}
       </button>
 
       <nav className="py-3">
@@ -267,9 +290,10 @@ function SidebarContent({
             section.children.some((item) => isActivePath(current, item.href));
           const open = isSectionOpen(section);
           const baseClass = cn(
-            "interactive mx-2 flex min-h-11 items-center rounded-md text-sm font-bold text-ink/75 hover:bg-[#eef3ff] hover:text-[var(--admin-primary)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+            "interactive mx-2 flex min-h-11 items-center rounded-md text-sm font-bold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
             collapsed ? "justify-center px-2" : "gap-3 px-3",
-            activeSection && "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
+            activeSection &&
+              "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
           );
 
           if (section.href) {
@@ -310,7 +334,13 @@ function SidebarContent({
                 {!collapsed ? (
                   <>
                     <span className="flex-1">{t(section.label)}</span>
-                    <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", open && "rotate-180")} aria-hidden="true" />
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        open && "rotate-180",
+                      )}
+                      aria-hidden="true"
+                    />
                   </>
                 ) : null}
               </button>
@@ -318,7 +348,9 @@ function SidebarContent({
                 <div
                   className={cn(
                     "grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out",
-                    open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                    open
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0",
                   )}
                 >
                   <div className="min-h-0">
@@ -336,11 +368,15 @@ function SidebarContent({
                             }}
                             aria-current={active ? "page" : undefined}
                             className={cn(
-                              "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-ink/65 hover:bg-[#eef3ff] hover:text-[var(--admin-primary)] dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
-                              active && "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
+                              "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                              active &&
+                                "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
                             )}
                           >
-                            <ItemIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                            <ItemIcon
+                              className="h-4 w-4 shrink-0"
+                              aria-hidden="true"
+                            />
                             {t(item.label)}
                           </button>
                         );
@@ -389,7 +425,10 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     }, pageEnterMs + 80);
   }, [clearProgressTimer]);
 
-  const breadcrumb = useMemo(() => findBreadcrumb(current, sections), [current, sections]);
+  const breadcrumb = useMemo(
+    () => findBreadcrumb(current, sections),
+    [current, sections],
+  );
   const currentTabLabel = breadcrumb[breadcrumb.length - 1] || "管理员工作台";
   const sidebarWidth = settings.sidebarCollapsed ? 72 : settings.menuWidth;
 
@@ -429,12 +468,22 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(storedTabs) as AdminTab[];
         if (Array.isArray(parsed)) {
           const valid = parsed
-            .filter((tab) => typeof tab?.href === "string" && typeof tab?.label === "string")
+            .filter(
+              (tab) =>
+                typeof tab?.href === "string" && typeof tab?.label === "string",
+            )
             .map((tab) => ({ ...tab, href: normalizeAdminPath(tab.href) }));
           const unique = valid.filter(
-            (tab, index, values) => values.findIndex((candidate) => candidate.href === tab.href) === index,
+            (tab, index, values) =>
+              values.findIndex((candidate) => candidate.href === tab.href) ===
+              index,
           );
-          setTabs([dashboardTab, ...unique.filter((tab) => tab.href !== dashboardTab.href)].slice(0, 12));
+          setTabs(
+            [
+              dashboardTab,
+              ...unique.filter((tab) => tab.href !== dashboardTab.href),
+            ].slice(0, 12),
+          );
         }
       } catch {
         window.localStorage.removeItem(tabsStorageKey);
@@ -449,15 +498,23 @@ function AdminShellContent({ children }: { children: ReactNode }) {
       const existing = currentTabs.find((tab) => tab.href === current);
       if (existing) {
         if (existing.label === currentTabLabel) return currentTabs;
-        return currentTabs.map((tab) => tab.href === current ? { ...tab, label: currentTabLabel } : tab);
+        return currentTabs.map((tab) =>
+          tab.href === current ? { ...tab, label: currentTabLabel } : tab,
+        );
       }
-      const nextTabs = [...currentTabs, { href: current, label: currentTabLabel }];
-      return nextTabs.length > 12 ? [dashboardTab, ...nextTabs.filter((tab) => !tab.pinned).slice(-11)] : nextTabs;
+      const nextTabs = [
+        ...currentTabs,
+        { href: current, label: currentTabLabel },
+      ];
+      return nextTabs.length > 12
+        ? [dashboardTab, ...nextTabs.filter((tab) => !tab.pinned).slice(-11)]
+        : nextTabs;
     });
   }, [current, currentTabLabel, tabsHydrated]);
 
   useEffect(() => {
-    if (tabsHydrated) window.localStorage.setItem(tabsStorageKey, JSON.stringify(tabs));
+    if (tabsHydrated)
+      window.localStorage.setItem(tabsStorageKey, JSON.stringify(tabs));
   }, [tabs, tabsHydrated]);
 
   useEffect(() => {
@@ -475,12 +532,18 @@ function AdminShellContent({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     clearProgressTimer();
-    progressTimer.current = window.setTimeout(() => setProgressVisible(false), pageEnterMs + 80);
+    progressTimer.current = window.setTimeout(
+      () => setProgressVisible(false),
+      pageEnterMs + 80,
+    );
   }, [clearProgressTimer, current, settings.pageTransition]);
 
-  useEffect(() => () => {
-    clearProgressTimer();
-  }, [clearProgressTimer]);
+  useEffect(
+    () => () => {
+      clearProgressTimer();
+    },
+    [clearProgressTimer],
+  );
 
   function navigate(href: string) {
     if (!href) return;
@@ -498,10 +561,23 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   }
 
   function handleLinkCapture(event: ReactMouseEvent<HTMLDivElement>) {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
     const target = event.target as HTMLElement;
     const anchor = target.closest("a");
-    if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+    if (
+      !anchor ||
+      anchor.target === "_blank" ||
+      anchor.hasAttribute("download")
+    )
+      return;
     const href = anchor.getAttribute("href");
     if (!href?.startsWith("/admin") || href.startsWith("/admin/login")) return;
     event.preventDefault();
@@ -539,7 +615,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="grid min-h-screen place-items-center bg-paper text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]">
+      <div className="grid min-h-screen place-items-center bg-muted text-foreground dark:bg-[var(--bg)] dark:text-[var(--text)]">
         正在检查登录状态...
       </div>
     );
@@ -548,15 +624,17 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        "admin-shell min-h-screen overflow-x-hidden bg-[#f5f7fb] text-ink dark:bg-[var(--bg)] dark:text-[var(--text)]",
+        "admin-shell min-h-screen overflow-x-hidden bg-background text-foreground dark:bg-[var(--bg)] dark:text-[var(--text)]",
         settings.sidebarCollapsed && "admin-shell--collapsed",
       )}
       style={{ "--admin-sidebar-width": `${sidebarWidth}px` } as CSSProperties}
       onClickCapture={handleLinkCapture}
     >
-      {settings.showProgress && progressVisible ? <div className="admin-top-progress" /> : null}
+      {settings.showProgress && progressVisible ? (
+        <div className="admin-top-progress" />
+      ) : null}
 
-      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-y-auto border-r border-ink/10 bg-white transition-[width] duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
         <SidebarContent
           sections={sections}
           current={current}
@@ -574,12 +652,14 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         onClick={() => setMobileSidebarOpen(false)}
         className={cn(
           "fixed inset-0 z-[54] bg-black/45 backdrop-blur-[1px] transition-opacity md:hidden",
-          mobileSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+          mobileSidebarOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
         )}
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-[55] w-[min(300px,calc(100vw-3rem))] overflow-y-auto border-r border-ink/10 bg-white shadow-2xl transition-transform duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:hidden",
+          "fixed inset-y-0 left-0 z-[55] w-[min(300px,calc(100vw-3rem))] overflow-y-auto border-r border-border bg-card shadow-2xl transition-transform duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:hidden",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -596,34 +676,50 @@ function AdminShellContent({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="admin-main min-w-0 transition-[margin-left] duration-300">
-        <header className="sticky top-0 z-40 border-b border-ink/10 bg-white/90 backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_92%,transparent)]">
+        <header className="sticky top-0 z-40 border-b border-border bg-card backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_92%,transparent)]">
           <div className="flex h-[64px] items-center gap-2 px-2 sm:px-4">
             <AdminTopBar
               breadcrumb={breadcrumb}
               sidebarCollapsed={settings.sidebarCollapsed}
               mobileSidebarOpen={mobileSidebarOpen}
               refreshing={refreshing}
-              onToggleSidebar={() => updateSetting("sidebarCollapsed", !settings.sidebarCollapsed)}
-              onToggleMobileSidebar={() => setMobileSidebarOpen((value) => !value)}
+              onToggleSidebar={() =>
+                updateSetting("sidebarCollapsed", !settings.sidebarCollapsed)
+              }
+              onToggleMobileSidebar={() =>
+                setMobileSidebarOpen((value) => !value)
+              }
               onRefresh={refreshPage}
               onNavigate={navigate}
               onOpenSettings={() => setSettingsOpen(true)}
             />
           </div>
-          <AdminTabs tabs={tabs} activeHref={current} onNavigate={navigate} onClose={closeTab} />
+          <AdminTabs
+            tabs={tabs}
+            activeHref={current}
+            onNavigate={navigate}
+            onClose={closeTab}
+          />
         </header>
 
         <main className="admin-content min-w-0 p-4 md:p-6">
-          <div className={cn("admin-content-inner mx-auto w-full", settings.containerWidth === "fixed" && "max-w-[1440px]")}>
+          <div
+            className={cn(
+              "admin-content-inner mx-auto w-full",
+              settings.containerWidth === "fixed" && "max-w-[1440px]",
+            )}
+          >
             <AdminPageTransition transitionKey={pathname}>
               {children}
             </AdminPageTransition>
           </div>
         </main>
-
       </div>
 
-      <AdminSettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AdminSettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }

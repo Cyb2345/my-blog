@@ -4,6 +4,10 @@ import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { Input } from "@/components/ui/input";
+
 type SearchFormProps = {
   activeType: string;
   initialKeyword: string;
@@ -33,41 +37,42 @@ export function SearchForm({ activeType, initialKeyword }: SearchFormProps) {
 
   function clearSearch() {
     setKeyword("");
-    router.push(activeType === "all" ? "/search" : `/search?type=${activeType}`);
+    router.push(
+      activeType === "all" ? "/search" : `/search?type=${activeType}`,
+    );
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
   }
 
   return (
     <form
       onSubmit={submitSearch}
-      className="motion-surface flex min-h-14 items-center gap-2 rounded-lg border border-ink/10 bg-white/90 p-2 shadow-sm dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]"
+      className="motion-surface flex min-h-14 items-center gap-2 rounded-lg border border-border bg-card p-2 shadow-sm"
     >
-      <Search className="ml-2 h-5 w-5 shrink-0 text-ocean dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]" aria-hidden="true" />
-      <input
+      <Search
+        className="ml-2 h-5 w-5 shrink-0 text-primary"
+        aria-hidden="true"
+      />
+      <Input
         value={keyword}
         onChange={(event) => setKeyword(event.target.value)}
-        className="min-w-0 flex-1 border-0 bg-transparent px-1 text-base font-semibold text-ink outline-none placeholder:text-ink/40 dark:text-[var(--text)] dark:placeholder:text-[var(--text-muted)]"
+        className="min-w-0 flex-1 border-0 bg-transparent px-1 text-base"
         placeholder="输入关键词搜索文章、知识库、分类、标签..."
         aria-label="搜索关键词"
       />
       {keyword ? (
-        <button
-          type="button"
+        <IconButton
+          label="清空"
           onClick={clearSearch}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-ink/45 hover:bg-paper hover:text-ink dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]"
-          aria-label="清空搜索"
-          title="清空"
+          variant="ghost"
+          className="shrink-0"
         >
           <X className="h-4 w-4" aria-hidden="true" />
-        </button>
+        </IconButton>
       ) : null}
-      <button
-        type="submit"
-        className="interactive inline-flex min-h-10 shrink-0 items-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white hover:bg-ocean dark:bg-[var(--primary)] dark:text-[var(--bg)]"
-      >
+      <Button type="submit" className="shrink-0">
         <Search className="h-4 w-4" aria-hidden="true" />
         <span className="hidden sm:inline">搜索</span>
-      </button>
+      </Button>
     </form>
   );
 }

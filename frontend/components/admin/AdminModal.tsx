@@ -22,7 +22,13 @@ export function AdminModal({
   footer,
 }: AdminModalProps) {
   return (
-    <Dialog open={open} title={title} size={size} footer={footer} onClose={onClose}>
+    <Dialog
+      open={open}
+      title={title}
+      size={size}
+      footer={footer}
+      onClose={onClose}
+    >
       {children}
     </Dialog>
   );

@@ -1,4 +1,9 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode, useId } from "react";
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useId,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -32,7 +37,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       required={required}
       aria-invalid={Boolean(error) || undefined}
       aria-describedby={descriptionId}
-      className={cn(inputBaseClass, sizeClass[controlSize], error && "border-destructive focus:border-destructive", className)}
+      className={cn(
+        inputBaseClass,
+        sizeClass[controlSize],
+        error && "border-destructive focus:border-destructive",
+        className,
+      )}
       {...props}
     />
   );
@@ -40,14 +50,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   if (!label) return input;
 
   return (
-    <label className="grid gap-2 text-sm font-bold text-foreground" htmlFor={inputId}>
+    <label
+      className="grid gap-2 text-sm font-bold text-foreground"
+      htmlFor={inputId}
+    >
       <span>
         {label}
         {required ? <span className="ml-1 text-destructive">*</span> : null}
       </span>
       {input}
-      {error ? <span id={descriptionId} className="text-xs font-bold text-destructive">{error}</span> : null}
-      {!error && hint ? <span id={descriptionId} className="text-xs font-semibold text-muted-foreground">{hint}</span> : null}
+      {error ? (
+        <span id={descriptionId} className="text-xs font-bold text-destructive">
+          {error}
+        </span>
+      ) : null}
+      {!error && hint ? (
+        <span
+          id={descriptionId}
+          className="text-xs font-semibold text-muted-foreground"
+        >
+          {hint}
+        </span>
+      ) : null}
     </label>
   );
 });

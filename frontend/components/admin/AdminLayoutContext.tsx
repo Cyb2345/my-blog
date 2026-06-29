@@ -1,11 +1,24 @@
 "use client";
 
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type AdminLocale = "zh-CN" | "en-US";
 export type AdminBoxStyle = "border" | "shadow";
 export type AdminContainerWidth = "full" | "fixed";
-export type AdminPageTransition = "none" | "fade" | "slide-right" | "slide-up" | "slide-down" | "zoom";
+export type AdminPageTransition =
+  | "none"
+  | "fade"
+  | "slide-right"
+  | "slide-up"
+  | "slide-down"
+  | "zoom";
 export type AdminRadius = "sm" | "md" | "lg";
 export type AdminFontSize = "small" | "default" | "large";
 
@@ -32,7 +45,10 @@ type AdminLayoutContextValue = {
   settings: AdminLayoutSettings;
   locale: AdminLocale;
   setLocale: (locale: AdminLocale) => void;
-  updateSetting: <Key extends keyof AdminLayoutSettings>(key: Key, value: AdminLayoutSettings[Key]) => void;
+  updateSetting: <Key extends keyof AdminLayoutSettings>(
+    key: Key,
+    value: AdminLayoutSettings[Key],
+  ) => void;
   t: (label: string) => string;
 };
 
@@ -55,7 +71,10 @@ const defaultSettings: AdminLayoutSettings = {
   menuWidth: 256,
 };
 
-export const adminPageTransitionOptions: Array<{ label: string; value: AdminPageTransition }> = [
+export const adminPageTransitionOptions: Array<{
+  label: string;
+  value: AdminPageTransition;
+}> = [
   { label: "无动画", value: "none" },
   { label: "淡入淡出", value: "fade" },
   { label: "向右滑动", value: "slide-right" },
@@ -253,7 +272,7 @@ const englishLabels: Record<string, string> = {
 };
 
 export function translateAdminText(label: string, locale: AdminLocale) {
-  return locale === "en-US" ? englishLabels[label] ?? label : label;
+  return locale === "en-US" ? (englishLabels[label] ?? label) : label;
 }
 
 function parseStoredValue<Key extends keyof AdminLayoutSettings>(
@@ -262,28 +281,39 @@ function parseStoredValue<Key extends keyof AdminLayoutSettings>(
   prefersReducedMotion = false,
 ): AdminLayoutSettings[Key] {
   if (raw === null) {
-    if (key === "pageTransition" && prefersReducedMotion) return "none" as AdminLayoutSettings[Key];
+    if (key === "pageTransition" && prefersReducedMotion)
+      return "none" as AdminLayoutSettings[Key];
     return defaultSettings[key];
   }
   const fallback = defaultSettings[key];
   if (key === "pageTransition") {
     if (raw === "slide") return "slide-up" as AdminLayoutSettings[Key];
-    if (pageTransitionValues.has(raw as AdminPageTransition)) return raw as AdminLayoutSettings[Key];
+    if (pageTransitionValues.has(raw as AdminPageTransition))
+      return raw as AdminLayoutSettings[Key];
     return fallback as AdminLayoutSettings[Key];
   }
-  if (typeof fallback === "boolean") return (raw === "true") as AdminLayoutSettings[Key];
+  if (typeof fallback === "boolean")
+    return (raw === "true") as AdminLayoutSettings[Key];
   if (typeof fallback === "number") {
     const value = Number(raw);
-    return (Number.isFinite(value) ? value : fallback) as AdminLayoutSettings[Key];
+    return (
+      Number.isFinite(value) ? value : fallback
+    ) as AdminLayoutSettings[Key];
   }
   return raw as AdminLayoutSettings[Key];
 }
 
-function applyLayoutSettings(settings: AdminLayoutSettings, locale: AdminLocale) {
+function applyLayoutSettings(
+  settings: AdminLayoutSettings,
+  locale: AdminLocale,
+) {
   const root = document.documentElement;
   root.style.setProperty("--admin-primary", settings.primaryColor);
   root.style.setProperty("--color-primary", settings.primaryColor);
-  root.style.setProperty("--color-primary-hover", `color-mix(in srgb, ${settings.primaryColor} 84%, black)`);
+  root.style.setProperty(
+    "--color-primary-hover",
+    `color-mix(in srgb, ${settings.primaryColor} 84%, black)`,
+  );
   root.style.setProperty("--primary", settings.primaryColor);
   root.style.setProperty("--admin-menu-width", `${settings.menuWidth}px`);
   root.dataset.adminBoxStyle = settings.boxStyle;
@@ -304,16 +334,20 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const restored = { ...defaultSettings };
-    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-    (Object.keys(storageKeys) as Array<keyof AdminLayoutSettings>).forEach((key) => {
-      (restored[key] as AdminLayoutSettings[typeof key]) = parseStoredValue(
-        key,
-        window.localStorage.getItem(storageKeys[key]),
-        prefersReducedMotion,
-      );
-    });
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    (Object.keys(storageKeys) as Array<keyof AdminLayoutSettings>).forEach(
+      (key) => {
+        (restored[key] as AdminLayoutSettings[typeof key]) = parseStoredValue(
+          key,
+          window.localStorage.getItem(storageKeys[key]),
+          prefersReducedMotion,
+        );
+      },
+    );
     const storedLocale = window.localStorage.getItem("admin_language");
-    const nextLocale: AdminLocale = storedLocale === "en-US" ? "en-US" : "zh-CN";
+    const nextLocale: AdminLocale =
+      storedLocale === "en-US" ? "en-US" : "zh-CN";
     setSettings(restored);
     setLocaleState(nextLocale);
     applyLayoutSettings(restored, nextLocale);
@@ -353,12 +387,17 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
     [locale, settings],
   );
 
-  return <AdminLayoutContext.Provider value={value}>{children}</AdminLayoutContext.Provider>;
+  return (
+    <AdminLayoutContext.Provider value={value}>
+      {children}
+    </AdminLayoutContext.Provider>
+  );
 }
 
 export function useAdminLayout() {
   const value = useContext(AdminLayoutContext);
-  if (!value) throw new Error("useAdminLayout must be used inside AdminLayoutProvider");
+  if (!value)
+    throw new Error("useAdminLayout must be used inside AdminLayoutProvider");
   return value;
 }
 

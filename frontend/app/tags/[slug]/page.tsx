@@ -12,10 +12,16 @@ type TagPosts = {
   posts: Paginated<Post>;
 };
 
-export default async function TagPostsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function TagPostsPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const fallbackTag = fallbackTags.find((tag) => tag.slug === slug);
-  const fallbackData: TagPosts | null = fallbackTag ? { tag: fallbackTag, posts: fallbackPage } : null;
+  const fallbackData: TagPosts | null = fallbackTag
+    ? { tag: fallbackTag, posts: fallbackPage }
+    : null;
   const data = await safeApiFetch<TagPosts | null>(
     `/tags/${slug}/posts`,
     fallbackData,
@@ -24,11 +30,15 @@ export default async function TagPostsPage({ params }: { params: Promise<{ slug:
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-10">
-      <Link href="/tags" className="text-sm font-bold text-ocean">
+      <Link href="/tags" className="text-sm font-bold text-primary">
         返回标签
       </Link>
-      <h1 className="mt-4 text-3xl font-black text-ink">#{data.tag.name}</h1>
-      <p className="mt-2 max-w-2xl text-ink/60">{data.tag.description}</p>
+      <h1 className="mt-4 text-3xl font-black text-foreground">
+        #{data.tag.name}
+      </h1>
+      <p className="mt-2 max-w-2xl text-muted-foreground">
+        {data.tag.description}
+      </p>
       <div className="motion-list mt-7 grid gap-5">
         {data.posts.items.length ? (
           data.posts.items.map((post) => <PostCard key={post.id} post={post} />)

@@ -78,9 +78,9 @@ export function MarkdownToc({ items, mode = "desktop" }: Props) {
 
   return (
     <aside className="toc-panel hidden lg:block">
-      <div className="sticky top-24 rounded-lg border border-ink/10 bg-white/80 p-4 shadow-sm backdrop-blur">
-        <div className="mb-3 inline-flex items-center gap-2 text-sm font-black text-ink">
-          <ListTree className="h-4 w-4 text-ocean" aria-hidden="true" />
+      <div className="sticky top-24 rounded-lg border border-border bg-card p-4 shadow-sm backdrop-blur">
+        <div className="mb-3 inline-flex items-center gap-2 text-sm font-black text-foreground">
+          <ListTree className="h-4 w-4 text-primary" aria-hidden="true" />
           文章大纲
         </div>
         {list}

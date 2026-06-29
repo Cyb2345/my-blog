@@ -19,7 +19,8 @@ type MarkdownNode = {
 };
 
 function getPlainText(value: ReactNode): string {
-  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (typeof value === "string" || typeof value === "number")
+    return String(value);
   if (Array.isArray(value)) return value.map(getPlainText).join("");
   if (isValidElement(value)) {
     const props = value.props as { children?: ReactNode };
@@ -34,7 +35,10 @@ function CodePanel({ children }: { children: ReactNode }) {
   let rawCode = "";
 
   if (isValidElement(children)) {
-    const props = children.props as { className?: string; children?: ReactNode };
+    const props = children.props as {
+      className?: string;
+      children?: ReactNode;
+    };
     className = props.className ?? "";
     rawCode = getPlainText(props.children);
   } else {
@@ -60,7 +64,11 @@ function CodePanel({ children }: { children: ReactNode }) {
       <figcaption className="code-panel__bar">
         <span>{language}</span>
         <button type="button" onClick={copyCode} className="code-panel__copy">
-          {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+          {copied ? (
+            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+          )}
           {copied ? "已复制" : "复制"}
         </button>
       </figcaption>
@@ -87,7 +95,10 @@ function createHeading(level: 1 | 2 | 3 | 4 | 5 | 6) {
     className,
     node,
     ...props
-  }: JSX.IntrinsicElements["h2"] & { children?: ReactNode; node?: MarkdownNode }) {
+  }: JSX.IntrinsicElements["h2"] & {
+    children?: ReactNode;
+    node?: MarkdownNode;
+  }) {
     const text = getPlainText(children);
     const id = headingId(text, node?.position?.start?.line);
 
@@ -96,7 +107,9 @@ function createHeading(level: 1 | 2 | 3 | 4 | 5 | 6) {
       {
         ...props,
         id,
-        className: ["markdown-heading group scroll-mt-24", className].filter(Boolean).join(" "),
+        className: ["markdown-heading group scroll-mt-24", className]
+          .filter(Boolean)
+          .join(" "),
       },
       createElement(
         "a",
@@ -117,27 +130,33 @@ export function MarkdownView({ content }: { content: string }) {
     <div className="reading">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
-        components={{
-          h1: createHeading(1),
-          h2: createHeading(2),
-          h3: createHeading(3),
-          h4: createHeading(4),
-          h5: createHeading(5),
-          h6: createHeading(6),
-          pre({ children }) {
-            return <CodePanel>{children}</CodePanel>;
-          },
-          code({ className, children }) {
-            return <code className={className}>{children}</code>;
-          },
-          a({ children, href }) {
-            return (
-              <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
-                {children}
-              </a>
-            );
-          },
-        } satisfies Components}
+        components={
+          {
+            h1: createHeading(1),
+            h2: createHeading(2),
+            h3: createHeading(3),
+            h4: createHeading(4),
+            h5: createHeading(5),
+            h6: createHeading(6),
+            pre({ children }) {
+              return <CodePanel>{children}</CodePanel>;
+            },
+            code({ className, children }) {
+              return <code className={className}>{children}</code>;
+            },
+            a({ children, href }) {
+              return (
+                <a
+                  href={href}
+                  target={href?.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                >
+                  {children}
+                </a>
+              );
+            },
+          } satisfies Components
+        }
       >
         {content}
       </ReactMarkdown>

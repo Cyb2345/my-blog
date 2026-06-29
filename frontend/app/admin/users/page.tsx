@@ -11,10 +11,20 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import {
+  AdminDataTable,
+  type AdminDataTableColumn,
+} from "@/components/admin/AdminDataTable";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
@@ -27,7 +37,10 @@ import {
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { StatusTag } from "@/components/admin/StatusTag";
-import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
+import {
+  UploadProgress,
+  type UploadProgressItem,
+} from "@/components/admin/UploadProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -56,8 +69,18 @@ type DeleteState =
   | { type: "batch"; ids: number[] }
   | null;
 
-const emptyPage: UserPage = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
-const emptyFilters: UserFilters = { username: "", login_method: "", status: "" };
+const emptyPage: UserPage = {
+  items: [],
+  total: 0,
+  page: 1,
+  page_size: 10,
+  pages: 1,
+};
+const emptyFilters: UserFilters = {
+  username: "",
+  login_method: "",
+  status: "",
+};
 const pageSizeOptions = [10, 20, 50];
 const userTableSettingsKey = "admin-table-settings:system-users";
 const userColumnOptions = [
@@ -86,7 +109,11 @@ const statusOptions = [
   { label: "禁用", value: "inactive" },
 ];
 
-function normalizePage(data: UserPage | AdminUser[], page: number, pageSize: number): UserPage {
+function normalizePage(
+  data: UserPage | AdminUser[],
+  page: number,
+  pageSize: number,
+): UserPage {
   if (!Array.isArray(data)) return data;
   return {
     items: data,
@@ -149,7 +176,9 @@ function getLoginLocation(user: AdminUser) {
 
 function UserAvatar({ user }: { user: AdminUser }) {
   const [failed, setFailed] = useState(false);
-  const label = (user.nickname || user.username || "U").slice(0, 1).toUpperCase();
+  const label = (user.nickname || user.username || "U")
+    .slice(0, 1)
+    .toUpperCase();
   if (!user.avatar || failed) {
     return (
       <span className="grid h-10 w-10 place-items-center rounded-full bg-muted text-sm font-black text-muted-foreground ring-1 ring-border">
@@ -206,39 +235,52 @@ function RoleSelector({
         type="button"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          inputClass,
-          "flex w-full items-center justify-between gap-2 text-left",
-          open && "ring-4",
+          "flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm font-semibold text-foreground outline-none focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)]",
+          open && "ring-4 ring-[var(--admin-focus-ring)]",
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="flex min-w-0 flex-wrap items-center gap-2">
           {selectedRole || value ? (
-            <span className="max-w-full truncate rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]">
+            <span className="max-w-full truncate rounded-md bg-accent px-2 py-1 text-xs font-black text-primary dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]">
               {selectedRole?.name ?? roleFallbackLabel(value)}
             </span>
           ) : (
             <span className="text-muted-foreground">请选择角色</span>
           )}
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")} aria-hidden="true" />
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 transition-transform duration-200",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
       </button>
       <div
         className={cn(
           "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] max-h-60 origin-top overflow-y-auto rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-xl transition-all duration-200",
-          open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+          open
+            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
         role="listbox"
       >
         {loading ? (
-          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">角色加载中...</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">
+            角色加载中...
+          </p>
         ) : null}
         {!loading && error ? (
-          <p className="px-3 py-2 text-sm font-bold text-red-600 dark:text-rose-200">{error}</p>
+          <p className="px-3 py-2 text-sm font-bold text-destructive ">
+            {error}
+          </p>
         ) : null}
         {!loading && !error && !roles.length ? (
-          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">暂无角色</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">
+            暂无角色
+          </p>
         ) : null}
         {roles.map((role) => {
           const active = role.code === value;
@@ -251,9 +293,9 @@ function RoleSelector({
                 setOpen(false);
               }}
               className={cn(
-                "flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-[var(--hover)]",
+                "flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-muted dark:hover:bg-[var(--hover)]",
                 active
-                  ? "bg-ocean/10 text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]"
+                  ? "bg-accent text-primary dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]"
                   : "text-muted-foreground",
               )}
               role="option"
@@ -281,16 +323,26 @@ function SwitchField({
   return (
     <label className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm font-bold text-foreground">
       <span>{children}</span>
-      <input name={name} type="checkbox" defaultChecked={defaultChecked} className="h-5 w-5 accent-blue-500" />
+      <input
+        name={name}
+        type="checkbox"
+        defaultChecked={defaultChecked}
+        className="h-5 w-5 accent-blue-500"
+      />
     </label>
   );
 }
 
 export default function AdminUsersPage() {
   const [pageData, setPageData] = useState<UserPage>(emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(userTableSettingsKey, defaultUserTableSettings, userColumnOptions);
+  const [tableSettings, setTableSettings] = useTableSettings(
+    userTableSettingsKey,
+    defaultUserTableSettings,
+    userColumnOptions,
+  );
   const [filters, setFilters] = useState<UserFilters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<UserFilters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] =
+    useState<UserFilters>(emptyFilters);
   const [roles, setRoles] = useState<AdminRole[]>([]);
   const [roleError, setRoleError] = useState("");
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -311,12 +363,19 @@ export default function AdminUsersPage() {
   const [deleting, setDeleting] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [avatarUploadProgress, setAvatarUploadProgress] = useState<UploadProgressItem | null>(null);
+  const [avatarUploadProgress, setAvatarUploadProgress] =
+    useState<UploadProgressItem | null>(null);
   const [modalStatus, setModalStatus] = useState("active");
 
-  const allCurrentPageSelected = pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id));
+  const allCurrentPageSelected =
+    pageData.items.length > 0 &&
+    pageData.items.every((item) => selectedIds.has(item.id));
 
-  async function load(currentPage = pageNumber, currentPageSize = pageSize, currentFilters = appliedFilters) {
+  async function load(
+    currentPage = pageNumber,
+    currentPageSize = pageSize,
+    currentFilters = appliedFilters,
+  ) {
     setLoading(true);
     setError("");
     try {
@@ -324,10 +383,14 @@ export default function AdminUsersPage() {
         page: String(currentPage),
         page_size: String(currentPageSize),
       });
-      if (currentFilters.username.trim()) params.set("username", currentFilters.username.trim());
-      if (currentFilters.login_method) params.set("login_method", currentFilters.login_method);
+      if (currentFilters.username.trim())
+        params.set("username", currentFilters.username.trim());
+      if (currentFilters.login_method)
+        params.set("login_method", currentFilters.login_method);
       if (currentFilters.status) params.set("status", currentFilters.status);
-      const data = await adminRequest<UserPage | AdminUser[]>(`/admin/users?${params.toString()}`);
+      const data = await adminRequest<UserPage | AdminUser[]>(
+        `/admin/users?${params.toString()}`,
+      );
       const normalized = normalizePage(data, currentPage, currentPageSize);
       setPageData(normalized);
       setPageNumber(normalized.page);
@@ -414,30 +477,55 @@ export default function AdminUsersPage() {
   async function uploadAvatar(file: File | null) {
     if (!file) return;
     setUploadingAvatar(true);
-    setAvatarUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
+    setAvatarUploadProgress({
+      fileName: file.name,
+      progress: 0,
+      status: "uploading",
+    });
     setModalError("");
     setNotice("");
     const payload = new FormData();
     payload.append("file", file);
     payload.append("usage_type", "avatar");
     try {
-      const asset = await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
-        onProgress: (progress) => setAvatarUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+      const asset = await adminUpload<MediaAsset>(
+        "/admin/uploads/image",
+        payload,
+        {
+          onProgress: (progress) =>
+            setAvatarUploadProgress({
+              fileName: file.name,
+              progress,
+              status: "uploading",
+            }),
+        },
+      );
+      setAvatarUploadProgress({
+        fileName: file.name,
+        progress: 100,
+        status: "success",
       });
-      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "success" });
       setAvatarUrl(asset.url);
       setNotice("用户头像已上传。");
     } catch (err) {
       const message = err instanceof Error ? err.message : "头像上传失败";
       setModalError(message);
-      setAvatarUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
+      setAvatarUploadProgress({
+        fileName: file.name,
+        progress: 100,
+        status: "error",
+        error: message,
+      });
     } finally {
       setUploadingAvatar(false);
     }
   }
 
   async function setupMfaForUser(user: AdminUser, message: string) {
-    const setup = await adminRequest<MfaSetup>(`/admin/users/${user.id}/mfa/setup`, { method: "POST" });
+    const setup = await adminRequest<MfaSetup>(
+      `/admin/users/${user.id}/mfa/setup`,
+      { method: "POST" },
+    );
     setMfaSetup(setup);
     setModal({ type: "mfa", user });
     setNotice(message);
@@ -449,7 +537,10 @@ export default function AdminUsersPage() {
     setModalError("");
     setNotice("");
     try {
-      await setupMfaForUser(user, "MFA 绑定二维码已生成，请扫码后输入动态码验证。");
+      await setupMfaForUser(
+        user,
+        "MFA 绑定二维码已生成，请扫码后输入动态码验证。",
+      );
       await load(pageNumber, pageSize, appliedFilters);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "MFA 设置失败");
@@ -518,18 +609,23 @@ export default function AdminUsersPage() {
       };
 
       if (modal.mode === "edit" && modal.user) {
-        const updated = await adminRequest<AdminUser>(`/admin/users/${modal.user.id}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            nickname: payload.nickname,
-            email: payload.email,
-            avatar: payload.avatar,
-            role: payload.role,
-            is_active: payload.is_active,
-          }),
-        });
+        const updated = await adminRequest<AdminUser>(
+          `/admin/users/${modal.user.id}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              nickname: payload.nickname,
+              email: payload.email,
+              avatar: payload.avatar,
+              role: payload.role,
+              is_active: payload.is_active,
+            }),
+          },
+        );
         if (!mfaEnabled && modal.user.mfa_enabled) {
-          await adminRequest(`/admin/users/${modal.user.id}/mfa/disable`, { method: "POST" });
+          await adminRequest(`/admin/users/${modal.user.id}/mfa/disable`, {
+            method: "POST",
+          });
           setNotice("用户已保存，MFA 已关闭。");
           setModal(null);
         } else if (mfaEnabled && !modal.user.mfa_enabled) {
@@ -642,7 +738,11 @@ export default function AdminUsersPage() {
 
   function openSingleDelete(user: AdminUser) {
     setDeleteError("");
-    setDeleteState({ type: "single", ids: [user.id], label: user.nickname || user.username || "" });
+    setDeleteState({
+      type: "single",
+      ids: [user.id],
+      label: user.nickname || user.username || "",
+    });
   }
 
   function openBatchDelete() {
@@ -660,7 +760,9 @@ export default function AdminUsersPage() {
   function deleteDescription() {
     if (!deleteState) return "确定删除该用户吗？";
     if (deleteState.type === "single") {
-      return deleteState.label ? `确定删除用户「${deleteState.label}」吗？` : "确定删除该用户吗？";
+      return deleteState.label
+        ? `确定删除用户「${deleteState.label}」吗？`
+        : "确定删除该用户吗？";
     }
     return "确定删除选中的用户吗？";
   }
@@ -668,7 +770,10 @@ export default function AdminUsersPage() {
   async function confirmDelete() {
     if (!deleteState || deleting) return;
     const ids = deleteState.ids;
-    const nextPage = pageData.items.length <= ids.length && pageData.page > 1 ? pageData.page - 1 : pageData.page;
+    const nextPage =
+      pageData.items.length <= ids.length && pageData.page > 1
+        ? pageData.page - 1
+        : pageData.page;
     setDeleting(true);
     setDeleteError("");
     setError("");
@@ -683,7 +788,11 @@ export default function AdminUsersPage() {
         });
       }
       setDeleteState(null);
-      setNotice(deleteState.type === "single" ? "用户已删除，列表已刷新。" : "选中用户已删除，列表已刷新。");
+      setNotice(
+        deleteState.type === "single"
+          ? "用户已删除，列表已刷新。"
+          : "选中用户已删除，列表已刷新。",
+      );
       await load(nextPage, pageSize, appliedFilters);
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "删除失败");
@@ -693,14 +802,39 @@ export default function AdminUsersPage() {
   }
 
   function getRoleName(code: string) {
-    return roles.find((role) => role.code === code)?.name ?? roleFallbackLabel(code);
+    return (
+      roles.find((role) => role.code === code)?.name ?? roleFallbackLabel(code)
+    );
   }
 
   const columns = useMemo<Array<AdminDataTableColumn<AdminUser>>>(
     () => [
-      { key: "avatar", title: "头像", width: 80, hidden: !tableSettings.visibleColumns.includes("avatar"), align: "center", render: (user) => <UserAvatar user={user} /> },
-      { key: "username", title: "用户名", width: 150, hidden: !tableSettings.visibleColumns.includes("username"), ellipsis: true, render: (user) => <span className="font-black text-foreground">{user.username}</span> },
-      { key: "nickname", title: "昵称", width: 150, hidden: !tableSettings.visibleColumns.includes("nickname"), ellipsis: true, render: (user) => user.nickname || "-" },
+      {
+        key: "avatar",
+        title: "头像",
+        width: 80,
+        hidden: !tableSettings.visibleColumns.includes("avatar"),
+        align: "center",
+        render: (user) => <UserAvatar user={user} />,
+      },
+      {
+        key: "username",
+        title: "用户名",
+        width: 150,
+        hidden: !tableSettings.visibleColumns.includes("username"),
+        ellipsis: true,
+        render: (user) => (
+          <span className="font-black text-foreground">{user.username}</span>
+        ),
+      },
+      {
+        key: "nickname",
+        title: "昵称",
+        width: 150,
+        hidden: !tableSettings.visibleColumns.includes("nickname"),
+        ellipsis: true,
+        render: (user) => user.nickname || "-",
+      },
       {
         key: "loginMethod",
         title: "登录方式",
@@ -708,15 +842,60 @@ export default function AdminUsersPage() {
         hidden: !tableSettings.visibleColumns.includes("loginMethod"),
         render: (user) => {
           const loginMethod = getLoginMethod(user);
-          const loginMethodLabel = loginMethodOptions.find((option) => option.value === loginMethod)?.label ?? loginMethod;
-          return <StatusTag status="login" label={loginMethodLabel} map={{ login: { label: loginMethodLabel, variant: "info" } }} />;
+          const loginMethodLabel =
+            loginMethodOptions.find((option) => option.value === loginMethod)
+              ?.label ?? loginMethod;
+          return (
+            <StatusTag
+              status="login"
+              label={loginMethodLabel}
+              map={{ login: { label: loginMethodLabel, variant: "info" } }}
+            />
+          );
         },
       },
-      { key: "loginIp", title: "登录 IP", width: 150, hidden: !tableSettings.visibleColumns.includes("loginIp"), ellipsis: true, render: (user) => getLoginIp(user) },
-      { key: "loginLocation", title: "登录地址", width: 180, hidden: !tableSettings.visibleColumns.includes("loginLocation"), ellipsis: true, render: (user) => getLoginLocation(user) },
-      { key: "status", title: "状态", width: 110, hidden: !tableSettings.visibleColumns.includes("status"), render: (user) => <StatusTag status={user.is_active} label={user.is_active ? "启用" : "禁用"} /> },
-      { key: "lastLoginAt", title: "最后登录时间", width: 180, hidden: !tableSettings.visibleColumns.includes("lastLoginAt"), render: (user) => formatDateTime(user.last_login_at) },
-      { key: "createdAt", title: "创建时间", width: 180, hidden: !tableSettings.visibleColumns.includes("createdAt"), render: (user) => formatDateTime(user.created_at) },
+      {
+        key: "loginIp",
+        title: "登录 IP",
+        width: 150,
+        hidden: !tableSettings.visibleColumns.includes("loginIp"),
+        ellipsis: true,
+        render: (user) => getLoginIp(user),
+      },
+      {
+        key: "loginLocation",
+        title: "登录地址",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("loginLocation"),
+        ellipsis: true,
+        render: (user) => getLoginLocation(user),
+      },
+      {
+        key: "status",
+        title: "状态",
+        width: 110,
+        hidden: !tableSettings.visibleColumns.includes("status"),
+        render: (user) => (
+          <StatusTag
+            status={user.is_active}
+            label={user.is_active ? "启用" : "禁用"}
+          />
+        ),
+      },
+      {
+        key: "lastLoginAt",
+        title: "最后登录时间",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("lastLoginAt"),
+        render: (user) => formatDateTime(user.last_login_at),
+      },
+      {
+        key: "createdAt",
+        title: "创建时间",
+        width: 180,
+        hidden: !tableSettings.visibleColumns.includes("createdAt"),
+        render: (user) => formatDateTime(user.created_at),
+      },
       {
         key: "actions",
         title: "操作",
@@ -727,9 +906,27 @@ export default function AdminUsersPage() {
         render: (user) => (
           <RowActions
             actions={[
-              { key: "password", label: "密码重置", icon: <KeyRound className={rowActionIconClass} />, variant: "warning", onClick: () => openPasswordModal(user) },
-              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} />, variant: "edit", onClick: () => openUserModal("edit", user) },
-              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} />, variant: "delete", onClick: () => openSingleDelete(user) },
+              {
+                key: "password",
+                label: "密码重置",
+                icon: <KeyRound className={rowActionIconClass} />,
+                variant: "warning",
+                onClick: () => openPasswordModal(user),
+              },
+              {
+                key: "edit",
+                label: "编辑",
+                icon: <Edit className={rowActionIconClass} />,
+                variant: "edit",
+                onClick: () => openUserModal("edit", user),
+              },
+              {
+                key: "delete",
+                label: "删除",
+                icon: <Trash2 className={rowActionIconClass} />,
+                variant: "delete",
+                onClick: () => openSingleDelete(user),
+              },
             ]}
           />
         ),
@@ -744,27 +941,73 @@ export default function AdminUsersPage() {
       description="管理后台账号、角色、登录方式和 MFA 状态。"
       actions={
         <>
-          <Button type="button" variant="ghost" onClick={() => openUserModal("create")}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => openUserModal("create")}
+          >
             <Plus className="size-4" aria-hidden="true" />
             新增
           </Button>
-          <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
+          <Button
+            type="button"
+            variant="danger"
+            disabled={!selectedIds.size || loading}
+            onClick={openBatchDelete}
+          >
             <Trash2 className="size-4" aria-hidden="true" />
             批量删除
           </Button>
         </>
       }
     >
-      {error ? <p className="motion-notice mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
-      {notice ? <p className="motion-notice mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
+      {error ? (
+        <p className="motion-notice mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="motion-notice mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
+          {notice}
+        </p>
+      ) : null}
 
-      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
-        <Input label="用户名" value={filters.username} onChange={(event) => setFilters((current) => ({ ...current, username: event.target.value }))} placeholder="请输入用户名" />
+      <AdminSearchForm
+        onSubmit={handleQuery}
+        onReset={handleReset}
+        loading={loading}
+      >
+        <Input
+          label="用户名"
+          value={filters.username}
+          onChange={(event) =>
+            setFilters((current) => ({
+              ...current,
+              username: event.target.value,
+            }))
+          }
+          placeholder="请输入用户名"
+        />
         <AdminField label="登录方式">
-          <CustomSelect value={filters.login_method} onChange={(value) => setFilters((current) => ({ ...current, login_method: value }))} options={[{ label: "请选择登录方式", value: "" }, ...loginMethodOptions]} />
+          <CustomSelect
+            value={filters.login_method}
+            onChange={(value) =>
+              setFilters((current) => ({ ...current, login_method: value }))
+            }
+            options={[
+              { label: "请选择登录方式", value: "" },
+              ...loginMethodOptions,
+            ]}
+          />
         </AdminField>
         <AdminField label="状态">
-          <CustomSelect value={filters.status} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} options={[{ label: "请选择状态", value: "" }, ...statusOptions]} />
+          <CustomSelect
+            value={filters.status}
+            onChange={(value) =>
+              setFilters((current) => ({ ...current, status: value }))
+            }
+            options={[{ label: "请选择状态", value: "" }, ...statusOptions]}
+          />
         </AdminField>
       </AdminSearchForm>
 
@@ -781,33 +1024,82 @@ export default function AdminUsersPage() {
         onSelectRow={(user) => toggleSelect(user.id)}
         onSelectAll={toggleCurrentPage}
         getCheckboxLabel={(user) => `选择用户 ${user.username}`}
-        toolbar={<AdminTableToolbar settings={tableSettings} onSettingsChange={setTableSettings} columns={userColumnOptions} onRefresh={() => void load(pageData.page, pageSize, appliedFilters)} refreshing={loading} />}
-        pagination={<Pagination page={pageData.page} totalPages={pageData.pages} total={pageData.total} pageSize={pageSize} pageSizeOptions={pageSizeOptions} loading={loading} onPageChange={setPageNumber} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPageNumber(1); }} />}
+        toolbar={
+          <AdminTableToolbar
+            settings={tableSettings}
+            onSettingsChange={setTableSettings}
+            columns={userColumnOptions}
+            onRefresh={() => void load(pageData.page, pageSize, appliedFilters)}
+            refreshing={loading}
+          />
+        }
+        pagination={
+          <Pagination
+            page={pageData.page}
+            totalPages={pageData.pages}
+            total={pageData.total}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            loading={loading}
+            onPageChange={setPageNumber}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPageNumber(1);
+            }}
+          />
+        }
       />
 
-      <AdminModal open={modal?.type === "user"} title={modal?.type === "user" && modal.mode === "edit" ? "编辑用户" : "新增用户"} size="lg" onClose={closeModal}>
+      <AdminModal
+        open={modal?.type === "user"}
+        title={
+          modal?.type === "user" && modal.mode === "edit"
+            ? "编辑用户"
+            : "新增用户"
+        }
+        size="lg"
+        onClose={closeModal}
+      >
         {modal?.type === "user" ? (
-          <form key={modal.user?.id ?? "new"} onSubmit={handleUserSubmit} className="grid gap-4">
+          <form
+            key={modal.user?.id ?? "new"}
+            onSubmit={handleUserSubmit}
+            className="grid gap-4"
+          >
             <ModalError message={modalError} />
             <div className="grid gap-4 md:grid-cols-2">
               <AdminField label="用户名 *">
-                <input
+                <Input
                   name="username"
                   required
                   disabled={modal.mode === "edit"}
                   defaultValue={modal.user?.username ?? ""}
                   placeholder="请输入用户名"
-                  className={cn(inputClass, "disabled:cursor-not-allowed disabled:opacity-70")}
+                  className="disabled:cursor-not-allowed disabled:opacity-70"
                 />
               </AdminField>
               <AdminField label="昵称 *">
-                <input name="nickname" required defaultValue={modal.user?.nickname ?? ""} placeholder="请输入昵称" className={inputClass} />
+                <Input
+                  name="nickname"
+                  required
+                  defaultValue={modal.user?.nickname ?? ""}
+                  placeholder="请输入昵称"
+                />
               </AdminField>
               <AdminField label="手机号">
-                <input disabled placeholder="当前接口未启用手机号字段" className={cn(inputClass, "disabled:cursor-not-allowed disabled:opacity-70")} />
+                <Input
+                  disabled
+                  placeholder="当前接口未启用手机号字段"
+                  className="disabled:cursor-not-allowed disabled:opacity-70"
+                />
               </AdminField>
               <AdminField label="邮箱">
-                <input name="email" type="email" defaultValue={modal.user?.email ?? ""} placeholder="请输入邮箱" className={inputClass} />
+                <Input
+                  name="email"
+                  type="email"
+                  defaultValue={modal.user?.email ?? ""}
+                  placeholder="请输入邮箱"
+                />
               </AdminField>
               <AdminField label="性别">
                 <CustomSelect
@@ -831,15 +1123,29 @@ export default function AdminUsersPage() {
                 />
               </AdminField>
               <AdminField label="状态 *">
-                <CustomSelect name="status" value={modalStatus} onChange={setModalStatus} options={statusOptions} />
+                <CustomSelect
+                  name="status"
+                  value={modalStatus}
+                  onChange={setModalStatus}
+                  options={statusOptions}
+                />
               </AdminField>
               <AdminField label="是否启用 MFA">
                 <div className="grid gap-2">
-                  <SwitchField name="mfa_enabled" defaultChecked={modal.user?.mfa_enabled ?? false}>
+                  <SwitchField
+                    name="mfa_enabled"
+                    defaultChecked={modal.user?.mfa_enabled ?? false}
+                  >
                     {modal.user?.mfa_enabled ? "启用" : "关闭"}
                   </SwitchField>
                   {modal.mode === "edit" && modal.user?.mfa_enabled ? (
-                    <Button type="button" variant="ghost" className="min-h-9 w-fit px-3" disabled={saving} onClick={() => void handleMfaRebind(modal.user!)}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-9 w-fit px-3"
+                      disabled={saving}
+                      onClick={() => void handleMfaRebind(modal.user!)}
+                    >
                       <KeyRound className="h-4 w-4" aria-hidden="true" />
                       重新绑定 MFA
                     </Button>
@@ -849,10 +1155,20 @@ export default function AdminUsersPage() {
               {modal.mode === "create" ? (
                 <>
                   <AdminField label="初始密码 *">
-                    <input name="password" type="password" required placeholder="请输入初始密码" className={inputClass} />
+                    <Input
+                      name="password"
+                      type="password"
+                      required
+                      placeholder="请输入初始密码"
+                    />
                   </AdminField>
                   <AdminField label="确认密码 *">
-                    <input name="confirm_password" type="password" required placeholder="请再次输入初始密码" className={inputClass} />
+                    <Input
+                      name="confirm_password"
+                      type="password"
+                      required
+                      placeholder="请再次输入初始密码"
+                    />
                   </AdminField>
                 </>
               ) : null}
@@ -860,12 +1176,12 @@ export default function AdminUsersPage() {
             <AdminField label="头像">
               <div className="grid gap-2 rounded-md border border-border bg-muted/50 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
+                  <Input
                     name="avatar"
                     value={avatarUrl}
                     onChange={(event) => setAvatarUrl(event.target.value)}
                     placeholder="请输入头像 URL"
-                    className={cn(inputClass, "flex-1")}
+                    className="flex-1"
                   />
                   <label className="interactive inline-flex min-h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-secondary px-3 py-2 text-sm font-bold text-secondary-foreground ring-1 ring-border hover:bg-accent hover:text-accent-foreground">
                     <Upload className="h-4 w-4" aria-hidden="true" />
@@ -874,59 +1190,126 @@ export default function AdminUsersPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       className="sr-only"
-                      onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)}
+                      onChange={(event) =>
+                        void uploadAvatar(event.target.files?.[0] ?? null)
+                      }
                       disabled={uploadingAvatar}
                     />
                   </label>
                 </div>
                 <UploadProgress item={avatarUploadProgress} />
                 {avatarUrl ? (
-                  <img src={getAssetUrl(avatarUrl)} alt="用户头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-border" />
+                  <img
+                    src={getAssetUrl(avatarUrl)}
+                    alt="用户头像预览"
+                    className="h-16 w-16 rounded-full object-cover ring-1 ring-border"
+                  />
                 ) : null}
               </div>
             </AdminField>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={closeModal} disabled={saving || uploadingAvatar}>取消</Button>
-              <Button type="submit" disabled={saving || uploadingAvatar}>{saving ? "提交中..." : "提交"}</Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeModal}
+                disabled={saving || uploadingAvatar}
+              >
+                取消
+              </Button>
+              <Button type="submit" disabled={saving || uploadingAvatar}>
+                {saving ? "提交中..." : "提交"}
+              </Button>
             </div>
           </form>
         ) : null}
       </AdminModal>
 
-      <AdminModal open={modal?.type === "password"} title="重置密码" size="sm" onClose={closeModal}>
+      <AdminModal
+        open={modal?.type === "password"}
+        title="重置密码"
+        size="sm"
+        onClose={closeModal}
+      >
         {modal?.type === "password" ? (
           <form onSubmit={resetPassword} className="grid gap-4">
             <ModalError message={modalError} />
             <AdminField label="新密码 *">
-              <input name="password" type="password" required placeholder="请输入新密码" className={inputClass} />
+              <Input
+                name="password"
+                type="password"
+                required
+                placeholder="请输入新密码"
+              />
             </AdminField>
             <AdminField label="确认密码 *">
-              <input name="confirm_password" type="password" required placeholder="请再次输入新密码" className={inputClass} />
+              <Input
+                name="confirm_password"
+                type="password"
+                required
+                placeholder="请再次输入新密码"
+              />
             </AdminField>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>
-              <Button type="submit" disabled={saving}>{saving ? "提交中..." : "确定"}</Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeModal}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "提交中..." : "确定"}
+              </Button>
             </div>
           </form>
         ) : null}
       </AdminModal>
 
-      <AdminModal open={modal?.type === "mfa"} title={modal?.type === "mfa" ? `启用 MFA：${modal.user.username}` : "启用 MFA"} size="sm" onClose={closeModal}>
+      <AdminModal
+        open={modal?.type === "mfa"}
+        title={
+          modal?.type === "mfa"
+            ? `启用 MFA：${modal.user.username}`
+            : "启用 MFA"
+        }
+        size="sm"
+        onClose={closeModal}
+      >
         {modal?.type === "mfa" && mfaSetup ? (
           <form onSubmit={verifyMfa} className="grid gap-4">
             <ModalError message={modalError} />
             <div className="grid place-items-center rounded-md bg-background p-3">
-              <img src={mfaSetup.qr_code_data_url} alt="MFA 绑定二维码" className="h-44 w-44" />
+              <img
+                src={mfaSetup.qr_code_data_url}
+                alt="MFA 绑定二维码"
+                className="h-44 w-44"
+              />
             </div>
             <p className="text-xs font-bold leading-6 text-muted-foreground">
-              请使用 Google Authenticator、Microsoft Authenticator、1Password 或 Authy 扫码绑定后输入动态码。后台不会展示 MFA Secret 明文。
+              请使用 Google Authenticator、Microsoft Authenticator、1Password 或
+              Authy 扫码绑定后输入动态码。后台不会展示 MFA Secret 明文。
             </p>
             <AdminField label="动态验证码 *">
-              <input name="code" inputMode="numeric" required placeholder="请输入动态验证码" className={inputClass} />
+              <Input
+                name="code"
+                inputMode="numeric"
+                required
+                placeholder="请输入动态验证码"
+              />
             </AdminField>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>
-              <Button type="submit" disabled={saving}>{saving ? "提交中..." : "提交"}</Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeModal}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "提交中..." : "提交"}
+              </Button>
             </div>
           </form>
         ) : null}

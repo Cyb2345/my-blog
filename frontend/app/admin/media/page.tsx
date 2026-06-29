@@ -3,11 +3,14 @@
 import { Upload, XCircle } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { CustomSelect } from "@/components/admin/CustomSelect";
-import { UploadProgress, type UploadProgressItem } from "@/components/admin/UploadProgress";
-import { Button } from "@/components/ui/button";
+import {
+  UploadProgress,
+  type UploadProgressItem,
+} from "@/components/admin/UploadProgress";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { API_BASE_URL, adminRequest, adminUpload } from "@/lib/auth";
@@ -36,8 +39,10 @@ export default function AdminMediaPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgressItem | null>(null);
-  const [usageType, setUsageType] = useState<MediaAsset["usage_type"]>("general");
+  const [uploadProgress, setUploadProgress] =
+    useState<UploadProgressItem | null>(null);
+  const [usageType, setUsageType] =
+    useState<MediaAsset["usage_type"]>("general");
 
   async function load() {
     try {
@@ -61,7 +66,11 @@ export default function AdminMediaPage() {
       return;
     }
     setUploading(true);
-    setUploadProgress({ fileName: file.name, progress: 0, status: "uploading" });
+    setUploadProgress({
+      fileName: file.name,
+      progress: 0,
+      status: "uploading",
+    });
     setError("");
     setNotice("");
     try {
@@ -69,16 +78,30 @@ export default function AdminMediaPage() {
       payload.append("file", file);
       payload.append("usage_type", usageType);
       await adminUpload<MediaAsset>("/admin/uploads/image", payload, {
-        onProgress: (progress) => setUploadProgress({ fileName: file.name, progress, status: "uploading" }),
+        onProgress: (progress) =>
+          setUploadProgress({
+            fileName: file.name,
+            progress,
+            status: "uploading",
+          }),
       });
-      setUploadProgress({ fileName: file.name, progress: 100, status: "success" });
+      setUploadProgress({
+        fileName: file.name,
+        progress: 100,
+        status: "success",
+      });
       formElement.reset();
       await load();
       setNotice("图片已上传，媒体库已刷新。");
     } catch (err) {
       const message = err instanceof Error ? err.message : "上传失败";
       setError(message);
-      setUploadProgress({ fileName: file.name, progress: 100, status: "error", error: message });
+      setUploadProgress({
+        fileName: file.name,
+        progress: 100,
+        status: "error",
+        error: message,
+      });
     } finally {
       setUploading(false);
     }
@@ -97,9 +120,20 @@ export default function AdminMediaPage() {
   }
 
   return (
-    <AdminPage title="媒体库" description="上传、预览和停用后台可复用的图片资源。">
-      {error ? <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
+    <AdminPage
+      title="媒体库"
+      description="上传、预览和停用后台可复用的图片资源。"
+    >
+      {error ? (
+        <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="notice-pop mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
+          {notice}
+        </p>
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
         <Card className="motion-surface h-fit">
@@ -109,13 +143,26 @@ export default function AdminMediaPage() {
           <CardContent>
             <form onSubmit={handleUpload} className="grid gap-4">
               <AdminField label="图片文件">
-                <input name="file" type="file" required accept="image/jpeg,image/png,image/webp" className={inputClass} />
+                <label className={buttonVariants({ variant: "secondary" })}>
+                  选择图片
+                  <input
+                    name="file"
+                    type="file"
+                    required
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                  />
+                </label>
               </AdminField>
               <AdminField label="用途">
                 <CustomSelect
                   value={usageType}
-                  onChange={(value) => setUsageType(value as MediaAsset["usage_type"])}
-                  options={Object.entries(usageLabels).map(([value, label]) => ({ value, label }))}
+                  onChange={(value) =>
+                    setUsageType(value as MediaAsset["usage_type"])
+                  }
+                  options={Object.entries(usageLabels).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
                 />
               </AdminField>
               <UploadProgress item={uploadProgress} />
@@ -129,26 +176,45 @@ export default function AdminMediaPage() {
 
         <div className="motion-list grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
-            <article key={item.id} className="interactive-card overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+            <article
+              key={item.id}
+              className="interactive-card overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm"
+            >
               <div className="relative bg-muted">
                 {item.is_active ? null : (
                   <span className="absolute left-3 top-3 z-10 rounded-md bg-destructive px-2 py-1 text-xs font-black text-destructive-foreground">
                     已停用
                   </span>
                 )}
-                <img src={resolveAssetUrl(item.url)} alt={item.original_name} className="aspect-[16/10] w-full object-cover" />
+                <img
+                  src={resolveAssetUrl(item.url)}
+                  alt={item.original_name}
+                  className="aspect-[16/10] w-full object-cover"
+                />
               </div>
               <div className="grid gap-3 p-4">
                 <div>
-                  <h2 className="truncate text-sm font-black text-foreground">{item.original_name}</h2>
-                  <p className="mt-1 text-xs font-bold text-muted-foreground">{usageLabels[item.usage_type]} / {(item.size / 1024).toFixed(1)} KB</p>
-                  <p className="mt-1 text-xs font-bold text-muted-foreground">{formatDate(item.created_at)}</p>
+                  <h2 className="truncate text-sm font-black text-foreground">
+                    {item.original_name}
+                  </h2>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">
+                    {usageLabels[item.usage_type]} /{" "}
+                    {(item.size / 1024).toFixed(1)} KB
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">
+                    {formatDate(item.created_at)}
+                  </p>
                 </div>
                 <div className="rounded-md bg-muted p-2 text-xs font-bold text-muted-foreground">
                   <p className="break-all">{item.url}</p>
                 </div>
                 {item.is_active ? (
-                  <Button type="button" variant="ghost" className="h-9 min-h-9 px-3" onClick={() => disableMedia(item)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-9 min-h-9 px-3"
+                    onClick={() => disableMedia(item)}
+                  >
                     <XCircle className="h-4 w-4" aria-hidden="true" />
                     停用
                   </Button>
@@ -157,7 +223,11 @@ export default function AdminMediaPage() {
             </article>
           ))}
           {!items.length ? (
-            <Empty title="暂无媒体资源" description="上传图片后会显示在这里。" className="md:col-span-2 xl:col-span-3" />
+            <Empty
+              title="暂无媒体资源"
+              description="上传图片后会显示在这里。"
+              className="md:col-span-2 xl:col-span-3"
+            />
           ) : null}
         </div>
       </div>

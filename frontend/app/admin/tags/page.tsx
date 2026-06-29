@@ -3,12 +3,18 @@
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import {
+  AdminDataTable,
+  type AdminDataTableColumn,
+} from "@/components/admin/AdminDataTable";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
-import { type TableSettings, useTableSettings } from "@/components/admin/DataTableToolbar";
+import {
+  type TableSettings,
+  useTableSettings,
+} from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { Button } from "@/components/ui/button";
@@ -54,7 +60,11 @@ const defaultTagTableSettings: TableSettings = {
   visibleColumns: tagColumnOptions.map((column) => column.key),
 };
 
-function normalizePage(data: TagPage | Tag[], page: number, pageSize: number): TagPage {
+function normalizePage(
+  data: TagPage | Tag[],
+  page: number,
+  pageSize: number,
+): TagPage {
   if (!Array.isArray(data)) return data;
   return {
     items: data,
@@ -84,7 +94,13 @@ function formatDateTime(value?: string | null) {
     .replace(/\//g, "-");
 }
 
-function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+function Notice({
+  variant,
+  children,
+}: {
+  variant: "error" | "success";
+  children: string;
+}) {
   return (
     <p
       className={cn(
@@ -101,7 +117,11 @@ function Notice({ variant, children }: { variant: "error" | "success"; children:
 
 export default function AdminTagsPage() {
   const [pageData, setPageData] = useState<TagPage>(emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(tagTableSettingsKey, defaultTagTableSettings, tagColumnOptions);
+  const [tableSettings, setTableSettings] = useTableSettings(
+    tagTableSettingsKey,
+    defaultTagTableSettings,
+    tagColumnOptions,
+  );
   const [queryName, setQueryName] = useState("");
   const [appliedName, setAppliedName] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
@@ -117,7 +137,11 @@ export default function AdminTagsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  async function load(currentPage = pageNumber, currentPageSize = pageSize, currentName = appliedName) {
+  async function load(
+    currentPage = pageNumber,
+    currentPageSize = pageSize,
+    currentName = appliedName,
+  ) {
     setLoading(true);
     setError("");
     try {
@@ -126,7 +150,9 @@ export default function AdminTagsPage() {
         page_size: String(currentPageSize),
       });
       if (currentName.trim()) params.set("name", currentName.trim());
-      const data = await adminRequest<TagPage | Tag[]>(`/admin/tags?${params.toString()}`);
+      const data = await adminRequest<TagPage | Tag[]>(
+        `/admin/tags?${params.toString()}`,
+      );
       const normalized = normalizePage(data, currentPage, currentPageSize);
       setPageData(normalized);
       setSelectedIds(new Set());
@@ -185,10 +211,16 @@ export default function AdminTagsPage() {
     try {
       const payload = { name };
       if (editing.id) {
-        await adminRequest(`/admin/tags/${editing.id}`, { method: "PUT", body: JSON.stringify(payload) });
+        await adminRequest(`/admin/tags/${editing.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
         setNotice("标签已保存，列表已刷新。");
       } else {
-        await adminRequest("/admin/tags", { method: "POST", body: JSON.stringify(payload) });
+        await adminRequest("/admin/tags", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         setNotice("标签已新增，列表已刷新。");
       }
       setEditing(null);
@@ -227,10 +259,16 @@ export default function AdminTagsPage() {
       for (const id of ids) {
         await adminRequest(`/admin/tags/${id}`, { method: "DELETE" });
       }
-      setNotice(deleteState.type === "single" ? "标签已删除，列表已刷新。" : "选中标签已删除，列表已刷新。");
+      setNotice(
+        deleteState.type === "single"
+          ? "标签已删除，列表已刷新。"
+          : "选中标签已删除，列表已刷新。",
+      );
       setDeleteState(null);
       setSelectedIds(new Set());
-      const remainingCurrentPageCount = pageData.items.filter((item) => !ids.includes(item.id)).length;
+      const remainingCurrentPageCount = pageData.items.filter(
+        (item) => !ids.includes(item.id),
+      ).length;
       const shouldGoBack = remainingCurrentPageCount === 0 && pageNumber > 1;
       if (shouldGoBack) {
         setPageNumber((value) => Math.max(1, value - 1));
@@ -246,7 +284,8 @@ export default function AdminTagsPage() {
 
   function deleteDescription() {
     if (!deleteState) return "确定删除该标签吗？";
-    if (deleteState.type === "single") return `确定删除标签「${deleteState.name}」吗？`;
+    if (deleteState.type === "single")
+      return `确定删除标签「${deleteState.name}」吗？`;
     return `确定删除选中的 ${deleteState.ids.length} 个标签吗？`;
   }
 
@@ -283,21 +322,33 @@ export default function AdminTagsPage() {
         minWidth: 180,
         ellipsis: true,
         hidden: !tableSettings.visibleColumns.includes("name"),
-        render: (item) => <span className="font-bold text-[var(--color-text)]">{item.name}</span>,
+        render: (item) => (
+          <span className="font-bold text-[var(--color-text)]">
+            {item.name}
+          </span>
+        ),
       },
       {
         key: "articleCount",
         title: "文章数",
         width: 120,
         hidden: !tableSettings.visibleColumns.includes("articleCount"),
-        render: (item) => <span className="font-bold text-[var(--color-text-muted)]">{getArticleCount(item)}</span>,
+        render: (item) => (
+          <span className="font-bold text-[var(--color-text-muted)]">
+            {getArticleCount(item)}
+          </span>
+        ),
       },
       {
         key: "createdAt",
         title: "创建时间",
         width: 180,
         hidden: !tableSettings.visibleColumns.includes("createdAt"),
-        render: (item) => <span className="text-[var(--color-text-muted)]">{formatDateTime(item.created_at)}</span>,
+        render: (item) => (
+          <span className="text-[var(--color-text-muted)]">
+            {formatDateTime(item.created_at)}
+          </span>
+        ),
       },
       {
         key: "actions",
@@ -308,8 +359,24 @@ export default function AdminTagsPage() {
         render: (item) => (
           <RowActions
             actions={[
-              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} aria-hidden="true" />, variant: "edit", onClick: () => openEditModal(item) },
-              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />, variant: "delete", onClick: () => openDeleteDialog(item) },
+              {
+                key: "edit",
+                label: "编辑",
+                icon: (
+                  <Edit className={rowActionIconClass} aria-hidden="true" />
+                ),
+                variant: "edit",
+                onClick: () => openEditModal(item),
+              },
+              {
+                key: "delete",
+                label: "删除",
+                icon: (
+                  <Trash2 className={rowActionIconClass} aria-hidden="true" />
+                ),
+                variant: "delete",
+                onClick: () => openDeleteDialog(item),
+              },
             ]}
             className="justify-end"
           />
@@ -324,7 +391,11 @@ export default function AdminTagsPage() {
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
-      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
+      <AdminSearchForm
+        onSubmit={handleQuery}
+        onReset={handleReset}
+        loading={loading}
+      >
         <Input
           label="标签名称"
           value={queryName}
@@ -342,7 +413,10 @@ export default function AdminTagsPage() {
         emptyText="暂无标签数据"
         minWidth={640}
         selectedRowKeys={selectedIds}
-        allSelected={pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id))}
+        allSelected={
+          pageData.items.length > 0 &&
+          pageData.items.every((item) => selectedIds.has(item.id))
+        }
         onSelectRow={toggleSelected}
         onSelectAll={toggleCurrentPage}
         getCheckboxLabel={(item) => `选择 ${item.name}`}
@@ -353,7 +427,12 @@ export default function AdminTagsPage() {
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 新增
               </Button>
-              <Button type="button" variant="danger" disabled={!selectedIds.size} onClick={openBatchDeleteDialog}>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={!selectedIds.size}
+                onClick={openBatchDeleteDialog}
+              >
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
                 批量删除
               </Button>
@@ -395,8 +474,17 @@ export default function AdminTagsPage() {
         onClose={closeEditModal}
         footer={
           <>
-            <Button type="button" variant="ghost" onClick={closeEditModal} disabled={saving}>取消</Button>
-            <Button type="submit" form="tag-form" loading={saving}>提交</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeEditModal}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button type="submit" form="tag-form" loading={saving}>
+              提交
+            </Button>
           </>
         }
       >
@@ -407,7 +495,11 @@ export default function AdminTagsPage() {
               required
               label="标签名称"
               value={editing.name}
-              onChange={(event) => setEditing((current) => (current ? { ...current, name: event.target.value } : current))}
+              onChange={(event) =>
+                setEditing((current) =>
+                  current ? { ...current, name: event.target.value } : current,
+                )
+              }
               placeholder="请输入标签名称"
             />
           </form>

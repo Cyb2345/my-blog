@@ -3,7 +3,12 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type AdminTableActionVariant = "edit" | "delete" | "warning" | "success" | "neutral";
+type AdminTableActionVariant =
+  | "edit"
+  | "delete"
+  | "warning"
+  | "success"
+  | "neutral";
 
 type AdminTableActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: AdminTableActionVariant;
@@ -11,8 +16,7 @@ type AdminTableActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<AdminTableActionVariant, string> = {
-  edit:
-    "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] ring-[color-mix(in_srgb,var(--admin-primary)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--admin-primary)_18%,transparent)]",
+  edit: "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] ring-[color-mix(in_srgb,var(--admin-primary)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--admin-primary)_18%,transparent)]",
   delete:
     "bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] text-[var(--color-danger)] ring-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)]",
   warning:
@@ -32,7 +36,11 @@ export function AdminTableActions({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("flex items-center justify-center gap-2", className)}>{children}</div>;
+  return (
+    <div className={cn("flex items-center justify-center gap-2", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function AdminTableActionButton({

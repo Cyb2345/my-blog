@@ -27,7 +27,9 @@ export function DocsTree({ activeSlug, groups }: Props) {
 
   useEffect(() => {
     if (!activeSlug) return;
-    const activeGroup = groups.find((group) => group.items.some((item) => item.slug === activeSlug));
+    const activeGroup = groups.find((group) =>
+      group.items.some((item) => item.slug === activeSlug),
+    );
     if (!activeGroup) return;
     setOpenGroups((current) => {
       if (current.has(activeGroup.id)) return current;
@@ -72,18 +74,37 @@ export function DocsTree({ activeSlug, groups }: Props) {
                 <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{group.name}</span>
               </span>
-              <ChevronDown className={cn("h-4 w-4 shrink-0 docs-tree__chevron", isOpen && "docs-tree__chevron--open")} aria-hidden="true" />
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 docs-tree__chevron",
+                  isOpen && "docs-tree__chevron--open",
+                )}
+                aria-hidden="true"
+              />
             </button>
-            <div className={cn("docs-tree__children", isOpen && "docs-tree__children--open")}>
+            <div
+              className={cn(
+                "docs-tree__children",
+                isOpen && "docs-tree__children--open",
+              )}
+            >
               {group.items.map((item) => (
                 <Link
                   key={item.id}
                   href={`/docs/${item.slug}`}
-                  className={cn("docs-tree__link", activeSlug === item.slug && "docs-tree__link--active")}
+                  className={cn(
+                    "docs-tree__link",
+                    activeSlug === item.slug && "docs-tree__link--active",
+                  )}
                 >
-                  <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <FileText
+                    className="h-3.5 w-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
                   <span className="min-w-0 flex-1 truncate">{item.title}</span>
-                  <span className="docs-tree__date">{formatDate(item.updated_at)}</span>
+                  <span className="docs-tree__date">
+                    {formatDate(item.updated_at)}
+                  </span>
                 </Link>
               ))}
             </div>

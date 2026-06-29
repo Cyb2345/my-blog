@@ -41,13 +41,31 @@ export function ConfirmDialog({
       onClose={handleClose}
       footer={
         <>
-          <Button type="button" variant="ghost" onClick={handleClose} disabled={loading}>{cancelText}</Button>
-          <Button type="button" variant="danger" onClick={onConfirm} loading={loading}>{confirmText}</Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClose}
+            disabled={loading}
+          >
+            {cancelText}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={onConfirm}
+            loading={loading}
+          >
+            {confirmText}
+          </Button>
         </>
       }
     >
       <div className="grid gap-4">
-        {error ? <p className="rounded-md bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
+        {error ? (
+          <p className="rounded-md bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] px-3 py-2 text-sm font-bold text-destructive">
+            {error}
+          </p>
+        ) : null}
         <div className="flex items-center gap-4">
           <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--destructive)_14%,transparent)] text-destructive">
             <AlertTriangle className="size-6" aria-hidden="true" />

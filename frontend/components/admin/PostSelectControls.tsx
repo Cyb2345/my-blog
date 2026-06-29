@@ -47,8 +47,10 @@ function DropdownPanel({
   return (
     <div
       className={cn(
-        "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[80] max-h-72 origin-top overflow-auto rounded-lg border border-ink/10 bg-white p-1 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
-        open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+        "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[80] max-h-72 origin-top overflow-auto rounded-lg border border-border bg-card p-1 shadow-xl transition-all duration-200 motion-reduce:transition-none border-border ",
+        open
+          ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+          : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
       )}
     >
       {children}
@@ -70,12 +72,16 @@ function OptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm font-bold transition-colors duration-150 hover:bg-paper dark:hover:bg-white/10",
-        active ? "bg-ocean/10 text-ocean dark:bg-sky-400/15 dark:text-sky-200" : "text-ink/70 dark:text-slate-300",
+        "flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm font-bold transition-colors duration-150 hover:bg-muted hover:bg-accent",
+        active
+          ? "bg-accent text-primary bg-primary/15 text-primary"
+          : "text-muted-foreground text-muted-foreground",
       )}
     >
       <span className="truncate">{children}</span>
-      {active ? <Check className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+      {active ? (
+        <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+      ) : null}
     </button>
   );
 }
@@ -94,7 +100,9 @@ export function PostCategorySelect({
   const [open, setOpen] = useState(false);
   const ref = useCloseOnOutside(open, () => setOpen(false));
   const normalizedValue = value ? String(value) : "";
-  const selected = categories.find((category) => String(category.id) === normalizedValue);
+  const selected = categories.find(
+    (category) => String(category.id) === normalizedValue,
+  );
 
   return (
     <div ref={ref} className="relative">
@@ -110,14 +118,27 @@ export function PostCategorySelect({
         }}
         aria-expanded={open}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-ink/10 bg-white px-3 py-2 text-left text-sm font-bold outline-none ring-ocean/20 transition-all duration-200 hover:border-ocean/40 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20 dark:hover:border-sky-300/40",
+          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-bold outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-ocean/40 focus:ring-4 border-border text-foreground dark:ring-sky-300/20 dark:hover:border-sky-300/40",
           open && "border-ocean/70 dark:border-sky-300/70",
         )}
       >
-        <span className={cn("truncate", selected ? "text-ink dark:text-slate-100" : "text-ink/40 dark:text-slate-500")}>
+        <span
+          className={cn(
+            "truncate",
+            selected
+              ? "text-foreground text-foreground"
+              : "text-muted-foreground text-muted-foreground",
+          )}
+        >
           {selected?.name ?? placeholder}
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink/45 transition-transform duration-200 dark:text-slate-500", open && "rotate-180")} aria-hidden="true" />
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 text-muted-foreground",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
       </div>
       <DropdownPanel open={open}>
         <OptionButton
@@ -143,7 +164,9 @@ export function PostCategorySelect({
             </OptionButton>
           ))
         ) : (
-          <p className="px-3 py-2 text-sm font-bold text-ink/45 dark:text-slate-500">暂无可选分类</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground text-muted-foreground">
+            暂无可选分类
+          </p>
         )}
       </DropdownPanel>
     </div>
@@ -166,10 +189,17 @@ export function PostTagMultiSelect({
   const selectedIds = useMemo(() => new Set(value), [value]);
   const selectedTags = tags.filter((tag) => selectedIds.has(tag.id));
   const visibleSelectedTags = selectedTags.slice(0, 2);
-  const extraSelectedCount = Math.max(selectedTags.length - visibleSelectedTags.length, 0);
+  const extraSelectedCount = Math.max(
+    selectedTags.length - visibleSelectedTags.length,
+    0,
+  );
 
   function toggle(tag: SelectOption) {
-    onChange(selectedIds.has(tag.id) ? value.filter((id) => id !== tag.id) : [...value, tag.id]);
+    onChange(
+      selectedIds.has(tag.id)
+        ? value.filter((id) => id !== tag.id)
+        : [...value, tag.id],
+    );
   }
 
   return (
@@ -186,7 +216,7 @@ export function PostTagMultiSelect({
         }}
         aria-expanded={open}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-ink/10 bg-white px-3 py-2 text-left text-sm font-bold outline-none ring-ocean/20 transition-all duration-200 hover:border-ocean/40 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20 dark:hover:border-sky-300/40",
+          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-bold outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-ocean/40 focus:ring-4 border-border text-foreground dark:ring-sky-300/20 dark:hover:border-sky-300/40",
           open && "border-ocean/70 dark:border-sky-300/70",
         )}
       >
@@ -196,7 +226,7 @@ export function PostTagMultiSelect({
               {visibleSelectedTags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
+                  className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-black text-primary bg-primary/15 text-primary"
                 >
                   <span className="truncate">{tag.name}</span>
                   <span
@@ -214,29 +244,47 @@ export function PostTagMultiSelect({
                         onChange(value.filter((id) => id !== tag.id));
                       }
                     }}
-                    className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
+                    className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-primary/10 hover:bg-accent"
                   >
                     <X className="h-3 w-3" aria-hidden="true" />
                   </span>
                 </span>
               ))}
-              {extraSelectedCount ? <span className="shrink-0 rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraSelectedCount}</span> : null}
+              {extraSelectedCount ? (
+                <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-black text-muted-foreground bg-accent text-muted-foreground">
+                  +{extraSelectedCount}
+                </span>
+              ) : null}
             </>
           ) : (
-            <span className="text-ink/40 dark:text-slate-500">{placeholder}</span>
+            <span className="text-muted-foreground text-muted-foreground">
+              {placeholder}
+            </span>
           )}
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink/45 transition-transform duration-200 dark:text-slate-500", open && "rotate-180")} aria-hidden="true" />
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 text-muted-foreground",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
       </div>
       <DropdownPanel open={open}>
         {tags.length ? (
           tags.map((tag) => (
-            <OptionButton key={tag.id} active={selectedIds.has(tag.id)} onClick={() => toggle(tag)}>
+            <OptionButton
+              key={tag.id}
+              active={selectedIds.has(tag.id)}
+              onClick={() => toggle(tag)}
+            >
               {tag.name}
             </OptionButton>
           ))
         ) : (
-          <p className="px-3 py-2 text-sm font-bold text-ink/45 dark:text-slate-500">暂无标签</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground text-muted-foreground">
+            暂无标签
+          </p>
         )}
       </DropdownPanel>
     </div>
@@ -262,16 +310,25 @@ export function PostTagEditorSelect({
   const selectedIds = useMemo(() => new Set(value), [value]);
   const selectedTags = tags.filter((tag) => selectedIds.has(tag.id));
   const visibleSelectedTags = selectedTags.slice(0, 3);
-  const extraSelectedCount = Math.max(selectedTags.length - visibleSelectedTags.length, 0);
+  const extraSelectedCount = Math.max(
+    selectedTags.length - visibleSelectedTags.length,
+    0,
+  );
 
   function toggleTag(tag: Tag) {
-    onChange(selectedIds.has(tag.id) ? value.filter((id) => id !== tag.id) : [...value, tag.id]);
+    onChange(
+      selectedIds.has(tag.id)
+        ? value.filter((id) => id !== tag.id)
+        : [...value, tag.id],
+    );
   }
 
   async function createCustomTag() {
     const name = draft.trim();
     if (!name || !onCreateTag || creating) return;
-    const existing = tags.find((tag) => tag.name.toLowerCase() === name.toLowerCase());
+    const existing = tags.find(
+      (tag) => tag.name.toLowerCase() === name.toLowerCase(),
+    );
     if (existing) {
       if (!selectedIds.has(existing.id)) onChange([...value, existing.id]);
       setDraft("");
@@ -294,29 +351,35 @@ export function PostTagEditorSelect({
 
   return (
     <div ref={ref} className="relative">
-      <div className="flex h-10 items-center gap-2 rounded-md border border-ink/10 bg-white px-3 dark:border-white/10 dark:bg-slate-950/70">
+      <div className="flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 border-border ">
         {selectedTags.length ? (
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {visibleSelectedTags.map((tag) => (
               <span
                 key={tag.id}
-                className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-ocean/10 px-2 py-1 text-xs font-black text-ocean dark:bg-sky-400/15 dark:text-sky-200"
+                className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-black text-primary bg-primary/15 text-primary"
               >
                 <span className="truncate">{tag.name}</span>
                 <button
                   type="button"
                   onClick={() => onChange(value.filter((id) => id !== tag.id))}
-                  className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-ocean/10 dark:hover:bg-white/10"
+                  className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-primary/10 hover:bg-accent"
                   aria-label={`移除 ${tag.name}`}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </span>
             ))}
-            {extraSelectedCount ? <span className="shrink-0 rounded-md bg-paper px-2 py-1 text-xs font-black text-ink/50 dark:bg-white/10 dark:text-slate-400">+{extraSelectedCount}</span> : null}
+            {extraSelectedCount ? (
+              <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-black text-muted-foreground bg-accent text-muted-foreground">
+                +{extraSelectedCount}
+              </span>
+            ) : null}
           </div>
         ) : (
-          <span className="min-w-0 flex-1 truncate text-xs font-bold text-ink/40 dark:text-slate-500">暂未选择标签</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-bold text-muted-foreground text-muted-foreground">
+            暂未选择标签
+          </span>
         )}
         <button
           type="button"
@@ -324,8 +387,8 @@ export function PostTagEditorSelect({
           className={cn(
             "interactive ml-auto inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
             open
-              ? "bg-ocean text-white ring-ocean dark:bg-sky-400 dark:text-white dark:ring-sky-300"
-              : "bg-paper text-ocean ring-ocean/20 hover:ring-ocean/50 dark:bg-white/10 dark:text-sky-200 dark:ring-sky-300/20",
+              ? "bg-primary text-white ring-ocean bg-primary dark:text-white dark:ring-sky-300"
+              : "bg-muted text-primary ring-[var(--admin-focus-ring)] hover:ring-ocean/50 bg-accent text-primary dark:ring-sky-300/20",
           )}
         >
           添加标签
@@ -333,13 +396,22 @@ export function PostTagEditorSelect({
       </div>
       <div
         className={cn(
-          "absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-ink/10 bg-white p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-white/10 dark:bg-slate-900",
-          open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
+          "absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-border bg-card p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none border-border ",
+          open
+            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
       >
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-black text-ink dark:text-slate-100">标签</p>
-          <button type="button" onClick={() => setOpen(false)} className="text-ink/45 hover:text-ink dark:text-slate-500 dark:hover:text-slate-100" aria-label="关闭标签面板">
+          <p className="text-sm font-black text-foreground text-foreground">
+            标签
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-muted-foreground hover:text-foreground text-muted-foreground hover:text-foreground"
+            aria-label="关闭标签面板"
+          >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -353,10 +425,16 @@ export function PostTagEditorSelect({
             }
           }}
           placeholder="请输入标签名，enter 添加自定义标签"
-          className="min-h-10 w-full rounded-md border border-ink/10 bg-white px-3 py-2 text-sm font-bold outline-none ring-ocean/20 focus:ring-4 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:ring-sky-300/20"
+          className="min-h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-bold outline-none ring-[var(--admin-focus-ring)] focus:ring-4 border-border text-foreground dark:ring-sky-300/20"
         />
-        {panelError ? <p className="mt-2 text-xs font-bold text-red-600 dark:text-rose-300">{panelError}</p> : null}
-        <p className="mt-3 text-xs font-black text-ink/50 dark:text-slate-400">{creating ? "正在添加标签..." : "添加标签"}</p>
+        {panelError ? (
+          <p className="mt-2 text-xs font-bold text-destructive ">
+            {panelError}
+          </p>
+        ) : null}
+        <p className="mt-3 text-xs font-black text-muted-foreground text-muted-foreground">
+          {creating ? "正在添加标签..." : "添加标签"}
+        </p>
         <div className="mt-2 max-h-52 overflow-auto pr-1">
           <div className="flex flex-wrap gap-2">
             {tags.length ? (
@@ -368,15 +446,17 @@ export function PostTagEditorSelect({
                   className={cn(
                     "interactive rounded-md px-2.5 py-1.5 text-xs font-black transition-all duration-150",
                     selectedIds.has(tag.id)
-                      ? "bg-ocean text-white dark:bg-sky-400 dark:text-white"
-                      : "bg-paper text-ink/65 hover:text-ink dark:bg-white/10 dark:text-slate-300 dark:hover:text-slate-100",
+                      ? "bg-primary text-white bg-primary dark:text-white"
+                      : "bg-muted text-muted-foreground hover:text-foreground bg-accent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {tag.name}
                 </button>
               ))
             ) : (
-              <span className="text-sm font-bold text-ink/45 dark:text-slate-500">暂无标签</span>
+              <span className="text-sm font-bold text-muted-foreground text-muted-foreground">
+                暂无标签
+              </span>
             )}
           </div>
         </div>

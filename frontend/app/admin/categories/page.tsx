@@ -3,13 +3,19 @@
 import { Edit, Minus, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
+import {
+  AdminDataTable,
+  type AdminDataTableColumn,
+} from "@/components/admin/AdminDataTable";
 import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
 import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
-import { type TableSettings, useTableSettings } from "@/components/admin/DataTableToolbar";
+import {
+  type TableSettings,
+  useTableSettings,
+} from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { Button } from "@/components/ui/button";
@@ -57,7 +63,11 @@ const defaultCategoryTableSettings: TableSettings = {
   visibleColumns: categoryColumnOptions.map((column) => column.key),
 };
 
-function normalizePage(data: CategoryPage | Category[], page: number, pageSize: number): CategoryPage {
+function normalizePage(
+  data: CategoryPage | Category[],
+  page: number,
+  pageSize: number,
+): CategoryPage {
   if (!Array.isArray(data)) return data;
   return {
     items: data,
@@ -87,7 +97,13 @@ function formatDateTime(value?: string | null) {
     .replace(/\//g, "-");
 }
 
-function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+function Notice({
+  variant,
+  children,
+}: {
+  variant: "error" | "success";
+  children: string;
+}) {
   return (
     <p
       className={cn(
@@ -104,7 +120,11 @@ function Notice({ variant, children }: { variant: "error" | "success"; children:
 
 export default function AdminCategoriesPage() {
   const [pageData, setPageData] = useState<CategoryPage>(emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(categoryTableSettingsKey, defaultCategoryTableSettings, categoryColumnOptions);
+  const [tableSettings, setTableSettings] = useTableSettings(
+    categoryTableSettingsKey,
+    defaultCategoryTableSettings,
+    categoryColumnOptions,
+  );
   const [queryName, setQueryName] = useState("");
   const [appliedName, setAppliedName] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
@@ -120,7 +140,11 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  async function load(currentPage = pageNumber, currentPageSize = pageSize, currentName = appliedName) {
+  async function load(
+    currentPage = pageNumber,
+    currentPageSize = pageSize,
+    currentName = appliedName,
+  ) {
     setLoading(true);
     setError("");
     try {
@@ -129,7 +153,9 @@ export default function AdminCategoriesPage() {
         page_size: String(currentPageSize),
       });
       if (currentName.trim()) params.set("name", currentName.trim());
-      const data = await adminRequest<CategoryPage | Category[]>(`/admin/categories?${params.toString()}`);
+      const data = await adminRequest<CategoryPage | Category[]>(
+        `/admin/categories?${params.toString()}`,
+      );
       const normalized = normalizePage(data, currentPage, currentPageSize);
       setPageData(normalized);
       setSelectedIds(new Set());
@@ -146,13 +172,21 @@ export default function AdminCategoriesPage() {
   }, [pageNumber, pageSize, appliedName]);
 
   function openCreateModal() {
-    const nextSort = Math.max(1, pageData.total + 1, ...pageData.items.map((item) => Number(item.sort_order || 0) + 1));
+    const nextSort = Math.max(
+      1,
+      pageData.total + 1,
+      ...pageData.items.map((item) => Number(item.sort_order || 0) + 1),
+    );
     setEditing({ name: "", sort_order: nextSort });
     setModalError("");
   }
 
   function openEditModal(item: Category) {
-    setEditing({ id: item.id, name: item.name, sort_order: item.sort_order ?? 1 });
+    setEditing({
+      id: item.id,
+      name: item.name,
+      sort_order: item.sort_order ?? 1,
+    });
     setModalError("");
   }
 
@@ -194,10 +228,16 @@ export default function AdminCategoriesPage() {
     try {
       const payload = { name, sort_order: Math.floor(sortOrder) };
       if (editing.id) {
-        await adminRequest(`/admin/categories/${editing.id}`, { method: "PUT", body: JSON.stringify(payload) });
+        await adminRequest(`/admin/categories/${editing.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
         setNotice("分类已保存，列表已刷新。");
       } else {
-        await adminRequest("/admin/categories", { method: "POST", body: JSON.stringify(payload) });
+        await adminRequest("/admin/categories", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         setNotice("分类已新增，列表已刷新。");
       }
       await load(pageNumber, pageSize, appliedName);
@@ -236,10 +276,16 @@ export default function AdminCategoriesPage() {
       for (const id of ids) {
         await adminRequest(`/admin/categories/${id}`, { method: "DELETE" });
       }
-      setNotice(deleteState.type === "single" ? "分类已删除，列表已刷新。" : "选中分类已删除，列表已刷新。");
+      setNotice(
+        deleteState.type === "single"
+          ? "分类已删除，列表已刷新。"
+          : "选中分类已删除，列表已刷新。",
+      );
       setDeleteState(null);
       setSelectedIds(new Set());
-      const remainingCurrentPageCount = pageData.items.filter((item) => !ids.includes(item.id)).length;
+      const remainingCurrentPageCount = pageData.items.filter(
+        (item) => !ids.includes(item.id),
+      ).length;
       const shouldGoBack = remainingCurrentPageCount === 0 && pageNumber > 1;
       if (shouldGoBack) {
         setPageNumber((value) => Math.max(1, value - 1));
@@ -255,7 +301,8 @@ export default function AdminCategoriesPage() {
 
   function deleteDescription() {
     if (!deleteState) return "确定删除该分类吗？";
-    if (deleteState.type === "single") return `确定删除分类「${deleteState.name}」吗？`;
+    if (deleteState.type === "single")
+      return `确定删除分类「${deleteState.name}」吗？`;
     return `确定删除选中的 ${deleteState.ids.length} 个分类吗？`;
   }
 
@@ -292,28 +339,44 @@ export default function AdminCategoriesPage() {
         minWidth: 180,
         ellipsis: true,
         hidden: !tableSettings.visibleColumns.includes("name"),
-        render: (item) => <span className="font-bold text-[var(--color-text)]">{item.name}</span>,
+        render: (item) => (
+          <span className="font-bold text-[var(--color-text)]">
+            {item.name}
+          </span>
+        ),
       },
       {
         key: "articleCount",
         title: "文章数",
         width: 120,
         hidden: !tableSettings.visibleColumns.includes("articleCount"),
-        render: (item) => <span className="font-bold text-[var(--color-text-muted)]">{getArticleCount(item)}</span>,
+        render: (item) => (
+          <span className="font-bold text-[var(--color-text-muted)]">
+            {getArticleCount(item)}
+          </span>
+        ),
       },
       {
         key: "sortOrder",
         title: "排序",
         width: 100,
         hidden: !tableSettings.visibleColumns.includes("sortOrder"),
-        render: (item) => <span className="font-bold text-[var(--color-text-muted)]">{item.sort_order}</span>,
+        render: (item) => (
+          <span className="font-bold text-[var(--color-text-muted)]">
+            {item.sort_order}
+          </span>
+        ),
       },
       {
         key: "createdAt",
         title: "创建时间",
         width: 180,
         hidden: !tableSettings.visibleColumns.includes("createdAt"),
-        render: (item) => <span className="text-[var(--color-text-muted)]">{formatDateTime(item.created_at)}</span>,
+        render: (item) => (
+          <span className="text-[var(--color-text-muted)]">
+            {formatDateTime(item.created_at)}
+          </span>
+        ),
       },
       {
         key: "actions",
@@ -324,8 +387,24 @@ export default function AdminCategoriesPage() {
         render: (item) => (
           <RowActions
             actions={[
-              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} aria-hidden="true" />, variant: "edit", onClick: () => openEditModal(item) },
-              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />, variant: "delete", onClick: () => openDeleteDialog(item) },
+              {
+                key: "edit",
+                label: "编辑",
+                icon: (
+                  <Edit className={rowActionIconClass} aria-hidden="true" />
+                ),
+                variant: "edit",
+                onClick: () => openEditModal(item),
+              },
+              {
+                key: "delete",
+                label: "删除",
+                icon: (
+                  <Trash2 className={rowActionIconClass} aria-hidden="true" />
+                ),
+                variant: "delete",
+                onClick: () => openDeleteDialog(item),
+              },
             ]}
             className="justify-end"
           />
@@ -340,7 +419,11 @@ export default function AdminCategoriesPage() {
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
-      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
+      <AdminSearchForm
+        onSubmit={handleQuery}
+        onReset={handleReset}
+        loading={loading}
+      >
         <Input
           label="分类名称"
           value={queryName}
@@ -358,7 +441,10 @@ export default function AdminCategoriesPage() {
         emptyText="暂无分类数据"
         minWidth={760}
         selectedRowKeys={selectedIds}
-        allSelected={pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id))}
+        allSelected={
+          pageData.items.length > 0 &&
+          pageData.items.every((item) => selectedIds.has(item.id))
+        }
         onSelectRow={toggleSelected}
         onSelectAll={toggleCurrentPage}
         getCheckboxLabel={(item) => `选择 ${item.name}`}
@@ -369,7 +455,12 @@ export default function AdminCategoriesPage() {
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 新增
               </Button>
-              <Button type="button" variant="danger" disabled={!selectedIds.size} onClick={openBatchDeleteDialog}>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={!selectedIds.size}
+                onClick={openBatchDeleteDialog}
+              >
                 <Trash2 className="h-4 w-4" aria-hidden="true" />
                 批量删除
               </Button>
@@ -411,26 +502,55 @@ export default function AdminCategoriesPage() {
         onClose={closeEditModal}
         footer={
           <>
-            <Button type="button" variant="ghost" onClick={closeEditModal} disabled={saving}>取消</Button>
-            <Button type="submit" form="category-form" loading={saving}>提交</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeEditModal}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button type="submit" form="category-form" loading={saving}>
+              提交
+            </Button>
           </>
         }
       >
         {editing ? (
-          <form id="category-form" onSubmit={handleSubmit} className="grid gap-5">
+          <form
+            id="category-form"
+            onSubmit={handleSubmit}
+            className="grid gap-5"
+          >
             <ModalError message={modalError} />
             <Input
               required
               label="分类名称"
               value={editing.name}
-              onChange={(event) => setEditing((current) => (current ? { ...current, name: event.target.value } : current))}
+              onChange={(event) =>
+                setEditing((current) =>
+                  current ? { ...current, name: event.target.value } : current,
+                )
+              }
               placeholder="请输入分类名称"
             />
             <AdminField label="排序">
               <div className="grid h-10 max-w-xs grid-cols-[3rem_1fr_3rem] overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface)]">
                 <button
                   type="button"
-                  onClick={() => setEditing((current) => (current ? { ...current, sort_order: Math.max(0, Number(current.sort_order || 0) - 1) } : current))}
+                  onClick={() =>
+                    setEditing((current) =>
+                      current
+                        ? {
+                            ...current,
+                            sort_order: Math.max(
+                              0,
+                              Number(current.sort_order || 0) - 1,
+                            ),
+                          }
+                        : current,
+                    )
+                  }
                   className="interactive grid place-items-center border-r border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
                   aria-label="减少排序"
                 >
@@ -441,12 +561,36 @@ export default function AdminCategoriesPage() {
                   min={0}
                   step={1}
                   value={editing.sort_order}
-                  onChange={(event) => setEditing((current) => (current ? { ...current, sort_order: Math.max(0, Number(event.target.value || 0)) } : current))}
-                  className={cn(inputBaseClass, "min-w-0 border-0 bg-transparent text-center shadow-none focus:ring-0")}
+                  onChange={(event) =>
+                    setEditing((current) =>
+                      current
+                        ? {
+                            ...current,
+                            sort_order: Math.max(
+                              0,
+                              Number(event.target.value || 0),
+                            ),
+                          }
+                        : current,
+                    )
+                  }
+                  className={cn(
+                    inputBaseClass,
+                    "min-w-0 border-0 bg-transparent text-center shadow-none focus:ring-0",
+                  )}
                 />
                 <button
                   type="button"
-                  onClick={() => setEditing((current) => (current ? { ...current, sort_order: Number(current.sort_order || 0) + 1 } : current))}
+                  onClick={() =>
+                    setEditing((current) =>
+                      current
+                        ? {
+                            ...current,
+                            sort_order: Number(current.sort_order || 0) + 1,
+                          }
+                        : current,
+                    )
+                  }
                   className="interactive grid place-items-center border-l border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
                   aria-label="增加排序"
                 >

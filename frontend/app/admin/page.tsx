@@ -24,17 +24,26 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
 
   useEffect(() => {
-    adminRequest<AdminStats>("/admin/stats").then(setStats).catch(() => setStats(null));
+    adminRequest<AdminStats>("/admin/stats")
+      .then(setStats)
+      .catch(() => setStats(null));
   }, []);
 
   return (
-    <AdminPage title="后台概览" description="查看内容、用户、留言和媒体资源的关键统计。">
+    <AdminPage
+      title="后台概览"
+      description="查看内容、用户、留言和媒体资源的关键统计。"
+    >
       <div className="motion-list grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(labels) as Array<keyof AdminStats>).map((key) => (
           <Card key={key} className="motion-card interactive-card">
             <CardContent className="p-5">
-              <p className="text-sm font-bold text-muted-foreground">{labels[key]}</p>
-              <p className="mt-3 text-3xl font-black text-foreground">{stats ? stats[key] : "-"}</p>
+              <p className="text-sm font-bold text-muted-foreground">
+                {labels[key]}
+              </p>
+              <p className="mt-3 text-3xl font-black text-foreground">
+                {stats ? stats[key] : "-"}
+              </p>
             </CardContent>
           </Card>
         ))}

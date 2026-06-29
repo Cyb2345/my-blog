@@ -66,20 +66,41 @@ export const defaultTableSettings: TableSettings = {
   visibleColumns: [],
 };
 
-function normalizeSettings(value: unknown, fallback: TableSettings, columns?: TableColumnOption[]) {
+function normalizeSettings(
+  value: unknown,
+  fallback: TableSettings,
+  columns?: TableColumnOption[],
+) {
   if (!value || typeof value !== "object") return fallback;
   const record = value as Partial<TableSettings>;
-  const columnKeys = columns?.map((column) => column.key) ?? fallback.visibleColumns;
+  const columnKeys =
+    columns?.map((column) => column.key) ?? fallback.visibleColumns;
   const visibleColumns = Array.isArray(record.visibleColumns)
-    ? record.visibleColumns.filter((key): key is string => typeof key === "string" && columnKeys.includes(key))
+    ? record.visibleColumns.filter(
+        (key): key is string =>
+          typeof key === "string" && columnKeys.includes(key),
+      )
     : fallback.visibleColumns;
-  const lockedColumns = columns?.filter((column) => column.locked).map((column) => column.key) ?? [];
+  const lockedColumns =
+    columns?.filter((column) => column.locked).map((column) => column.key) ??
+    [];
 
   return {
-    bordered: typeof record.bordered === "boolean" ? record.bordered : fallback.bordered,
-    striped: typeof record.striped === "boolean" ? record.striped : fallback.striped,
-    headerBackground: typeof record.headerBackground === "boolean" ? record.headerBackground : fallback.headerBackground,
-    density: record.density && densityOptions.some((option) => option.value === record.density) ? record.density : fallback.density,
+    bordered:
+      typeof record.bordered === "boolean"
+        ? record.bordered
+        : fallback.bordered,
+    striped:
+      typeof record.striped === "boolean" ? record.striped : fallback.striped,
+    headerBackground:
+      typeof record.headerBackground === "boolean"
+        ? record.headerBackground
+        : fallback.headerBackground,
+    density:
+      record.density &&
+      densityOptions.some((option) => option.value === record.density)
+        ? record.density
+        : fallback.density,
     visibleColumns: Array.from(new Set([...visibleColumns, ...lockedColumns])),
   };
 }
@@ -95,7 +116,11 @@ export function useTableSettings(
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(storageKey);
-      setSettings(raw ? normalizeSettings(JSON.parse(raw), fallbackSettings, columns) : fallbackSettings);
+      setSettings(
+        raw
+          ? normalizeSettings(JSON.parse(raw), fallbackSettings, columns)
+          : fallbackSettings,
+      );
     } catch {
       setSettings(fallbackSettings);
     } finally {
@@ -173,12 +198,17 @@ export function TableDensitySelector({
           key={option.value}
           type="button"
           onClick={() => {
-            onSettingsChange((current) => ({ ...current, density: option.value }));
+            onSettingsChange((current) => ({
+              ...current,
+              density: option.value,
+            }));
             onClose();
           }}
           className={cn(
             "flex min-h-10 w-full items-center justify-between rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-accent hover:text-accent-foreground",
-            settings.density === option.value ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+            settings.density === option.value
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground",
           )}
         >
           {t(option.label)}
@@ -233,7 +263,12 @@ export function ColumnVisibilityPopover({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => onSettingsChange((current) => ({ ...current, visibleColumns: columns.map((column) => column.key) }))}
+        onClick={() =>
+          onSettingsChange((current) => ({
+            ...current,
+            visibleColumns: columns.map((column) => column.key),
+          }))
+        }
         className="mt-1 w-full justify-start"
       >
         {t("恢复默认列")}
@@ -266,7 +301,12 @@ export function TableStyleSettings({
         >
           <Checkbox
             checked={settings[option.key]}
-            onCheckedChange={() => onSettingsChange((current) => ({ ...current, [option.key]: !current[option.key] }))}
+            onCheckedChange={() =>
+              onSettingsChange((current) => ({
+                ...current,
+                [option.key]: !current[option.key],
+              }))
+            }
           />
           {t(option.label)}
         </div>
@@ -294,7 +334,8 @@ export function DataTableToolbar({
     if (!activePanel) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (!toolbarRef.current?.contains(event.target as Node)) setActivePanel(null);
+      if (!toolbarRef.current?.contains(event.target as Node))
+        setActivePanel(null);
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -317,36 +358,62 @@ export function DataTableToolbar({
     <div ref={toolbarRef} className="flex flex-wrap items-center gap-2">
       {enableRefresh ? (
         <ToolIconButton label={t("刷新")} onClick={() => onRefresh?.()}>
-          <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} aria-hidden="true" />
+          <RefreshCw
+            className={cn("h-4 w-4", refreshing && "animate-spin")}
+            aria-hidden="true"
+          />
         </ToolIconButton>
       ) : null}
       {enableDensity ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "density"} label={t("行高 / 密度设置")} onClick={() => togglePanel("density")}>
+          <ToolIconButton
+            active={activePanel === "density"}
+            label={t("行高 / 密度设置")}
+            onClick={() => togglePanel("density")}
+          >
             <Rows3 className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "density"}>
-            <TableDensitySelector settings={settings} onSettingsChange={onSettingsChange} onClose={() => setActivePanel(null)} />
+            <TableDensitySelector
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+              onClose={() => setActivePanel(null)}
+            />
           </ToolPopover>
         </div>
       ) : null}
       {enableColumns && columns.length ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "columns"} label={t("列显示设置")} onClick={() => togglePanel("columns")}>
+          <ToolIconButton
+            active={activePanel === "columns"}
+            label={t("列显示设置")}
+            onClick={() => togglePanel("columns")}
+          >
             <Columns3 className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "columns"} className="min-w-56">
-            <ColumnVisibilityPopover settings={settings} onSettingsChange={onSettingsChange} columns={columns} />
+            <ColumnVisibilityPopover
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+              columns={columns}
+            />
           </ToolPopover>
         </div>
       ) : null}
       {enableStyle ? (
         <div className="relative">
-          <ToolIconButton active={activePanel === "style"} label={t("表格样式设置")} onClick={() => togglePanel("style")}>
+          <ToolIconButton
+            active={activePanel === "style"}
+            label={t("表格样式设置")}
+            onClick={() => togglePanel("style")}
+          >
             <Settings className="h-4 w-4" aria-hidden="true" />
           </ToolIconButton>
           <ToolPopover open={activePanel === "style"} className="min-w-52">
-            <TableStyleSettings settings={settings} onSettingsChange={onSettingsChange} />
+            <TableStyleSettings
+              settings={settings}
+              onSettingsChange={onSettingsChange}
+            />
           </ToolPopover>
         </div>
       ) : null}

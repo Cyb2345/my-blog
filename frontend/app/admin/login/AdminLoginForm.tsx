@@ -40,7 +40,9 @@ function formatError(body: unknown) {
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string" && detail) return detail;
   if (Array.isArray(detail)) {
-    return detail.map((item) => (typeof item === "string" ? item : JSON.stringify(item))).join("；");
+    return detail
+      .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
+      .join("；");
   }
   return detail ? JSON.stringify(detail) : "请求失败，请稍后重试";
 }
@@ -61,7 +63,8 @@ export function AdminLoginForm({
   const [backgroundLoaded, setBackgroundLoaded] = useState(!backgroundUrl);
 
   const imageCaptchaEnabled = captchaType === "image";
-  const captchaUnsupported = captchaType === "slider" || captchaType === "turnstile";
+  const captchaUnsupported =
+    captchaType === "slider" || captchaType === "turnstile";
 
   const loadCaptcha = useCallback(async () => {
     if (!imageCaptchaEnabled) {
@@ -69,7 +72,9 @@ export function AdminLoginForm({
       return;
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/captcha`, { cache: "no-store" });
+      const response = await fetch(`${API_BASE_URL}/auth/captcha`, {
+        cache: "no-store",
+      });
       const body = (await response.json()) as Envelope<CaptchaPayload>;
       setCaptcha(body.data ?? null);
     } catch {
@@ -138,8 +143,11 @@ export function AdminLoginForm({
   }
 
   return (
-    <main className="relative flex min-h-[100svh] flex-col overflow-hidden bg-[#0b0b0c] px-4 py-5 text-white sm:px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(79,124,255,0.16),transparent_28rem)]" aria-hidden="true" />
+    <main className="relative flex min-h-[100svh] flex-col overflow-hidden bg-background px-4 py-5 text-white sm:px-6">
+      <div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(79,124,255,0.16),transparent_28rem)]"
+        aria-hidden="true"
+      />
       {backgroundUrl ? (
         <div
           className={cn(
@@ -155,7 +163,11 @@ export function AdminLoginForm({
         />
       ) : null}
       {overlayEnabled ? (
-        <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} aria-hidden="true" />
+        <div
+          className="absolute inset-0 bg-black"
+          style={{ opacity: overlayOpacity }}
+          aria-hidden="true"
+        />
       ) : null}
 
       <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between">
@@ -176,18 +188,31 @@ export function AdminLoginForm({
           </div>
           <div className="mt-5 text-center">
             <h1 className="text-2xl font-black">后台登录</h1>
-            <p className="mt-2 text-sm font-medium text-[var(--text-muted)]">请输入账号信息进入管理后台</p>
+            <p className="mt-2 text-sm font-medium text-[var(--text-muted)]">
+              请输入账号信息进入管理后台
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-7 grid gap-4">
             <label className={labelClass}>
               用户名或邮箱
-              <input name="username" required autoComplete="username" className={fieldClass} />
+              <input
+                name="username"
+                required
+                autoComplete="username"
+                className={fieldClass}
+              />
             </label>
 
             <label className={labelClass}>
               密码
-              <input name="password" type="password" required autoComplete="current-password" className={fieldClass} />
+              <input
+                name="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                className={fieldClass}
+              />
             </label>
 
             {imageCaptchaEnabled ? (
@@ -208,7 +233,11 @@ export function AdminLoginForm({
                     title="刷新验证码"
                   >
                     {captcha?.image ? (
-                      <img src={captcha.image} alt="验证码" className="h-full w-full object-contain" />
+                      <img
+                        src={captcha.image}
+                        alt="验证码"
+                        className="h-full w-full object-contain"
+                      />
                     ) : (
                       <RefreshCw className="h-4 w-4" aria-hidden="true" />
                     )}
@@ -227,7 +256,10 @@ export function AdminLoginForm({
               <label className={labelClass}>
                 MFA 动态验证码
                 <div className="relative">
-                  <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <ShieldCheck
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                   <input
                     name="mfa_code"
                     inputMode="numeric"
@@ -236,7 +268,9 @@ export function AdminLoginForm({
                     className={cn(fieldClass, "pl-9")}
                   />
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">请输入认证器中的 6 位动态验证码。</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  请输入认证器中的 6 位动态验证码。
+                </span>
               </label>
             ) : null}
 
@@ -246,7 +280,15 @@ export function AdminLoginForm({
               </p>
             ) : null}
 
-            <Button type="submit" className="mt-1 h-11 w-full" disabled={loading || captchaUnsupported || (imageCaptchaEnabled && !captcha)}>
+            <Button
+              type="submit"
+              className="mt-1 h-11 w-full"
+              disabled={
+                loading ||
+                captchaUnsupported ||
+                (imageCaptchaEnabled && !captcha)
+              }
+            >
               {loading ? "登录中..." : "登录"}
             </Button>
           </form>

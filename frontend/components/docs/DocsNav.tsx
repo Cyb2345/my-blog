@@ -25,8 +25,11 @@ export function DocsNav({ activeSlug, groups }: Props) {
 
       <aside className="docs-sidebar hidden lg:block">
         <div className="docs-sidebar__inner">
-          <div className="mb-3 inline-flex items-center gap-2 text-sm font-black text-ink dark:text-slate-100">
-            <Library className="h-4 w-4 text-ocean dark:text-sky-300" aria-hidden="true" />
+          <div className="mb-3 inline-flex items-center gap-2 text-sm font-black text-foreground text-foreground">
+            <Library
+              className="h-4 w-4 text-primary text-primary"
+              aria-hidden="true"
+            />
             知识库目录
           </div>
           <DocsTree activeSlug={activeSlug} groups={groups} />

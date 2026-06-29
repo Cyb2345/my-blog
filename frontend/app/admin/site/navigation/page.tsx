@@ -3,18 +3,25 @@
 import { Edit, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import {
+  AdminDataTable,
+  type AdminDataTableColumn,
+} from "@/components/admin/AdminDataTable";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { AdminTableToolbar } from "@/components/admin/AdminTableToolbar";
 import { CustomSelect } from "@/components/admin/CustomSelect";
-import { type TableSettings, useTableSettings } from "@/components/admin/DataTableToolbar";
+import {
+  type TableSettings,
+  useTableSettings,
+} from "@/components/admin/DataTableToolbar";
 import { DeleteConfirmDialog } from "@/components/admin/DeleteConfirmDialog";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { StatusTag } from "@/components/admin/StatusTag";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { adminRequest } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
 import type { NavigationItem } from "@/types/blog";
@@ -39,9 +46,22 @@ const defaultSettings: TableSettings = {
   visibleColumns: columnOptions.map((column) => column.key),
 };
 
-function Notice({ variant, children }: { variant: "error" | "success"; children: string }) {
+function Notice({
+  variant,
+  children,
+}: {
+  variant: "error" | "success";
+  children: string;
+}) {
   return (
-    <p className={cn("notice-pop rounded-md px-3 py-2 text-sm font-bold", variant === "error" ? "bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] text-destructive" : "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)]")}>
+    <p
+      className={cn(
+        "notice-pop rounded-md px-3 py-2 text-sm font-bold",
+        variant === "error"
+          ? "bg-[color-mix(in_srgb,var(--destructive)_12%,transparent)] text-destructive"
+          : "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)]",
+      )}
+    >
       {children}
     </p>
   );
@@ -59,7 +79,11 @@ export default function AdminNavigationPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [settings, setSettings] = useTableSettings(settingsKey, defaultSettings, columnOptions);
+  const [settings, setSettings] = useTableSettings(
+    settingsKey,
+    defaultSettings,
+    columnOptions,
+  );
 
   async function load() {
     setLoading(true);
@@ -112,10 +136,16 @@ export default function AdminNavigationPage() {
     setNotice("");
     try {
       if (modal.item) {
-        await adminRequest(`/admin/navigation/${modal.item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+        await adminRequest(`/admin/navigation/${modal.item.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
         setNotice("导航项已保存。");
       } else {
-        await adminRequest("/admin/navigation", { method: "POST", body: JSON.stringify(payload) });
+        await adminRequest("/admin/navigation", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
         setNotice("导航项已新增。");
       }
       setModal(null);
@@ -131,7 +161,10 @@ export default function AdminNavigationPage() {
     setError("");
     setNotice("");
     try {
-      await adminRequest(`/admin/navigation/${item.id}`, { method: "PUT", body: JSON.stringify({ is_visible: !item.is_visible }) });
+      await adminRequest(`/admin/navigation/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ is_visible: !item.is_visible }),
+      });
       setNotice(item.is_visible ? "导航项已隐藏。" : "导航项已显示。");
       await load();
     } catch (err) {
@@ -144,7 +177,9 @@ export default function AdminNavigationPage() {
     setDeleting(true);
     setDeleteError("");
     try {
-      await adminRequest(`/admin/navigation/${deleteItem.id}`, { method: "DELETE" });
+      await adminRequest(`/admin/navigation/${deleteItem.id}`, {
+        method: "DELETE",
+      });
       setDeleteItem(null);
       setNotice("导航项已删除。");
       await load();
@@ -157,12 +192,56 @@ export default function AdminNavigationPage() {
 
   const columns = useMemo<Array<AdminDataTableColumn<NavigationItem>>>(
     () => [
-      { key: "label", title: "名称", width: 150, hidden: !settings.visibleColumns.includes("label"), render: (item) => <span className="font-black text-foreground">{item.label}</span> },
-      { key: "href", title: "链接", minWidth: 260, ellipsis: true, hidden: !settings.visibleColumns.includes("href"), render: (item) => item.href },
-      { key: "target", title: "打开方式", width: 120, hidden: !settings.visibleColumns.includes("target"), render: (item) => item.target === "blank" ? "新窗口" : "当前页" },
-      { key: "sort", title: "排序", width: 90, hidden: !settings.visibleColumns.includes("sort"), render: (item) => item.sort_order },
-      { key: "status", title: "状态", width: 100, hidden: !settings.visibleColumns.includes("status"), render: (item) => <StatusTag status={item.is_visible} label={item.is_visible ? "显示" : "隐藏"} /> },
-      { key: "updatedAt", title: "更新时间", width: 150, hidden: !settings.visibleColumns.includes("updatedAt"), render: (item) => formatDate(item.updated_at) },
+      {
+        key: "label",
+        title: "名称",
+        width: 150,
+        hidden: !settings.visibleColumns.includes("label"),
+        render: (item) => (
+          <span className="font-black text-foreground">{item.label}</span>
+        ),
+      },
+      {
+        key: "href",
+        title: "链接",
+        minWidth: 260,
+        ellipsis: true,
+        hidden: !settings.visibleColumns.includes("href"),
+        render: (item) => item.href,
+      },
+      {
+        key: "target",
+        title: "打开方式",
+        width: 120,
+        hidden: !settings.visibleColumns.includes("target"),
+        render: (item) => (item.target === "blank" ? "新窗口" : "当前页"),
+      },
+      {
+        key: "sort",
+        title: "排序",
+        width: 90,
+        hidden: !settings.visibleColumns.includes("sort"),
+        render: (item) => item.sort_order,
+      },
+      {
+        key: "status",
+        title: "状态",
+        width: 100,
+        hidden: !settings.visibleColumns.includes("status"),
+        render: (item) => (
+          <StatusTag
+            status={item.is_visible}
+            label={item.is_visible ? "显示" : "隐藏"}
+          />
+        ),
+      },
+      {
+        key: "updatedAt",
+        title: "更新时间",
+        width: 150,
+        hidden: !settings.visibleColumns.includes("updatedAt"),
+        render: (item) => formatDate(item.updated_at),
+      },
       {
         key: "actions",
         title: "操作",
@@ -172,9 +251,31 @@ export default function AdminNavigationPage() {
         render: (item) => (
           <RowActions
             actions={[
-              { key: "visible", label: item.is_visible ? "隐藏" : "显示", icon: item.is_visible ? <EyeOff className={rowActionIconClass} /> : <Eye className={rowActionIconClass} />, variant: "success", onClick: () => void toggleVisible(item) },
-              { key: "edit", label: "编辑", icon: <Edit className={rowActionIconClass} />, variant: "edit", onClick: () => openModal({ mode: "edit", item }) },
-              { key: "delete", label: "删除", icon: <Trash2 className={rowActionIconClass} />, variant: "delete", onClick: () => setDeleteItem(item) },
+              {
+                key: "visible",
+                label: item.is_visible ? "隐藏" : "显示",
+                icon: item.is_visible ? (
+                  <EyeOff className={rowActionIconClass} />
+                ) : (
+                  <Eye className={rowActionIconClass} />
+                ),
+                variant: "success",
+                onClick: () => void toggleVisible(item),
+              },
+              {
+                key: "edit",
+                label: "编辑",
+                icon: <Edit className={rowActionIconClass} />,
+                variant: "edit",
+                onClick: () => openModal({ mode: "edit", item }),
+              },
+              {
+                key: "delete",
+                label: "删除",
+                icon: <Trash2 className={rowActionIconClass} />,
+                variant: "delete",
+                onClick: () => setDeleteItem(item),
+              },
             ]}
           />
         ),
@@ -205,30 +306,100 @@ export default function AdminNavigationPage() {
         loading={loading}
         emptyText="暂无导航数据"
         minWidth={860}
-        toolbar={<AdminTableToolbar settings={settings} onSettingsChange={setSettings} columns={columnOptions} onRefresh={() => void load()} refreshing={loading} />}
+        toolbar={
+          <AdminTableToolbar
+            settings={settings}
+            onSettingsChange={setSettings}
+            columns={columnOptions}
+            onRefresh={() => void load()}
+            refreshing={loading}
+          />
+        }
       />
 
-      <AdminModal open={Boolean(modal)} title={modal?.mode === "edit" ? "编辑导航" : "新增导航"} size="md" onClose={closeModal}>
-        <form key={modal?.item?.id ?? "new"} onSubmit={saveNavigation} className="grid gap-4">
+      <AdminModal
+        open={Boolean(modal)}
+        title={modal?.mode === "edit" ? "编辑导航" : "新增导航"}
+        size="md"
+        onClose={closeModal}
+      >
+        <form
+          key={modal?.item?.id ?? "new"}
+          onSubmit={saveNavigation}
+          className="grid gap-4"
+        >
           <ModalError message={modalError} />
           <div className="grid gap-4 md:grid-cols-2">
-            <AdminField label="名称 *"><input name="label" required defaultValue={modal?.item?.label ?? ""} className={inputClass} /></AdminField>
-            <AdminField label="链接 *"><input name="href" required defaultValue={modal?.item?.href ?? ""} className={inputClass} /></AdminField>
-            <AdminField label="排序"><input name="sort_order" type="number" defaultValue={modal?.item?.sort_order ?? 0} className={inputClass} /></AdminField>
-            <AdminField label="打开方式">
-              <CustomSelect name="target" value={target} onChange={setTarget} options={[{ label: "当前页", value: "self" }, { label: "新窗口", value: "blank" }]} />
+            <AdminField label="名称 *">
+              <Input
+                name="label"
+                required
+                defaultValue={modal?.item?.label ?? ""}
+              />
             </AdminField>
-            <AdminField label="图标标识"><input name="icon" defaultValue={modal?.item?.icon ?? ""} className={inputClass} /></AdminField>
-            <Checkbox name="is_visible" label="前台显示" defaultChecked={modal?.item?.is_visible ?? true} className="self-end" />
+            <AdminField label="链接 *">
+              <Input
+                name="href"
+                required
+                defaultValue={modal?.item?.href ?? ""}
+              />
+            </AdminField>
+            <AdminField label="排序">
+              <Input
+                name="sort_order"
+                type="number"
+                defaultValue={modal?.item?.sort_order ?? 0}
+              />
+            </AdminField>
+            <AdminField label="打开方式">
+              <CustomSelect
+                name="target"
+                value={target}
+                onChange={setTarget}
+                options={[
+                  { label: "当前页", value: "self" },
+                  { label: "新窗口", value: "blank" },
+                ]}
+              />
+            </AdminField>
+            <AdminField label="图标标识">
+              <Input name="icon" defaultValue={modal?.item?.icon ?? ""} />
+            </AdminField>
+            <Checkbox
+              name="is_visible"
+              label="前台显示"
+              defaultChecked={modal?.item?.is_visible ?? true}
+              className="self-end"
+            />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>
-            <Button type="submit" loading={saving}>{saving ? "提交中..." : "确定"}</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeModal}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button type="submit" loading={saving}>
+              {saving ? "提交中..." : "确定"}
+            </Button>
           </div>
         </form>
       </AdminModal>
 
-      <DeleteConfirmDialog open={Boolean(deleteItem)} description={deleteItem ? `确定删除导航「${deleteItem.label}」吗？` : "确定删除该导航吗？"} error={deleteError} loading={deleting} onClose={() => !deleting && setDeleteItem(null)} onConfirm={() => void confirmDelete()} />
+      <DeleteConfirmDialog
+        open={Boolean(deleteItem)}
+        description={
+          deleteItem
+            ? `确定删除导航「${deleteItem.label}」吗？`
+            : "确定删除该导航吗？"
+        }
+        error={deleteError}
+        loading={deleting}
+        onClose={() => !deleting && setDeleteItem(null)}
+        onConfirm={() => void confirmDelete()}
+      />
     </AdminPage>
   );
 }

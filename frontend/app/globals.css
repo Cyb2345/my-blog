@@ -102,12 +102,30 @@ body {
   min-width: 0;
   overflow-x: clip;
   background:
-    radial-gradient(circle at top left, rgba(231, 185, 95, 0.18), transparent 28rem),
-    linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface-hover) 42%, var(--color-bg-muted) 100%);
+    radial-gradient(
+      circle at top left,
+      rgba(231, 185, 95, 0.18),
+      transparent 28rem
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-bg) 0%,
+      var(--color-surface-hover) 42%,
+      var(--color-bg-muted) 100%
+    );
   color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   letter-spacing: 0;
-  transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out);
+  transition:
+    background-color 220ms var(--ease-out),
+    color 220ms var(--ease-out);
 }
 
 .site-header {
@@ -133,8 +151,12 @@ body {
 }
 
 .dark body {
-  background:
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 52%, var(--bg) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--bg) 0%,
+    var(--bg-soft) 52%,
+    var(--bg) 100%
+  );
 }
 
 a {
@@ -155,7 +177,8 @@ input,
 textarea,
 select {
   transition-duration: 180ms;
-  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-property:
+    background-color, border-color, box-shadow, color, opacity, transform;
   transition-timing-function: var(--ease-out);
 }
 
@@ -182,7 +205,8 @@ h4,
 h5,
 h6,
 span {
-  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-property:
+    background-color, border-color, box-shadow, color, opacity, transform;
   transition-duration: 220ms;
   transition-timing-function: var(--ease-out);
 }
@@ -208,7 +232,8 @@ select:focus {
 .interactive {
   transform: translateZ(0);
   transition-duration: 220ms;
-  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-property:
+    background-color, border-color, box-shadow, color, opacity, transform;
   transition-timing-function: var(--ease-out);
 }
 
@@ -229,7 +254,9 @@ select:focus {
 
 .admin-table tbody tr {
   animation: row-in 320ms var(--ease-out) both;
-  transition: background-color 160ms var(--ease-out), transform 160ms var(--ease-out);
+  transition:
+    background-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .admin-table tbody tr:hover {
@@ -276,7 +303,8 @@ select:focus {
 
 .admin-tabs {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--admin-primary) 35%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--admin-primary) 35%, transparent)
+    transparent;
 }
 
 .admin-top-progress {
@@ -329,49 +357,78 @@ html.admin-view-transitioning::view-transition-new(admin-page-content) {
   overflow: clip;
 }
 
-html.admin-view-transitioning[data-page-transition="none"]::view-transition-old(admin-page-content),
-html.admin-view-transitioning[data-page-transition="none"]::view-transition-new(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="none"]::view-transition-old(
+    admin-page-content
+  ),
+html.admin-view-transitioning[data-page-transition="none"]::view-transition-new(
+    admin-page-content
+  ) {
   animation: none;
 }
 
-html.admin-view-transitioning[data-page-transition="fade"]::view-transition-old(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="fade"]::view-transition-old(
+    admin-page-content
+  ) {
   animation: admin-vt-fade-out 160ms var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="fade"]::view-transition-new(admin-page-content) {
-  animation: admin-vt-fade-in var(--motion-page-fade, 200ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="fade"]::view-transition-new(
+    admin-page-content
+  ) {
+  animation: admin-vt-fade-in var(--motion-page-fade, 200ms)
+    var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-old(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-old(
+    admin-page-content
+  ) {
   animation: admin-vt-slide-right-out 180ms var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-new(admin-page-content) {
-  animation: admin-vt-slide-right-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-new(
+    admin-page-content
+  ) {
+  animation: admin-vt-slide-right-in var(--motion-page-slide, 220ms)
+    var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-old(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-old(
+    admin-page-content
+  ) {
   animation: admin-vt-slide-up-out 180ms var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-new(admin-page-content) {
-  animation: admin-vt-slide-up-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-new(
+    admin-page-content
+  ) {
+  animation: admin-vt-slide-up-in var(--motion-page-slide, 220ms)
+    var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-old(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-old(
+    admin-page-content
+  ) {
   animation: admin-vt-slide-down-out 180ms var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-new(admin-page-content) {
-  animation: admin-vt-slide-down-in var(--motion-page-slide, 220ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-new(
+    admin-page-content
+  ) {
+  animation: admin-vt-slide-down-in var(--motion-page-slide, 220ms)
+    var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-old(admin-page-content) {
+html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-old(
+    admin-page-content
+  ) {
   animation: admin-vt-fade-out 120ms var(--ease-standard) both;
 }
 
-html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-new(admin-page-content) {
-  animation: admin-vt-zoom-in var(--motion-page-zoom-enter, 220ms) var(--ease-standard) both;
+html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-new(
+    admin-page-content
+  ) {
+  animation: admin-vt-zoom-in var(--motion-page-zoom-enter, 220ms)
+    var(--ease-standard) both;
 }
 
 html.admin-fullscreen-transitioning .admin-shell {
@@ -381,7 +438,9 @@ html.admin-fullscreen-transitioning .admin-shell {
 
 .admin-shell {
   transform-origin: center;
-  transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1), transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-shell .bg-ocean {
@@ -397,18 +456,38 @@ html.admin-fullscreen-transitioning .admin-shell {
 }
 
 .admin-shell [class*="ring-ocean"] {
-  --tw-ring-color: color-mix(in srgb, var(--admin-primary) 26%, transparent) !important;
+  --tw-ring-color: color-mix(
+    in srgb,
+    var(--admin-primary) 26%,
+    transparent
+  ) !important;
 }
 
 html[data-admin-box-style="shadow"] .admin-shell .motion-surface,
-html[data-admin-box-style="shadow"] .admin-shell .admin-content-inner > div > section,
-html[data-admin-box-style="shadow"] .admin-shell .admin-content-inner > div > div {
+html[data-admin-box-style="shadow"]
+  .admin-shell
+  .admin-content-inner
+  > div
+  > section,
+html[data-admin-box-style="shadow"]
+  .admin-shell
+  .admin-content-inner
+  > div
+  > div {
   box-shadow: 0 16px 42px rgba(10, 10, 12, 0.12);
 }
 
 html.dark[data-admin-box-style="shadow"] .admin-shell .motion-surface,
-html.dark[data-admin-box-style="shadow"] .admin-shell .admin-content-inner > div > section,
-html.dark[data-admin-box-style="shadow"] .admin-shell .admin-content-inner > div > div {
+html.dark[data-admin-box-style="shadow"]
+  .admin-shell
+  .admin-content-inner
+  > div
+  > section,
+html.dark[data-admin-box-style="shadow"]
+  .admin-shell
+  .admin-content-inner
+  > div
+  > div {
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
 }
 
@@ -608,7 +687,9 @@ html[data-admin-font-size="large"] .admin-shell {
   color: rgba(68, 112, 143, 0.45);
   opacity: 0;
   text-decoration: none !important;
-  transition: opacity 160ms var(--ease-out), color 160ms var(--ease-out);
+  transition:
+    opacity 160ms var(--ease-out),
+    color 160ms var(--ease-out);
 }
 
 .markdown-heading:hover .markdown-heading__anchor,
@@ -833,7 +914,11 @@ html[data-admin-font-size="large"] .admin-shell {
   font-size: 0.86rem;
   font-weight: 800;
   line-height: 1.45;
-  transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 160ms var(--ease-out);
+  transition:
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 .toc-link:hover {
@@ -1102,7 +1187,6 @@ html.theme-transitioning *::after {
     transform: none !important;
     will-change: auto !important;
   }
-
 }
 
 .theme-menu {
@@ -1127,7 +1211,10 @@ html.theme-transitioning *::after {
   opacity: 0;
   pointer-events: none;
   transform: translateY(-4px);
-  transition: max-height 230ms var(--ease-out), opacity 180ms var(--ease-out), transform 220ms var(--ease-out);
+  transition:
+    max-height 230ms var(--ease-out),
+    opacity 180ms var(--ease-out),
+    transform 220ms var(--ease-out);
 }
 
 .mobile-menu-shell--open {
@@ -1135,102 +1222,6 @@ html.theme-transitioning *::after {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
-}
-
-.dark [class~="bg-white"]:not([class*="dark:bg-"]),
-.dark [class~="bg-white/70"]:not([class*="dark:bg-"]),
-.dark [class~="bg-white/75"]:not([class*="dark:bg-"]),
-.dark [class~="bg-white/80"]:not([class*="dark:bg-"]),
-.dark [class~="bg-white/85"]:not([class*="dark:bg-"]) {
-  background-color: var(--surface-card) !important;
-}
-
-.dark [class~="bg-white/45"]:not([class*="dark:bg-"]),
-.dark [class~="bg-white/55"]:not([class*="dark:bg-"]) {
-  background-color: color-mix(in srgb, var(--surface-card) 68%, transparent) !important;
-}
-
-.dark [class~="bg-paper"]:not([class*="dark:bg-"]),
-.dark [class~="bg-paper/70"]:not([class*="dark:bg-"]) {
-  background-color: var(--bg-soft) !important;
-}
-
-.dark [class~="border-ink/10"]:not([class*="dark:border-"]),
-.dark [class~="border-ink/15"]:not([class*="dark:border-"]) {
-  border-color: var(--border-soft) !important;
-}
-
-.dark [class~="ring-ink/10"]:not([class*="dark:ring-"]) {
-  --tw-ring-color: var(--border-soft) !important;
-}
-
-.dark [class~="text-ink"]:not([class*="dark:text-"]) {
-  color: var(--text) !important;
-}
-
-.dark [class~="text-ink/45"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/50"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/55"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/60"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/65"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/70"]:not([class*="dark:text-"]),
-.dark [class~="text-ink/75"]:not([class*="dark:text-"]) {
-  color: var(--text-secondary) !important;
-}
-
-.dark [class*="dark:bg-slate-950"] {
-  background-color: var(--bg-soft) !important;
-}
-
-.dark [class*="dark:bg-slate-900"] {
-  background-color: var(--surface) !important;
-}
-
-.dark [class*="dark:bg-white/5"],
-.dark [class*="dark:bg-white/10"],
-.dark [class*="dark:bg-white/[0.03]"] {
-  background-color: color-mix(in srgb, var(--surface-soft) 70%, transparent) !important;
-}
-
-.dark [class*="dark:hover:bg-white/5"]:hover,
-.dark [class*="dark:hover:bg-white/10"]:hover,
-.dark [class*="dark:hover:bg-white/15"]:hover {
-  background-color: var(--hover) !important;
-}
-
-.dark [class*="dark:border-white/10"] {
-  border-color: var(--border-soft) !important;
-}
-
-.dark [class*="dark:ring-white/10"] {
-  --tw-ring-color: var(--border-soft) !important;
-}
-
-.dark [class*="dark:text-slate-100"],
-.dark [class*="dark:text-slate-200"] {
-  color: var(--text) !important;
-}
-
-.dark [class*="dark:text-slate-300"],
-.dark [class*="dark:text-slate-400"] {
-  color: var(--text-secondary) !important;
-}
-
-.dark [class*="dark:text-slate-500"] {
-  color: var(--text-muted) !important;
-}
-
-.dark [class*="dark:bg-sky-400"] {
-  background-color: var(--primary) !important;
-}
-
-.dark [class*="dark:text-sky-200"],
-.dark [class*="dark:text-sky-300"] {
-  color: color-mix(in srgb, var(--primary) 78%, white) !important;
-}
-
-.dark [class*="dark:ring-sky-400"] {
-  --tw-ring-color: color-mix(in srgb, var(--primary) 32%, transparent) !important;
 }
 
 .dark .shadow-soft,
@@ -1473,23 +1464,6 @@ html.theme-transitioning *::after {
 .dark option {
   background: var(--bg-soft);
   color: var(--text);
-}
-
-.dark .bg-red-50 {
-  background-color: color-mix(in srgb, var(--danger) 16%, transparent) !important;
-}
-
-.dark .text-red-700 {
-  color: color-mix(in srgb, var(--danger) 72%, white) !important;
-}
-
-.dark .bg-green-50 {
-  background-color: color-mix(in srgb, var(--success) 16%, transparent) !important;
-}
-
-.dark .text-green-700,
-.dark .text-moss {
-  color: color-mix(in srgb, var(--success) 72%, white) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

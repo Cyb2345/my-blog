@@ -4,11 +4,17 @@ import { Send } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export function MessageForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [message, setMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -38,49 +44,40 @@ export function MessageForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="motion-surface space-y-4 rounded-lg border border-ink/10 bg-white/80 p-5 shadow-sm">
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-ink">
-          昵称
-          <input
-            name="nickname"
+    <Card className="motion-surface">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input label="昵称" name="nickname" required maxLength={64} />
+            <Input label="邮箱" name="email" type="email" required />
+          </div>
+          <Textarea
+            label="留言"
+            name="content"
             required
-            maxLength={64}
-            className="rounded-md border border-ink/10 bg-white px-3 py-2 outline-none ring-ocean/25 transition focus:ring-4"
+            minLength={2}
+            maxLength={2000}
+            rows={5}
           />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-ink">
-          邮箱
-          <input
-            name="email"
-            type="email"
-            required
-            className="rounded-md border border-ink/10 bg-white px-3 py-2 outline-none ring-ocean/25 transition focus:ring-4"
-          />
-        </label>
-      </div>
-      <label className="grid gap-2 text-sm font-semibold text-ink">
-        留言
-        <textarea
-          name="content"
-          required
-          minLength={2}
-          maxLength={2000}
-          rows={5}
-          className="resize-y rounded-md border border-ink/10 bg-white px-3 py-2 outline-none ring-ocean/25 transition focus:ring-4"
-        />
-      </label>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={status === "loading"}>
-          <Send className="h-4 w-4" aria-hidden="true" />
-          提交留言
-        </Button>
-        {message ? (
-          <span className={status === "error" ? "notice-pop text-sm text-red-700" : "notice-pop text-sm text-moss"}>
-            {message}
-          </span>
-        ) : null}
-      </div>
-    </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={status === "loading"}>
+              <Send className="h-4 w-4" aria-hidden="true" />
+              提交留言
+            </Button>
+            {message ? (
+              <span
+                className={
+                  status === "error"
+                    ? "motion-notice text-sm font-semibold text-destructive"
+                    : "motion-notice text-sm font-semibold text-primary"
+                }
+              >
+                {message}
+              </span>
+            ) : null}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

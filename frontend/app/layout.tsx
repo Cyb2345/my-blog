@@ -11,7 +11,9 @@ import "./globals.css";
 
 import type { Envelope, SiteConfig } from "@/types/blog";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "");
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1"
+).replace(/\/$/, "");
 
 type RuntimeOptions = {
   default_theme?: "light" | "dark" | "system";
@@ -19,7 +21,9 @@ type RuntimeOptions = {
 
 async function getPublicData<T>(path: string, fallback: T): Promise<T> {
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, { cache: "no-store" });
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      cache: "no-store",
+    });
     if (!response.ok) return fallback;
     const body = (await response.json()) as Envelope<T>;
     return body.data ?? fallback;
@@ -31,7 +35,9 @@ async function getPublicData<T>(path: string, fallback: T): Promise<T> {
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getPublicData<SiteConfig>("/site/config", {});
   const title = config.site_name || "技术札记";
-  const description = config.site_description || "个人技术博客，记录运维、DevOps、Linux、Docker 与 Python 学习。";
+  const description =
+    config.site_description ||
+    "个人技术博客，记录运维、DevOps、Linux、Docker 与 Python 学习。";
   const favicon = config.favicon_url || undefined;
   return {
     title,
@@ -45,7 +51,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const runtime = await getPublicData<RuntimeOptions>("/site/runtime-options", {
     default_theme: "system",
   });

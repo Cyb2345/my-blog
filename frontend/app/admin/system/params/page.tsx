@@ -3,8 +3,11 @@
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { AdminDataTable, type AdminDataTableColumn } from "@/components/admin/AdminDataTable";
-import { AdminField, inputClass } from "@/components/admin/AdminField";
+import {
+  AdminDataTable,
+  type AdminDataTableColumn,
+} from "@/components/admin/AdminDataTable";
+import { AdminField } from "@/components/admin/AdminField";
 import { AdminModal, ModalError } from "@/components/admin/AdminModal";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { AdminSearchForm } from "@/components/admin/AdminSearchForm";
@@ -19,6 +22,7 @@ import { ParamValueField } from "@/components/admin/ParamValueField";
 import { RowActions, rowActionIconClass } from "@/components/admin/RowActions";
 import { StatusTag } from "@/components/admin/StatusTag";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { readAdminPageCache, writeAdminPageCache } from "@/lib/adminPageCache";
@@ -41,7 +45,13 @@ type DeleteState =
   | { type: "batch"; ids: number[] }
   | null;
 
-const emptyPage: ParamPage = { items: [], total: 0, page: 1, page_size: 10, pages: 1 };
+const emptyPage: ParamPage = {
+  items: [],
+  total: 0,
+  page: 1,
+  page_size: 10,
+  pages: 1,
+};
 const emptyFilters: ParamFilters = { name: "", key: "", is_system: "" };
 const pageSizeOptions = [10, 20, 50];
 const systemFilterOptions = [
@@ -85,7 +95,11 @@ const restartKeys = new Set<string>();
 const frontendReservedKeys = new Set<string>();
 const featureReservedKeys = new Set(["open_comment"]);
 
-function normalizePage(data: ParamPage | SystemParam[], page: number, pageSize: number): ParamPage {
+function normalizePage(
+  data: ParamPage | SystemParam[],
+  page: number,
+  pageSize: number,
+): ParamPage {
   if (!Array.isArray(data)) return data;
   return {
     items: data,
@@ -125,15 +139,50 @@ function isSensitiveParamKey(key: string) {
     return true;
   }
   if (normalized.endsWith("_password")) return true;
-  return ["mfa_secret", "password_hash", "access_token", "refresh_token", "api_token", "jwt_token"].some((part) => normalized.includes(part));
+  return [
+    "mfa_secret",
+    "password_hash",
+    "access_token",
+    "refresh_token",
+    "api_token",
+    "jwt_token",
+  ].some((part) => normalized.includes(part));
 }
 
 function getEffectHint(key: string) {
-  if (hotUpdateKeys.has(key)) return { status: "hot", label: "立即生效", className: "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20" };
-  if (restartKeys.has(key)) return { status: "restart", label: "重启后生效", className: "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20" };
-  if (frontendReservedKeys.has(key)) return { status: "frontend", label: "需前端接入", className: "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20" };
-  if (featureReservedKeys.has(key)) return { status: "feature", label: "预留配置", className: "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]" };
-  return { status: "default", label: "保存后生效", className: "bg-muted text-muted-foreground ring-border" };
+  if (hotUpdateKeys.has(key))
+    return {
+      status: "hot",
+      label: "立即生效",
+      className:
+        "bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 dark:text-[var(--color-success)] dark:ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)]",
+    };
+  if (restartKeys.has(key))
+    return {
+      status: "restart",
+      label: "重启后生效",
+      className:
+        "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20",
+    };
+  if (frontendReservedKeys.has(key))
+    return {
+      status: "frontend",
+      label: "需前端接入",
+      className:
+        "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-400/10 dark:text-violet-200 dark:ring-violet-400/20",
+    };
+  if (featureReservedKeys.has(key))
+    return {
+      status: "feature",
+      label: "预留配置",
+      className:
+        "bg-blue-100 text-blue-800 ring-blue-200 dark:bg-[color-mix(in_srgb,var(--primary)_34%,transparent)] dark:text-white dark:ring-[color-mix(in_srgb,var(--primary)_58%,transparent)]",
+    };
+  return {
+    status: "default",
+    label: "保存后生效",
+    className: "bg-muted text-muted-foreground ring-border",
+  };
 }
 
 const effectStatusMap = {
@@ -146,27 +195,42 @@ const effectStatusMap = {
 
 function displayParamValue(param: SystemParam) {
   if (param.key === "sys_captcha_type") {
-    return {
-      none: "关闭验证码",
-      image: "图片验证码",
-      slider: "滑块验证码",
-      turnstile: "Cloudflare Turnstile",
-    }[param.value] ?? param.value;
+    return (
+      {
+        none: "关闭验证码",
+        image: "图片验证码",
+        slider: "滑块验证码",
+        turnstile: "Cloudflare Turnstile",
+      }[param.value] ?? param.value
+    );
   }
   if (["sys_mfa_enabled", "open_comment", "open_message"].includes(param.key)) {
-    return ["1", "true", "yes", "y", "on"].includes(param.value.toLowerCase()) ? "开启" : "关闭";
+    return ["1", "true", "yes", "y", "on"].includes(param.value.toLowerCase())
+      ? "开启"
+      : "关闭";
   }
   if (param.key === "default_theme") {
-    return { light: "浅色模式", dark: "深色模式", system: "跟随系统" }[param.value] ?? param.value;
+    return (
+      { light: "浅色模式", dark: "深色模式", system: "跟随系统" }[
+        param.value
+      ] ?? param.value
+    );
   }
   return param.value || "-";
 }
 
 export default function AdminParamsPage() {
-  const [pageData, setPageData] = useState<ParamPage>(() => readAdminPageCache<ParamPage>(paramPageCacheKey) ?? emptyPage);
-  const [tableSettings, setTableSettings] = useTableSettings(paramTableSettingsKey, defaultParamTableSettings, paramColumnOptions);
+  const [pageData, setPageData] = useState<ParamPage>(
+    () => readAdminPageCache<ParamPage>(paramPageCacheKey) ?? emptyPage,
+  );
+  const [tableSettings, setTableSettings] = useTableSettings(
+    paramTableSettingsKey,
+    defaultParamTableSettings,
+    paramColumnOptions,
+  );
   const [filters, setFilters] = useState<ParamFilters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<ParamFilters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] =
+    useState<ParamFilters>(emptyFilters);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -181,9 +245,15 @@ export default function AdminParamsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const allCurrentPageSelected = pageData.items.length > 0 && pageData.items.every((item) => selectedIds.has(item.id));
+  const allCurrentPageSelected =
+    pageData.items.length > 0 &&
+    pageData.items.every((item) => selectedIds.has(item.id));
 
-  async function load(currentPage = pageNumber, currentPageSize = pageSize, currentFilters = appliedFilters) {
+  async function load(
+    currentPage = pageNumber,
+    currentPageSize = pageSize,
+    currentFilters = appliedFilters,
+  ) {
     setLoading(true);
     setError("");
     try {
@@ -191,10 +261,15 @@ export default function AdminParamsPage() {
         page: String(currentPage),
         page_size: String(currentPageSize),
       });
-      if (currentFilters.name.trim()) query.set("name", currentFilters.name.trim());
-      if (currentFilters.key.trim()) query.set("key", currentFilters.key.trim());
-      if (currentFilters.is_system) query.set("is_system", currentFilters.is_system);
-      const data = await adminRequest<ParamPage | SystemParam[]>(`/admin/system/params?${query.toString()}`);
+      if (currentFilters.name.trim())
+        query.set("name", currentFilters.name.trim());
+      if (currentFilters.key.trim())
+        query.set("key", currentFilters.key.trim());
+      if (currentFilters.is_system)
+        query.set("is_system", currentFilters.is_system);
+      const data = await adminRequest<ParamPage | SystemParam[]>(
+        `/admin/system/params?${query.toString()}`,
+      );
       const normalized = normalizePage(data, currentPage, currentPageSize);
       setPageData(normalized);
       writeAdminPageCache(paramPageCacheKey, normalized);
@@ -278,7 +353,9 @@ export default function AdminParamsPage() {
             remark: payload.remark,
           }),
         });
-        setNotice(`${getEffectHint(target.key).label === "立即生效" ? "修改成功，已生效。" : `修改成功，${getEffectHint(target.key).label}。`}`);
+        setNotice(
+          `${getEffectHint(target.key).label === "立即生效" ? "修改成功，已生效。" : `修改成功，${getEffectHint(target.key).label}。`}`,
+        );
         setModal(null);
         await load(pageNumber, pageSize, appliedFilters);
       } else {
@@ -329,7 +406,9 @@ export default function AdminParamsPage() {
 
   function openBatchDelete() {
     if (!selectedIds.size) return;
-    const selectedParams = pageData.items.filter((item) => selectedIds.has(item.id));
+    const selectedParams = pageData.items.filter((item) =>
+      selectedIds.has(item.id),
+    );
     if (selectedParams.some((item) => item.is_system)) {
       setError("系统内置参数不允许删除");
       return;
@@ -346,21 +425,27 @@ export default function AdminParamsPage() {
 
   function deleteDescription() {
     if (!deleteState) return "确定删除该参数吗？";
-    if (deleteState.type === "single") return `确定删除参数「${deleteState.label}」吗？`;
+    if (deleteState.type === "single")
+      return `确定删除参数「${deleteState.label}」吗？`;
     return "确定删除选中的参数吗？";
   }
 
   async function confirmDelete() {
     if (!deleteState || deleting) return;
     const ids = deleteState.ids;
-    const nextPage = pageData.items.length <= ids.length && pageData.page > 1 ? pageData.page - 1 : pageData.page;
+    const nextPage =
+      pageData.items.length <= ids.length && pageData.page > 1
+        ? pageData.page - 1
+        : pageData.page;
     setDeleting(true);
     setDeleteError("");
     setError("");
     setNotice("");
     try {
       if (deleteState.type === "single" && ids.length === 1) {
-        await adminRequest(`/admin/system/params/${ids[0]}`, { method: "DELETE" });
+        await adminRequest(`/admin/system/params/${ids[0]}`, {
+          method: "DELETE",
+        });
       } else {
         await adminRequest("/admin/system/params/batch-delete", {
           method: "POST",
@@ -368,7 +453,11 @@ export default function AdminParamsPage() {
         });
       }
       setDeleteState(null);
-      setNotice(deleteState.type === "single" ? "参数已删除，列表已刷新。" : "选中参数已删除，列表已刷新。");
+      setNotice(
+        deleteState.type === "single"
+          ? "参数已删除，列表已刷新。"
+          : "选中参数已删除，列表已刷新。",
+      );
       await load(nextPage, pageSize, appliedFilters);
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "删除失败");
@@ -388,7 +477,9 @@ export default function AdminParamsPage() {
         width: 180,
         hidden: !tableSettings.visibleColumns.includes("name"),
         ellipsis: true,
-        render: (param) => <span className="font-black text-foreground">{param.name}</span>,
+        render: (param) => (
+          <span className="font-black text-foreground">{param.name}</span>
+        ),
       },
       {
         key: "key",
@@ -396,7 +487,11 @@ export default function AdminParamsPage() {
         width: 220,
         hidden: !tableSettings.visibleColumns.includes("key"),
         ellipsis: true,
-        render: (param) => <span className="font-mono text-xs font-bold text-muted-foreground">{param.key}</span>,
+        render: (param) => (
+          <span className="font-mono text-xs font-bold text-muted-foreground">
+            {param.key}
+          </span>
+        ),
       },
       {
         key: "value",
@@ -413,7 +508,13 @@ export default function AdminParamsPage() {
         hidden: !tableSettings.visibleColumns.includes("effect"),
         render: (param) => {
           const hint = getEffectHint(param.key);
-          return <StatusTag status={hint.status} label={hint.label} map={effectStatusMap} />;
+          return (
+            <StatusTag
+              status={hint.status}
+              label={hint.label}
+              map={effectStatusMap}
+            />
+          );
         },
       },
       {
@@ -421,7 +522,12 @@ export default function AdminParamsPage() {
         title: "系统内置",
         width: 110,
         hidden: !tableSettings.visibleColumns.includes("isSystem"),
-        render: (param) => <StatusTag status={param.is_system} label={param.is_system ? "是" : "否"} />,
+        render: (param) => (
+          <StatusTag
+            status={param.is_system}
+            label={param.is_system ? "是" : "否"}
+          />
+        ),
       },
       {
         key: "createdAt",
@@ -450,14 +556,18 @@ export default function AdminParamsPage() {
               {
                 key: "edit",
                 label: "编辑",
-                icon: <Edit className={rowActionIconClass} aria-hidden="true" />,
+                icon: (
+                  <Edit className={rowActionIconClass} aria-hidden="true" />
+                ),
                 variant: "edit",
                 onClick: () => openModal({ mode: "edit", item: param }),
               },
               {
                 key: "delete",
                 label: param.is_system ? "系统内置参数不允许删除" : "删除",
-                icon: <Trash2 className={rowActionIconClass} aria-hidden="true" />,
+                icon: (
+                  <Trash2 className={rowActionIconClass} aria-hidden="true" />
+                ),
                 variant: "delete",
                 disabled: param.is_system,
                 onClick: () => openSingleDelete(param),
@@ -476,25 +586,66 @@ export default function AdminParamsPage() {
       description="维护后台运行参数、功能开关和前端可读配置。"
       actions={
         <>
-          <Button type="button" variant="ghost" onClick={() => openModal({ mode: "create" })}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => openModal({ mode: "create" })}
+          >
             <Plus className="size-4" aria-hidden="true" />
             新增
           </Button>
-          <Button type="button" variant="danger" disabled={!selectedIds.size || loading} onClick={openBatchDelete}>
+          <Button
+            type="button"
+            variant="danger"
+            disabled={!selectedIds.size || loading}
+            onClick={openBatchDelete}
+          >
             <Trash2 className="size-4" aria-hidden="true" />
             批量删除
           </Button>
         </>
       }
     >
-      {error ? <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
+      {error ? (
+        <p className="notice-pop mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="notice-pop mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
+          {notice}
+        </p>
+      ) : null}
 
-      <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
-        <Input label="参数名称" value={filters.name} onChange={(event) => setFilters((current) => ({ ...current, name: event.target.value }))} placeholder="请输入参数名称" />
-        <Input label="参数键名" value={filters.key} onChange={(event) => setFilters((current) => ({ ...current, key: event.target.value }))} placeholder="请输入参数键名" />
+      <AdminSearchForm
+        onSubmit={handleQuery}
+        onReset={handleReset}
+        loading={loading}
+      >
+        <Input
+          label="参数名称"
+          value={filters.name}
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, name: event.target.value }))
+          }
+          placeholder="请输入参数名称"
+        />
+        <Input
+          label="参数键名"
+          value={filters.key}
+          onChange={(event) =>
+            setFilters((current) => ({ ...current, key: event.target.value }))
+          }
+          placeholder="请输入参数键名"
+        />
         <AdminField label="系统内置">
-          <CustomSelect value={filters.is_system} onChange={(value) => setFilters((current) => ({ ...current, is_system: value }))} options={systemFilterOptions} />
+          <CustomSelect
+            value={filters.is_system}
+            onChange={(value) =>
+              setFilters((current) => ({ ...current, is_system: value }))
+            }
+            options={systemFilterOptions}
+          />
         </AdminField>
       </AdminSearchForm>
 
@@ -511,30 +662,78 @@ export default function AdminParamsPage() {
         onSelectRow={(param) => toggleSelect(param.id)}
         onSelectAll={toggleCurrentPage}
         getCheckboxLabel={(param) => `选择参数 ${param.name}`}
-        toolbar={<AdminTableToolbar settings={tableSettings} onSettingsChange={setTableSettings} columns={paramColumnOptions} onRefresh={() => void load(pageData.page, pageSize, appliedFilters)} refreshing={loading} />}
-        pagination={<Pagination page={pageData.page} totalPages={pageData.pages} total={pageData.total} pageSize={pageSize} pageSizeOptions={pageSizeOptions} loading={loading} onPageChange={setPageNumber} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPageNumber(1); }} />}
+        toolbar={
+          <AdminTableToolbar
+            settings={tableSettings}
+            onSettingsChange={setTableSettings}
+            columns={paramColumnOptions}
+            onRefresh={() => void load(pageData.page, pageSize, appliedFilters)}
+            refreshing={loading}
+          />
+        }
+        pagination={
+          <Pagination
+            page={pageData.page}
+            totalPages={pageData.pages}
+            total={pageData.total}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            loading={loading}
+            onPageChange={setPageNumber}
+            onPageSizeChange={(nextSize) => {
+              setPageSize(nextSize);
+              setPageNumber(1);
+            }}
+          />
+        }
       />
 
-      <AdminModal open={Boolean(modal)} title={modal?.mode === "edit" ? "编辑参数" : "新增参数"} size="md" onClose={closeModal}>
-        <form key={modalItem?.id ?? "new"} onSubmit={saveParam} className="grid gap-4">
+      <AdminModal
+        open={Boolean(modal)}
+        title={modal?.mode === "edit" ? "编辑参数" : "新增参数"}
+        size="md"
+        onClose={closeModal}
+      >
+        <form
+          key={modalItem?.id ?? "new"}
+          onSubmit={saveParam}
+          className="grid gap-4"
+        >
           <ModalError message={modalError} />
           {modal?.mode === "edit" ? (
             <p className="rounded-md bg-muted px-3 py-2 text-xs font-bold text-muted-foreground">
-              当前参数：<span className={cn("ml-1 rounded-md px-2 py-1 ring-1", modalHint.className)}>{modalHint.label}</span>
-              {modalSensitive ? <span className="ml-2 text-red-600 dark:text-rose-200">敏感参数不会回显原始值，留空表示不修改。</span> : null}
+              当前参数：
+              <span
+                className={cn(
+                  "ml-1 rounded-md px-2 py-1 ring-1",
+                  modalHint.className,
+                )}
+              >
+                {modalHint.label}
+              </span>
+              {modalSensitive ? (
+                <span className="ml-2 text-destructive ">
+                  敏感参数不会回显原始值，留空表示不修改。
+                </span>
+              ) : null}
             </p>
           ) : null}
           <AdminField label="参数名称 *">
-            <input name="name" required defaultValue={modalItem?.name ?? ""} placeholder="请输入参数名称" className={inputClass} />
+            <Input
+              name="name"
+              required
+              defaultValue={modalItem?.name ?? ""}
+              placeholder="请输入参数名称"
+            />
           </AdminField>
           <AdminField label="参数键名 *">
-            <input
+            <Input
               name="key"
               required
               readOnly={Boolean(modalItem)}
               defaultValue={modalItem?.key ?? ""}
               placeholder="请输入参数键名"
-              className={cn(inputClass, modalItem && "cursor-not-allowed opacity-75")}
+              className={cn(modalItem && "cursor-not-allowed opacity-75")}
             />
           </AdminField>
           <AdminField label="参数键值">
@@ -548,14 +747,26 @@ export default function AdminParamsPage() {
             />
           </AdminField>
           <AdminField label="系统内置">
-            <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-bold text-foreground">
-              <input name="is_system" type="checkbox" disabled={Boolean(modalItem)} defaultChecked={modalItem?.is_system ?? false} className="h-4 w-4 accent-blue-500" />
-              {modalItem ? "编辑时不可修改" : "设为系统内置"}
-            </label>
+            <Checkbox
+              name="is_system"
+              disabled={Boolean(modalItem)}
+              defaultChecked={modalItem?.is_system ?? false}
+              label={modalItem ? "编辑时不可修改" : "设为系统内置"}
+              className="min-h-10 rounded-md border border-border bg-background px-3 py-2 text-foreground"
+            />
           </AdminField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={closeModal} disabled={saving}>取消</Button>
-            <Button type="submit" disabled={saving}>{saving ? "提交中..." : "提交"}</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeModal}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "提交中..." : "提交"}
+            </Button>
           </div>
         </form>
       </AdminModal>

@@ -46,7 +46,12 @@ function SettingToggle({
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="relative h-6 w-11 shrink-0 rounded-full bg-muted transition-colors peer-checked:bg-primary">
-        <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-background shadow-sm transition-transform", checked ? "translate-x-6" : "translate-x-1")} />
+        <span
+          className={cn(
+            "absolute top-1 h-4 w-4 rounded-full bg-background shadow-sm transition-transform",
+            checked ? "translate-x-6" : "translate-x-1",
+          )}
+        />
       </span>
     </label>
   );
@@ -92,7 +97,10 @@ export function AdminSettingsDrawer({
 }) {
   const { settings, t, updateSetting } = useAdminLayout();
 
-  function update<Key extends keyof AdminLayoutSettings>(key: Key, value: AdminLayoutSettings[Key]) {
+  function update<Key extends keyof AdminLayoutSettings>(
+    key: Key,
+    value: AdminLayoutSettings[Key],
+  ) {
     updateSetting(key, value);
     if (settings.autoCloseSettings) window.setTimeout(onClose, 140);
   }
@@ -105,7 +113,9 @@ export function AdminSettingsDrawer({
         onClick={onClose}
         className={cn(
           "fixed inset-0 z-[88] bg-black/35 transition-opacity duration-[var(--motion-normal)]",
-          open ? "visible pointer-events-auto opacity-100" : "invisible pointer-events-none opacity-0",
+          open
+            ? "visible pointer-events-auto opacity-100"
+            : "invisible pointer-events-none opacity-0",
         )}
         tabIndex={open ? 0 : -1}
       />
@@ -118,10 +128,18 @@ export function AdminSettingsDrawer({
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-[var(--admin-primary)]" aria-hidden="true" />
+            <Settings2
+              className="h-5 w-5 text-[var(--admin-primary)]"
+              aria-hidden="true"
+            />
             <h2 className="text-base font-black">{t("设置中心")}</h2>
           </div>
-          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground" aria-label={t("关闭")}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground"
+            aria-label={t("关闭")}
+          >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -148,7 +166,12 @@ export function AdminSettingsDrawer({
                     aria-label={color.label}
                     title={color.label}
                   >
-                    {active ? <Check className="h-4 w-4 text-white" aria-hidden="true" /> : null}
+                    {active ? (
+                      <Check
+                        className="h-4 w-4 text-white"
+                        aria-hidden="true"
+                      />
+                    ) : null}
                   </button>
                 );
               })}
@@ -179,14 +202,46 @@ export function AdminSettingsDrawer({
 
           <SettingSection title={t("基础配置")}>
             <div className="grid divide-y divide-border">
-              <SettingToggle label={t("开启多标签栏")} checked={settings.showTabs} onChange={(value) => update("showTabs", value)} />
-              <SettingToggle label={t("侧边栏手风琴")} checked={settings.accordionMenu} onChange={(value) => update("accordionMenu", value)} />
-              <SettingToggle label={t("显示折叠按钮")} checked={settings.showCollapse} onChange={(value) => update("showCollapse", value)} />
-              <SettingToggle label={t("显示刷新按钮")} checked={settings.showReload} onChange={(value) => update("showReload", value)} />
-              <SettingToggle label={t("显示面包屑")} checked={settings.showBreadcrumb} onChange={(value) => update("showBreadcrumb", value)} />
-              <SettingToggle label={t("显示语言选择")} checked={settings.showLanguage} onChange={(value) => update("showLanguage", value)} />
-              <SettingToggle label={t("显示顶部进度条")} checked={settings.showProgress} onChange={(value) => update("showProgress", value)} />
-              <SettingToggle label={t("自动关闭设置中心")} checked={settings.autoCloseSettings} onChange={(value) => update("autoCloseSettings", value)} />
+              <SettingToggle
+                label={t("开启多标签栏")}
+                checked={settings.showTabs}
+                onChange={(value) => update("showTabs", value)}
+              />
+              <SettingToggle
+                label={t("侧边栏手风琴")}
+                checked={settings.accordionMenu}
+                onChange={(value) => update("accordionMenu", value)}
+              />
+              <SettingToggle
+                label={t("显示折叠按钮")}
+                checked={settings.showCollapse}
+                onChange={(value) => update("showCollapse", value)}
+              />
+              <SettingToggle
+                label={t("显示刷新按钮")}
+                checked={settings.showReload}
+                onChange={(value) => update("showReload", value)}
+              />
+              <SettingToggle
+                label={t("显示面包屑")}
+                checked={settings.showBreadcrumb}
+                onChange={(value) => update("showBreadcrumb", value)}
+              />
+              <SettingToggle
+                label={t("显示语言选择")}
+                checked={settings.showLanguage}
+                onChange={(value) => update("showLanguage", value)}
+              />
+              <SettingToggle
+                label={t("显示顶部进度条")}
+                checked={settings.showProgress}
+                onChange={(value) => update("showProgress", value)}
+              />
+              <SettingToggle
+                label={t("自动关闭设置中心")}
+                checked={settings.autoCloseSettings}
+                onChange={(value) => update("autoCloseSettings", value)}
+              />
             </div>
           </SettingSection>
 
@@ -194,14 +249,19 @@ export function AdminSettingsDrawer({
             <SegmentedSetting
               value={settings.pageTransition}
               onChange={(value) => update("pageTransition", value)}
-              options={adminPageTransitionOptions.map((option) => ({ ...option, label: t(option.label) }))}
+              options={adminPageTransitionOptions.map((option) => ({
+                ...option,
+                label: t(option.label),
+              }))}
             />
           </SettingSection>
 
           <SettingSection title={t("圆角大小")}>
             <CustomSelect
               value={settings.radius}
-              onChange={(value) => update("radius", value as AdminLayoutSettings["radius"])}
+              onChange={(value) =>
+                update("radius", value as AdminLayoutSettings["radius"])
+              }
               options={[
                 { label: t("小"), value: "sm" },
                 { label: t("中"), value: "md" },
@@ -213,7 +273,9 @@ export function AdminSettingsDrawer({
           <SettingSection title={t("字体大小")}>
             <CustomSelect
               value={settings.fontSize}
-              onChange={(value) => update("fontSize", value as AdminLayoutSettings["fontSize"])}
+              onChange={(value) =>
+                update("fontSize", value as AdminLayoutSettings["fontSize"])
+              }
               options={[
                 { label: t("小"), value: "small" },
                 { label: t("默认"), value: "default" },

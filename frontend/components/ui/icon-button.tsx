@@ -8,7 +8,10 @@ import { cn } from "@/lib/utils";
 type IconButtonVariant = "default" | "primary" | "danger" | "ghost";
 type IconButtonSize = "sm" | "md" | "lg";
 
-type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "size"> & {
+type IconButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "children" | "size"
+> & {
   label: string;
   children: ReactNode;
   variant?: IconButtonVariant;
@@ -47,7 +50,8 @@ export function IconButton({
       className={cn(
         buttonVariants({ variant: variantMap[variant], size: "icon" }),
         sizeClass[size],
-        active && "bg-accent text-accent-foreground ring-1 ring-[color-mix(in_srgb,var(--primary)_24%,transparent)]",
+        active &&
+          "bg-accent text-accent-foreground ring-1 ring-[color-mix(in_srgb,var(--primary)_24%,transparent)]",
         className,
       )}
       {...props}
