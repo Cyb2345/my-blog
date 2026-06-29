@@ -205,34 +205,6 @@ select:focus {
   transform: translateY(-1px);
 }
 
-.route-transition {
-  animation: route-in 260ms var(--ease-out) both;
-}
-
-.motion-surface {
-  animation: surface-in 260ms var(--ease-out) both;
-}
-
-.motion-list > * {
-  animation: surface-in 260ms var(--ease-out) both;
-}
-
-.motion-list > *:nth-child(2) {
-  animation-delay: 35ms;
-}
-
-.motion-list > *:nth-child(3) {
-  animation-delay: 70ms;
-}
-
-.motion-list > *:nth-child(4) {
-  animation-delay: 105ms;
-}
-
-.motion-list > *:nth-child(n + 5) {
-  animation-delay: 140ms;
-}
-
 .interactive {
   transform: translateZ(0);
   transition-duration: 220ms;
@@ -341,6 +313,10 @@ html[data-page-transition="none"] .admin-page-transition {
   view-transition-name: none;
 }
 
+html[data-page-transition="none"] .admin-top-progress::after {
+  animation: none !important;
+}
+
 html.admin-view-transitioning::view-transition-group(admin-page-content) {
   animation-duration: var(--motion-page-slide, 220ms);
   animation-timing-function: var(--ease-standard);
@@ -391,7 +367,7 @@ html.admin-view-transitioning[data-page-transition="slide-down"]::view-transitio
 }
 
 html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-old(admin-page-content) {
-  animation: admin-vt-zoom-out 180ms var(--ease-standard) both;
+  animation: admin-vt-fade-out 120ms var(--ease-standard) both;
 }
 
 html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-new(admin-page-content) {
@@ -578,50 +554,6 @@ html[data-admin-font-size="large"] .admin-shell {
   }
   to {
     transform: translateX(340%);
-  }
-}
-
-@keyframes route-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes surface-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.992);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes row-in {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes notice-pop {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

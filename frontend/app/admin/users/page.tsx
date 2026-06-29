@@ -152,7 +152,7 @@ function UserAvatar({ user }: { user: AdminUser }) {
   const label = (user.nickname || user.username || "U").slice(0, 1).toUpperCase();
   if (!user.avatar || failed) {
     return (
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-paper text-sm font-black text-ink/55 ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:ring-[var(--border-soft)]">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-muted text-sm font-black text-muted-foreground ring-1 ring-border">
         {label}
       </span>
     );
@@ -161,7 +161,7 @@ function UserAvatar({ user }: { user: AdminUser }) {
     <img
       src={getAssetUrl(user.avatar)}
       alt={`${user.username} 头像`}
-      className="h-10 w-10 rounded-full object-cover ring-1 ring-ink/10 dark:ring-[var(--border-soft)]"
+      className="h-10 w-10 rounded-full object-cover ring-1 ring-border"
       onError={() => setFailed(true)}
     />
   );
@@ -219,26 +219,26 @@ function RoleSelector({
               {selectedRole?.name ?? roleFallbackLabel(value)}
             </span>
           ) : (
-            <span className="text-ink/40 dark:text-[var(--text-muted)]">请选择角色</span>
+            <span className="text-muted-foreground">请选择角色</span>
           )}
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")} aria-hidden="true" />
       </button>
       <div
         className={cn(
-          "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] max-h-60 origin-top overflow-y-auto rounded-lg border border-ink/10 bg-white p-2 shadow-xl transition-all duration-200 dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
+          "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] max-h-60 origin-top overflow-y-auto rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-xl transition-all duration-200",
           open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
         role="listbox"
       >
         {loading ? (
-          <p className="px-3 py-2 text-sm font-bold text-ink/50 dark:text-[var(--text-muted)]">角色加载中...</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">角色加载中...</p>
         ) : null}
         {!loading && error ? (
           <p className="px-3 py-2 text-sm font-bold text-red-600 dark:text-rose-200">{error}</p>
         ) : null}
         {!loading && !error && !roles.length ? (
-          <p className="px-3 py-2 text-sm font-bold text-ink/50 dark:text-[var(--text-muted)]">暂无角色</p>
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">暂无角色</p>
         ) : null}
         {roles.map((role) => {
           const active = role.code === value;
@@ -254,7 +254,7 @@ function RoleSelector({
                 "flex min-h-10 w-full items-center justify-between gap-3 rounded-md px-3 text-sm font-black transition-colors duration-150 hover:bg-paper dark:hover:bg-[var(--hover)]",
                 active
                   ? "bg-ocean/10 text-ocean dark:bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] dark:text-[color-mix(in_srgb,var(--primary)_78%,white)]"
-                  : "text-ink/65 dark:text-[var(--text-secondary)]",
+                  : "text-muted-foreground",
               )}
               role="option"
               aria-selected={active}
@@ -279,7 +279,7 @@ function SwitchField({
   children: ReactNode;
 }) {
   return (
-    <label className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-ink/10 bg-white px-3 py-2 text-sm font-bold text-ink dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)]">
+    <label className="flex min-h-10 items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2 text-sm font-bold text-foreground">
       <span>{children}</span>
       <input name={name} type="checkbox" defaultChecked={defaultChecked} className="h-5 w-5 accent-blue-500" />
     </label>
@@ -755,8 +755,8 @@ export default function AdminUsersPage() {
         </>
       }
     >
-      {error ? <p className="notice-pop mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">{error}</p> : null}
-      {notice ? <p className="notice-pop mb-4 rounded-md bg-green-50 px-3 py-2 text-sm font-bold text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200">{notice}</p> : null}
+      {error ? <p className="motion-notice mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">{error}</p> : null}
+      {notice ? <p className="motion-notice mb-4 rounded-md bg-emerald-500/10 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-200">{notice}</p> : null}
 
       <AdminSearchForm onSubmit={handleQuery} onReset={handleReset} loading={loading}>
         <Input label="用户名" value={filters.username} onChange={(event) => setFilters((current) => ({ ...current, username: event.target.value }))} placeholder="请输入用户名" />
@@ -858,7 +858,7 @@ export default function AdminUsersPage() {
               ) : null}
             </div>
             <AdminField label="头像">
-              <div className="grid gap-2 rounded-md border border-ink/10 bg-paper/50 p-3 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
+              <div className="grid gap-2 rounded-md border border-border bg-muted/50 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     name="avatar"
@@ -867,7 +867,7 @@ export default function AdminUsersPage() {
                     placeholder="请输入头像 URL"
                     className={cn(inputClass, "flex-1")}
                   />
-                  <label className="interactive inline-flex min-h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-ink ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:ring-[var(--border-soft)]">
+                  <label className="interactive inline-flex min-h-10 w-fit cursor-pointer items-center gap-2 rounded-md bg-secondary px-3 py-2 text-sm font-bold text-secondary-foreground ring-1 ring-border hover:bg-accent hover:text-accent-foreground">
                     <Upload className="h-4 w-4" aria-hidden="true" />
                     {uploadingAvatar ? "上传中..." : "上传头像"}
                     <input
@@ -881,7 +881,7 @@ export default function AdminUsersPage() {
                 </div>
                 <UploadProgress item={avatarUploadProgress} />
                 {avatarUrl ? (
-                  <img src={getAssetUrl(avatarUrl)} alt="用户头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-ink/10 dark:ring-[var(--border-soft)]" />
+                  <img src={getAssetUrl(avatarUrl)} alt="用户头像预览" className="h-16 w-16 rounded-full object-cover ring-1 ring-border" />
                 ) : null}
               </div>
             </AdminField>
@@ -915,10 +915,10 @@ export default function AdminUsersPage() {
         {modal?.type === "mfa" && mfaSetup ? (
           <form onSubmit={verifyMfa} className="grid gap-4">
             <ModalError message={modalError} />
-            <div className="grid place-items-center rounded-md bg-white p-3 dark:bg-slate-100">
+            <div className="grid place-items-center rounded-md bg-background p-3">
               <img src={mfaSetup.qr_code_data_url} alt="MFA 绑定二维码" className="h-44 w-44" />
             </div>
-            <p className="text-xs font-bold leading-6 text-ink/55 dark:text-[var(--text-muted)]">
+            <p className="text-xs font-bold leading-6 text-muted-foreground">
               请使用 Google Authenticator、Microsoft Authenticator、1Password 或 Authy 扫码绑定后输入动态码。后台不会展示 MFA Secret 明文。
             </p>
             <AdminField label="动态验证码 *">

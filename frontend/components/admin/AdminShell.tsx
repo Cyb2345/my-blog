@@ -34,6 +34,7 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -374,6 +375,20 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   const [progressVisible, setProgressVisible] = useState(false);
   const progressTimer = useRef<number | null>(null);
 
+  const clearProgressTimer = useCallback(() => {
+    if (progressTimer.current) window.clearTimeout(progressTimer.current);
+    progressTimer.current = null;
+  }, []);
+
+  const finishProgressSoon = useCallback(() => {
+    clearProgressTimer();
+    progressTimer.current = window.setTimeout(() => {
+      setProgressVisible(false);
+      setRefreshing(false);
+      progressTimer.current = null;
+    }, pageEnterMs + 80);
+  }, [clearProgressTimer]);
+
   const breadcrumb = useMemo(() => findBreadcrumb(current, sections), [current, sections]);
   const currentTabLabel = breadcrumb[breadcrumb.length - 1] || "管理员工作台";
   const sidebarWidth = settings.sidebarCollapsed ? 72 : settings.menuWidth;
@@ -461,25 +476,11 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   useEffect(() => {
     clearProgressTimer();
     progressTimer.current = window.setTimeout(() => setProgressVisible(false), pageEnterMs + 80);
-  }, [current, settings.pageTransition]);
+  }, [clearProgressTimer, current, settings.pageTransition]);
 
   useEffect(() => () => {
     clearProgressTimer();
-  }, []);
-
-  function clearProgressTimer() {
-    if (progressTimer.current) window.clearTimeout(progressTimer.current);
-    progressTimer.current = null;
-  }
-
-  function finishProgressSoon() {
-    clearProgressTimer();
-    progressTimer.current = window.setTimeout(() => {
-      setProgressVisible(false);
-      setRefreshing(false);
-      progressTimer.current = null;
-    }, pageEnterMs + 80);
-  }
+  }, [clearProgressTimer]);
 
   function navigate(href: string) {
     if (!href) return;

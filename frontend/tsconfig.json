@@ -24,6 +24,66 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@/components/ui/Badge": [
+        "./components/ui/badge"
+      ],
+      "@/components/ui/Button": [
+        "./components/ui/button"
+      ],
+      "@/components/ui/Card": [
+        "./components/ui/card"
+      ],
+      "@/components/ui/Checkbox": [
+        "./components/ui/checkbox"
+      ],
+      "@/components/ui/ConfirmDialog": [
+        "./components/ui/confirm-dialog"
+      ],
+      "@/components/ui/Dialog": [
+        "./components/ui/dialog"
+      ],
+      "@/components/ui/Drawer": [
+        "./components/ui/drawer"
+      ],
+      "@/components/ui/Empty": [
+        "./components/ui/empty"
+      ],
+      "@/components/ui/EmptyState": [
+        "./components/ui/empty-state"
+      ],
+      "@/components/ui/IconButton": [
+        "./components/ui/icon-button"
+      ],
+      "@/components/ui/Input": [
+        "./components/ui/input"
+      ],
+      "@/components/ui/Pagination": [
+        "./components/ui/pagination"
+      ],
+      "@/components/ui/Popover": [
+        "./components/ui/popover"
+      ],
+      "@/components/ui/Select": [
+        "./components/ui/select"
+      ],
+      "@/components/ui/Skeleton": [
+        "./components/ui/skeleton"
+      ],
+      "@/components/ui/Switch": [
+        "./components/ui/switch"
+      ],
+      "@/components/ui/Tabs": [
+        "./components/ui/tabs"
+      ],
+      "@/components/ui/Tag": [
+        "./components/ui/tag"
+      ],
+      "@/components/ui/Textarea": [
+        "./components/ui/textarea"
+      ],
+      "@/components/ui/Tooltip": [
+        "./components/ui/tooltip"
+      ],
       "@/*": [
         "./*"
       ]

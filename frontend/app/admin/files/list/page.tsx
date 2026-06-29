@@ -365,7 +365,7 @@ export default function AdminFileListPage() {
         {preview ? (
           <div className="grid gap-5">
             <div className="grid min-h-56 place-items-center rounded-lg bg-[var(--color-bg-muted)] p-4">
-              {preview.mime_type.includes("pdf") ? <iframe src={getAssetUrl(preview.url)} title={preview.original_name} className="h-[55vh] w-full rounded-md bg-white" /> : <FilePreview item={preview} large />}
+              {preview.mime_type.includes("pdf") ? <iframe src={getAssetUrl(preview.url)} title={preview.original_name} className="h-[55vh] w-full rounded-md bg-background" /> : <FilePreview item={preview} large />}
             </div>
             <div className="grid gap-3 text-sm md:grid-cols-2">
               {[

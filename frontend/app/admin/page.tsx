@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { AdminPage } from "@/components/admin/AdminPage";
+import { Card, CardContent } from "@/components/ui/card";
 import { adminRequest } from "@/lib/auth";
 import type { AdminStats } from "@/types/blog";
 
@@ -26,19 +28,17 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <>
-      <div className="mb-6">
-        <p className="text-sm font-bold text-ocean">Dashboard</p>
-        <h1 className="mt-2 text-2xl font-black text-ink">后台概览</h1>
-      </div>
+    <AdminPage title="后台概览" description="查看内容、用户、留言和媒体资源的关键统计。">
       <div className="motion-list grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(labels) as Array<keyof AdminStats>).map((key) => (
-          <div key={key} className="interactive-card rounded-lg border border-ink/10 bg-white p-5 shadow-sm hover:shadow-soft">
-            <p className="text-sm font-bold text-ink/50">{labels[key]}</p>
-            <p className="mt-3 text-3xl font-black text-ink">{stats ? stats[key] : "-"}</p>
-          </div>
+          <Card key={key} className="motion-card interactive-card">
+            <CardContent className="p-5">
+              <p className="text-sm font-bold text-muted-foreground">{labels[key]}</p>
+              <p className="mt-3 text-3xl font-black text-foreground">{stats ? stats[key] : "-"}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
-    </>
+    </AdminPage>
   );
 }

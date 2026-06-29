@@ -218,7 +218,7 @@ export function AdminLoginForm({
             ) : null}
 
             {captchaUnsupported ? (
-              <div className="rounded-md border border-honey/40 bg-honey/10 px-3 py-2 text-sm font-semibold text-ink/75 dark:border-[color-mix(in_srgb,var(--warning)_42%,transparent)] dark:bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] dark:text-[var(--text-secondary)]">
+              <div className="rounded-md border border-[color-mix(in_srgb,var(--warning)_42%,transparent)] bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] px-3 py-2 text-sm font-semibold text-[var(--warning)]">
                 当前验证码类型暂未接入，请联系管理员调整登录验证码配置。
               </div>
             ) : null}
@@ -227,7 +227,7 @@ export function AdminLoginForm({
               <label className={labelClass}>
                 MFA 动态验证码
                 <div className="relative">
-                  <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-[var(--text-muted)]" aria-hidden="true" />
+                  <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <input
                     name="mfa_code"
                     inputMode="numeric"
@@ -236,12 +236,12 @@ export function AdminLoginForm({
                     className={cn(fieldClass, "pl-9")}
                   />
                 </div>
-                <span className="text-xs font-medium text-ink/48 dark:text-[var(--text-muted)]">请输入认证器中的 6 位动态验证码。</span>
+                <span className="text-xs font-medium text-muted-foreground">请输入认证器中的 6 位动态验证码。</span>
               </label>
             ) : null}
 
             {error ? (
-              <p className="notice-pop rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-[color-mix(in_srgb,var(--danger)_14%,transparent)] dark:text-[color-mix(in_srgb,var(--danger)_72%,white)]">
+              <p className="motion-notice rounded-md bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
                 {error}
               </p>
             ) : null}

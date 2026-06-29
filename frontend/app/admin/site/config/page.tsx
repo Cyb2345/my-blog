@@ -981,7 +981,7 @@ function ConfigEditDialog({
               >
                 <span>{value === "true" ? "开启" : "关闭"}</span>
                 <span className={cn("relative h-6 w-11 rounded-full transition-colors", value === "true" ? "bg-primary" : "bg-border")}>
-                  <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform", value === "true" ? "translate-x-6" : "translate-x-1")} />
+                  <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-background shadow transition-transform", value === "true" ? "translate-x-6" : "translate-x-1")} />
                 </span>
               </button>
             </div>

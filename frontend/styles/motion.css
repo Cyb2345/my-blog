@@ -18,6 +18,43 @@
   animation: motion-slide-in var(--motion-normal) var(--ease-emphasized) both;
 }
 
+.route-transition {
+  animation: route-in 260ms var(--ease-out) both;
+}
+
+.motion-surface,
+.motion-panel {
+  animation: surface-in 260ms var(--ease-out) both;
+}
+
+.motion-card {
+  animation: card-in 240ms var(--ease-emphasized) both;
+}
+
+.motion-notice {
+  animation: notice-pop var(--motion-normal) var(--ease-out) both;
+}
+
+.motion-list > * {
+  animation: surface-in 260ms var(--ease-out) both;
+}
+
+.motion-list > *:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.motion-list > *:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.motion-list > *:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+.motion-list > *:nth-child(n + 5) {
+  animation-delay: 140ms;
+}
+
 @keyframes motion-fade-in {
   from {
     opacity: 0;
@@ -38,9 +75,82 @@
   }
 }
 
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(0.988);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes notice-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-page-transition="none"] .route-transition,
+html[data-page-transition="none"] .motion-fade-in,
+html[data-page-transition="none"] .motion-slide-in,
+html[data-page-transition="none"] .motion-surface,
+html[data-page-transition="none"] .motion-panel,
+html[data-page-transition="none"] .motion-card,
+html[data-page-transition="none"] .motion-notice,
+html[data-page-transition="none"] .motion-list > * {
+  animation: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-fade-in,
-  .motion-slide-in {
+  .motion-slide-in,
+  .route-transition,
+  .motion-surface,
+  .motion-panel,
+  .motion-card,
+  .motion-notice,
+  .motion-list > * {
     animation-duration: 1ms;
+    animation-delay: 0ms !important;
   }
 }

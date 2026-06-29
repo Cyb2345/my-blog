@@ -20,8 +20,8 @@ function SettingSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-ink/10 py-5 first:border-t-0 first:pt-0 dark:border-[var(--border-soft)]">
-      <h3 className="mb-3 text-sm font-black text-ink dark:text-[var(--text)]">{title}</h3>
+    <section className="border-t border-border py-5 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-sm font-black text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -37,7 +37,7 @@ function SettingToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 py-1 text-sm font-bold text-ink/75 dark:text-[var(--text-secondary)]">
+    <label className="flex min-h-10 cursor-pointer items-center justify-between gap-4 py-1 text-sm font-bold text-muted-foreground">
       <span>{label}</span>
       <input
         type="checkbox"
@@ -45,8 +45,8 @@ function SettingToggle({
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className="relative h-6 w-11 shrink-0 rounded-full bg-ink/15 transition-colors peer-checked:bg-[var(--admin-primary)] dark:bg-white/15">
-        <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform", checked ? "translate-x-6" : "translate-x-1")} />
+      <span className="relative h-6 w-11 shrink-0 rounded-full bg-muted transition-colors peer-checked:bg-primary">
+        <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-background shadow-sm transition-transform", checked ? "translate-x-6" : "translate-x-1")} />
       </span>
     </label>
   );
@@ -62,7 +62,7 @@ function SegmentedSetting<Value extends string>({
   onChange: (value: Value) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 rounded-md bg-paper p-1 dark:bg-[var(--bg-soft)]">
+    <div className="grid grid-cols-2 gap-2 rounded-md bg-muted p-1">
       {options.map((option) => (
         <button
           key={option.value}
@@ -72,8 +72,8 @@ function SegmentedSetting<Value extends string>({
           className={cn(
             "min-h-9 rounded-md px-3 text-sm font-black",
             value === option.value
-              ? "bg-white text-[var(--admin-primary)] shadow-sm ring-1 ring-ink/10 dark:bg-[var(--surface-soft)] dark:ring-[var(--border-soft)]"
-              : "text-ink/55 hover:text-ink dark:text-[var(--text-muted)] dark:hover:text-[var(--text)]",
+              ? "bg-background text-primary shadow-sm ring-1 ring-border"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
           )}
         >
           {option.label}
@@ -104,31 +104,31 @@ export function AdminSettingsDrawer({
         aria-label={t("关闭")}
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-[88] bg-black/35 backdrop-blur-[1px] transition-opacity duration-200",
+          "fixed inset-0 z-[88] bg-black/35 transition-opacity duration-[var(--motion-normal)]",
           open ? "visible pointer-events-auto opacity-100" : "invisible pointer-events-none opacity-0",
         )}
         tabIndex={open ? 0 : -1}
       />
       <aside
         className={cn(
-          "fixed inset-y-0 right-0 z-[90] w-[min(380px,calc(100vw-1rem))] border-l border-ink/10 bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] dark:border-[var(--border-soft)] dark:bg-[var(--surface)]",
+          "fixed inset-y-0 right-0 z-[90] w-[min(380px,calc(100vw-1rem))] border-l border-border bg-card text-card-foreground shadow-2xl transition-transform duration-[260ms] ease-[var(--ease-standard)]",
           open ? "visible translate-x-0" : "invisible translate-x-full",
         )}
         aria-hidden={!open}
       >
-        <div className="flex h-16 items-center justify-between border-b border-ink/10 px-5 dark:border-[var(--border-soft)]">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2">
             <Settings2 className="h-5 w-5 text-[var(--admin-primary)]" aria-hidden="true" />
             <h2 className="text-base font-black">{t("设置中心")}</h2>
           </div>
-          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-md hover:bg-paper dark:hover:bg-[var(--hover)]" aria-label={t("关闭")}>
+          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent hover:text-accent-foreground" aria-label={t("关闭")}>
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
         <div className="h-[calc(100%-4rem)] overflow-y-auto px-5 py-5">
           <SettingSection title={t("主题风格")}>
-            <div className="flex items-center justify-between rounded-md border border-ink/10 bg-paper/60 px-3 py-2 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted px-3 py-2">
               <span className="text-sm font-bold">{t("切换明暗主题")}</span>
               <ThemeToggle compact />
             </div>
@@ -143,7 +143,7 @@ export function AdminSettingsDrawer({
                     key={color.value}
                     type="button"
                     onClick={() => update("primaryColor", color.value)}
-                    className="relative grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-white transition-transform hover:scale-110 dark:ring-offset-[var(--surface)]"
+                    className="relative grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-background transition-transform hover:scale-110"
                     style={{ backgroundColor: color.value }}
                     aria-label={color.label}
                     title={color.label}
@@ -178,7 +178,7 @@ export function AdminSettingsDrawer({
           </SettingSection>
 
           <SettingSection title={t("基础配置")}>
-            <div className="grid divide-y divide-ink/10 dark:divide-[var(--border-soft)]">
+            <div className="grid divide-y divide-border">
               <SettingToggle label={t("开启多标签栏")} checked={settings.showTabs} onChange={(value) => update("showTabs", value)} />
               <SettingToggle label={t("侧边栏手风琴")} checked={settings.accordionMenu} onChange={(value) => update("accordionMenu", value)} />
               <SettingToggle label={t("显示折叠按钮")} checked={settings.showCollapse} onChange={(value) => update("showCollapse", value)} />
