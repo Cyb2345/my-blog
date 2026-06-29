@@ -246,13 +246,19 @@ export function AdminSettingsDrawer({
           </SettingSection>
 
           <SettingSection title={t("页面切换动画")}>
-            <SegmentedSetting
+            <CustomSelect
               value={settings.pageTransition}
-              onChange={(value) => update("pageTransition", value)}
+              onChange={(value) =>
+                update(
+                  "pageTransition",
+                  value as AdminLayoutSettings["pageTransition"],
+                )
+              }
               options={adminPageTransitionOptions.map((option) => ({
                 ...option,
                 label: t(option.label),
               }))}
+              panelClassName="z-[100]"
             />
           </SettingSection>
 

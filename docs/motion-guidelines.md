@@ -9,9 +9,11 @@
 - `--motion-slow: 300ms`
 - `--motion-page-fade: 200ms`
 - `--motion-page-slide: 220ms`
-- `--motion-page-zoom-enter: 240ms`
-- `--motion-page-zoom-exit: 220ms`
+- `--motion-page-zoom-enter: 280ms`
+- `--motion-page-zoom-exit: 180ms`
+- `--motion-page-zoom-enter-delay: 40ms`
 - `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)`
+- `--ease-in: cubic-bezier(0.4, 0, 1, 1)`
 - `--ease-out: cubic-bezier(0, 0, 0.2, 1)`
 - `--ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1)`
 
@@ -26,7 +28,7 @@
 - `slide-right`：向右滑动。`opacity: 0 -> 1`，`translateX(-12px) -> translateX(0)`，推荐 200ms 到 240ms。
 - `slide-up`：向上滑动。`opacity: 0 -> 1`，`translateY(10px) -> translateY(0)`，推荐 200ms 到 240ms。
 - `slide-down`：向下滑动。`opacity: 0 -> 1`，`translateY(-10px) -> translateY(0)`，推荐 200ms 到 240ms。
-- `zoom`：缩放。参考后台模板的主内容缩放切换，只作用于主内容区域。旧内容只允许 `opacity` 加极轻微 `scale(1 -> 0.992)` / `translateY(0 -> 2px)` 收起，新内容使用 `opacity: 0 -> 1`、`scale(0.965) -> scale(1)`、`translateY(10px) -> translateY(0)` 入场，推荐 220ms 到 240ms。不得设置入场延迟，不得让主内容区域整块变黑或空掉。
+- `zoom`：Fade-Scale 缩放。只作用于主内容区域整体容器，内部搜索栏、表格、分页、表单和卡片不得分别动画。旧内容 `opacity: 1 -> 0`、`scale(1) -> scale(0.96)`，180ms，`cubic-bezier(0.4, 0, 1, 1)`；新内容 `opacity: 0 -> 1`、`scale(0.96) -> scale(1)`，280ms，`cubic-bezier(0, 0, 0.2, 1)`，允许 40ms 极小延迟形成干净交叉过渡。不得使用 `translateX`、`translateY`、弹簧、回弹或 stagger。
 
 默认值：
 
@@ -45,7 +47,7 @@
 
 所有后台菜单、标签页、快捷入口和后台内链跳转必须走 `useAdminViewTransitionNavigate`。浏览器不支持 View Transition API、用户选择 `none` 或系统开启 `prefers-reduced-motion: reduce` 时，必须直接普通路由跳转，不调用 `startViewTransition`。
 
-缩放模式以稳定为先，快照动画只允许使用轻量 opacity、小幅 scale 和小幅 translate。旧快照可以轻微收起作为过渡参考，但必须和新快照交叉出现，避免黑屏、空场或旧页闪回。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景或入场延迟。
+缩放模式以稳定为先，快照动画只允许使用 opacity 和小幅 scale。旧快照必须快速淡出收起，新快照随后淡入放大，两者只能短暂交叉，避免黑屏、空场、长时间双页叠加或旧页闪回。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景。
 
 ## 性能限制
 
@@ -73,7 +75,7 @@
 - 对大表格行使用复杂入场动画。
 - 表格宽度因动画跳动。
 - 侧边栏、顶部栏、标签栏闪烁。
-- 缩放使用 `scale(0.8)`、`scale(0.9)` 等过大幅度；后台页面 `zoom` 入场不得低于 `scale(0.965)`。
+- 缩放使用 `scale(0.8)`、`scale(0.9)` 等过大幅度；后台页面 `zoom` 推荐使用 `scale(0.96)`，允许 `0.95` 到 `0.96` 间微调。
 
 ## 弹窗
 
@@ -110,4 +112,4 @@ hover 只允许轻量属性：
 - 向下滑动
 - 缩放
 
-选择后立即写入 localStorage 的 `admin_page_transition`，并同步到 `document.documentElement.dataset.pageTransition`，下一次后台页面切换立即生效，刷新页面后保持上次选择。当前选中项必须有明确激活状态。
+该配置在设置中心中使用下拉选择呈现，不平铺展示所有选项。选择后立即写入 localStorage 的 `admin_page_transition`，并同步到 `document.documentElement.dataset.pageTransition`，下一次后台页面切换立即生效，刷新页面后保持上次选择。当前选中项必须有明确激活状态。
