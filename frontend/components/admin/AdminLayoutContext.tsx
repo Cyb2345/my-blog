@@ -54,7 +54,7 @@ type AdminLayoutContextValue = {
 
 const defaultSettings: AdminLayoutSettings = {
   sidebarCollapsed: false,
-  primaryColor: "#4f7cff",
+  primaryColor: "#1688ff",
   boxStyle: "border",
   containerWidth: "full",
   showTabs: true,
@@ -402,10 +402,10 @@ export function useAdminLayout() {
 }
 
 export const adminPrimaryColors = [
-  { label: "蓝色", value: "#4f7cff" },
+  { label: "蓝色", value: "#1688ff" },
   { label: "紫色", value: "#9b72f2" },
-  { label: "青色", value: "#2bb7c8" },
-  { label: "绿色", value: "#58b947" },
-  { label: "橙色", value: "#f39a32" },
-  { label: "粉色", value: "#ec65aa" },
+  { label: "青色", value: "#35c8f2" },
+  { label: "绿色", value: "#19d38f" },
+  { label: "橙色", value: "#ffb22e" },
+  { label: "粉色", value: "#ff5d8f" },
 ];

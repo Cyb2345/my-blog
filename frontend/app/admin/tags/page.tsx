@@ -53,9 +53,9 @@ const tagColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultTagTableSettings: TableSettings = {
-  bordered: true,
-  striped: false,
-  headerBackground: true,
+  bordered: false,
+  striped: true,
+  headerBackground: false,
   density: "default",
   visibleColumns: tagColumnOptions.map((column) => column.key),
 };

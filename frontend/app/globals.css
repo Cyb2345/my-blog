@@ -38,7 +38,7 @@
   --hover: var(--color-surface-hover);
   --active: color-mix(in srgb, var(--color-primary) 12%, transparent);
   --primary: var(--color-primary);
-  --admin-primary: #4f7cff;
+  --admin-primary: #1688ff;
   --success: var(--color-success);
   --warning: var(--color-warning);
   --danger: var(--color-danger);
@@ -55,7 +55,7 @@
   --card-foreground: var(--color-text);
   --popover: var(--color-surface);
   --popover-foreground: var(--color-text);
-  --primary-foreground: var(--color-text-inverse);
+  --primary-foreground: #ffffff;
   --secondary: var(--color-bg-muted);
   --secondary-foreground: var(--color-text);
   --muted: var(--color-bg-muted);
@@ -69,7 +69,7 @@
   --bg: var(--color-bg);
   --bg-soft: var(--color-bg-muted);
   --surface: var(--color-surface);
-  --surface-card: color-mix(in srgb, var(--color-surface) 88%, white);
+  --surface-card: var(--admin-surface);
   --surface-soft: var(--color-surface-muted);
   --border: var(--color-border);
   --border-soft: color-mix(in srgb, var(--color-border) 78%, transparent);
@@ -252,41 +252,6 @@ select:focus {
   transform: translateY(-2px);
 }
 
-.admin-table tbody tr {
-  animation: row-in 320ms var(--ease-out) both;
-  transition:
-    background-color 160ms var(--ease-out),
-    transform 160ms var(--ease-out);
-}
-
-.admin-table tbody tr:hover {
-  background: rgba(68, 112, 143, 0.055);
-}
-
-.admin-table th {
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  line-height: 1.25rem;
-}
-
-.admin-table td {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.35rem;
-  vertical-align: middle;
-}
-
-.admin-table input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--primary);
-}
-
-.dark .admin-table tbody tr:hover {
-  background: color-mix(in srgb, var(--hover) 84%, transparent);
-}
-
 .notice-pop {
   animation: notice-pop 280ms var(--ease-out) both;
 }
@@ -299,6 +264,74 @@ select:focus {
 
 .admin-sidebar {
   width: var(--admin-sidebar-width, 256px);
+}
+
+.admin-shell {
+  --background: var(--admin-control-bg);
+  --foreground: var(--admin-text);
+  --card: var(--admin-surface);
+  --card-foreground: var(--admin-text);
+  --popover: var(--admin-surface);
+  --popover-foreground: var(--admin-text);
+  --secondary: var(--admin-surface-muted);
+  --secondary-foreground: var(--admin-text);
+  --muted: var(--admin-surface-muted);
+  --muted-foreground: var(--admin-text-subtle);
+  --border: var(--color-border);
+  --input: var(--admin-control-border);
+  --ring: var(--admin-primary);
+  --primary-foreground: #ffffff;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-shell button:active,
+.admin-shell [role="button"]:active,
+.admin-shell a:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.admin-content {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 11rem),
+    var(--admin-bg);
+}
+
+.admin-table {
+  background: var(--admin-surface);
+}
+
+.admin-table tbody tr {
+  animation: none;
+  background: var(--admin-row);
+  transition:
+    background-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.admin-table tbody tr:hover {
+  background: var(--admin-table-hover);
+}
+
+.admin-table th {
+  color: var(--admin-text-subtle);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.35rem;
+}
+
+.admin-table td {
+  color: var(--admin-text-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.45rem;
+  vertical-align: middle;
+}
+
+.admin-table input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--admin-primary);
 }
 
 .admin-tabs {
@@ -699,7 +732,7 @@ html[data-admin-font-size="large"] .admin-shell {
   position: absolute;
   left: -1.15em;
   top: 0.05em;
-  color: rgba(68, 112, 143, 0.45);
+  color: color-mix(in srgb, var(--color-primary) 45%, transparent);
   opacity: 0;
   text-decoration: none !important;
   transition:
@@ -713,7 +746,7 @@ html[data-admin-font-size="large"] .admin-shell {
 }
 
 .markdown-heading__anchor:hover {
-  color: #44708f;
+  color: var(--color-primary);
 }
 
 .reading p,
@@ -762,10 +795,10 @@ html[data-admin-font-size="large"] .admin-shell {
 }
 
 .reading a {
-  color: #44708f;
+  color: var(--color-primary);
   font-weight: 700;
   text-decoration: underline;
-  text-decoration-color: rgba(68, 112, 143, 0.28);
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 28%, transparent);
   text-underline-offset: 0.2em;
 }
 
@@ -776,16 +809,16 @@ html[data-admin-font-size="large"] .admin-shell {
 
 .reading code {
   border-radius: 0.35rem;
-  background: rgba(68, 112, 143, 0.12);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
   padding: 0.15rem 0.35rem;
   color: #254b67;
   font-size: 0.92em;
 }
 
 .reading blockquote {
-  border-left: 4px solid rgba(68, 112, 143, 0.35);
+  border-left: 4px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
   border-radius: 0.4rem;
-  background: rgba(68, 112, 143, 0.08);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   padding: 0.85rem 1rem;
   color: rgba(31, 41, 51, 0.72);
 }
@@ -937,7 +970,7 @@ html[data-admin-font-size="large"] .admin-shell {
 }
 
 .toc-link:hover {
-  background: rgba(68, 112, 143, 0.08);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
   color: #1f2933;
 }
 
@@ -953,9 +986,9 @@ html[data-admin-font-size="large"] .admin-shell {
 }
 
 .toc-link--active {
-  border-left-color: #44708f;
-  background: rgba(68, 112, 143, 0.1);
-  color: #44708f;
+  border-left-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
   transform: translateX(2px);
 }
 
@@ -1026,7 +1059,7 @@ html[data-admin-font-size="large"] .admin-shell {
 
 .docs-tree__trigger:hover {
   color: #1f2933;
-  background: rgba(68, 112, 143, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 .docs-tree__chevron {
@@ -1070,14 +1103,14 @@ html[data-admin-font-size="large"] .admin-shell {
 
 .docs-tree__link:hover {
   color: #1f2933;
-  background: rgba(68, 112, 143, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
   transform: translateX(2px);
 }
 
 .docs-tree__link--active {
-  color: #44708f;
-  background: rgba(68, 112, 143, 0.15);
-  border-left-color: #44708f;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  border-left-color: var(--color-primary);
 }
 
 .docs-tree__date {

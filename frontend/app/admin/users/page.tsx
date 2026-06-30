@@ -96,9 +96,9 @@ const userColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultUserTableSettings: TableSettings = {
-  bordered: true,
+  bordered: false,
   striped: true,
-  headerBackground: true,
+  headerBackground: false,
   density: "default",
   visibleColumns: userColumnOptions.map((column) => column.key),
 };
@@ -967,7 +967,7 @@ export default function AdminUsersPage() {
         </p>
       ) : null}
       {notice ? (
-        <p className="motion-notice mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
+        <p className="motion-notice mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
           {notice}
         </p>
       ) : null}

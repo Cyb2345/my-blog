@@ -118,23 +118,21 @@ export function PostCategorySelect({
         }}
         aria-expanded={open}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-bold outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-ocean/40 focus:ring-4 border-border text-foreground dark:ring-sky-300/20 dark:hover:border-sky-300/40",
-          open && "border-ocean/70 dark:border-sky-300/70",
+          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-input bg-background px-3 py-2 text-left text-sm font-bold text-foreground outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-primary focus:ring-4",
+          open && "border-primary",
         )}
       >
         <span
           className={cn(
             "truncate",
-            selected
-              ? "text-foreground text-foreground"
-              : "text-muted-foreground text-muted-foreground",
+            selected ? "text-foreground" : "text-muted-foreground",
           )}
         >
           {selected?.name ?? placeholder}
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 text-muted-foreground",
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
             open && "rotate-180",
           )}
           aria-hidden="true"
@@ -164,7 +162,7 @@ export function PostCategorySelect({
             </OptionButton>
           ))
         ) : (
-          <p className="px-3 py-2 text-sm font-bold text-muted-foreground text-muted-foreground">
+          <p className="px-3 py-2 text-sm font-bold text-muted-foreground">
             暂无可选分类
           </p>
         )}
@@ -216,8 +214,8 @@ export function PostTagMultiSelect({
         }}
         aria-expanded={open}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-bold outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-ocean/40 focus:ring-4 border-border text-foreground dark:ring-sky-300/20 dark:hover:border-sky-300/40",
-          open && "border-ocean/70 dark:border-sky-300/70",
+          "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-input bg-background px-3 py-2 text-left text-sm font-bold text-foreground outline-none ring-[var(--admin-focus-ring)] transition-all duration-200 hover:border-primary focus:ring-4",
+          open && "border-primary",
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -226,7 +224,7 @@ export function PostTagMultiSelect({
               {visibleSelectedTags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-accent px-2 py-1 text-xs font-black text-primary bg-primary/15 text-primary"
+                  className="inline-flex max-w-[7rem] shrink-0 items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-xs font-black text-primary"
                 >
                   <span className="truncate">{tag.name}</span>
                   <span
@@ -244,7 +242,7 @@ export function PostTagMultiSelect({
                         onChange(value.filter((id) => id !== tag.id));
                       }
                     }}
-                    className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-primary/10 hover:bg-accent"
+                    className="grid h-4 w-4 shrink-0 place-items-center rounded-sm hover:bg-primary/10"
                   >
                     <X className="h-3 w-3" aria-hidden="true" />
                   </span>
@@ -371,13 +369,13 @@ export function PostTagEditorSelect({
               </span>
             ))}
             {extraSelectedCount ? (
-              <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-black text-muted-foreground bg-accent text-muted-foreground">
+              <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-black text-muted-foreground">
                 +{extraSelectedCount}
               </span>
             ) : null}
           </div>
         ) : (
-          <span className="min-w-0 flex-1 truncate text-xs font-bold text-muted-foreground text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate text-xs font-bold text-muted-foreground">
             暂未选择标签
           </span>
         )}
@@ -387,8 +385,8 @@ export function PostTagEditorSelect({
           className={cn(
             "interactive ml-auto inline-flex h-8 shrink-0 items-center rounded-md px-3 text-sm font-black ring-1 transition-all duration-200",
             open
-              ? "bg-primary text-white ring-ocean bg-primary dark:text-white dark:ring-sky-300"
-              : "bg-muted text-primary ring-[var(--admin-focus-ring)] hover:ring-ocean/50 bg-accent text-primary dark:ring-sky-300/20",
+              ? "bg-primary text-white ring-primary"
+              : "bg-accent text-primary ring-[var(--admin-focus-ring)] hover:ring-primary/50",
           )}
         >
           添加标签
@@ -396,20 +394,20 @@ export function PostTagEditorSelect({
       </div>
       <div
         className={cn(
-          "absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-lg border border-border bg-card p-4 shadow-xl transition-all duration-200 motion-reduce:transition-none border-border ",
+          "absolute left-0 top-[calc(100%+0.5rem)] z-[80] w-full min-w-[20rem] max-w-[min(36rem,calc(100vw-3rem))] origin-top rounded-xl border border-border bg-popover p-4 shadow-[var(--shadow-popover)] transition-all duration-200 motion-reduce:transition-none",
           open
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
         )}
       >
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-black text-foreground text-foreground">
+          <p className="text-sm font-black text-foreground">
             标签
           </p>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-muted-foreground hover:text-foreground text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground"
             aria-label="关闭标签面板"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -425,14 +423,14 @@ export function PostTagEditorSelect({
             }
           }}
           placeholder="请输入标签名，enter 添加自定义标签"
-          className="min-h-10 w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-bold outline-none ring-[var(--admin-focus-ring)] focus:ring-4 border-border text-foreground dark:ring-sky-300/20"
+          className="min-h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-bold text-foreground outline-none ring-[var(--admin-focus-ring)] focus:ring-4"
         />
         {panelError ? (
           <p className="mt-2 text-xs font-bold text-destructive ">
             {panelError}
           </p>
         ) : null}
-        <p className="mt-3 text-xs font-black text-muted-foreground text-muted-foreground">
+        <p className="mt-3 text-xs font-black text-muted-foreground">
           {creating ? "正在添加标签..." : "添加标签"}
         </p>
         <div className="mt-2 max-h-52 overflow-auto pr-1">
@@ -446,15 +444,15 @@ export function PostTagEditorSelect({
                   className={cn(
                     "interactive rounded-md px-2.5 py-1.5 text-xs font-black transition-all duration-150",
                     selectedIds.has(tag.id)
-                      ? "bg-primary text-white bg-primary dark:text-white"
-                      : "bg-muted text-muted-foreground hover:text-foreground bg-accent text-muted-foreground hover:text-foreground",
+                      ? "bg-primary text-white"
+                      : "bg-accent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {tag.name}
                 </button>
               ))
             ) : (
-              <span className="text-sm font-bold text-muted-foreground text-muted-foreground">
+              <span className="text-sm font-bold text-muted-foreground">
                 暂无标签
               </span>
             )}

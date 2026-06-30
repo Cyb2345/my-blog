@@ -56,9 +56,9 @@ const categoryColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultCategoryTableSettings: TableSettings = {
-  bordered: true,
-  striped: false,
-  headerBackground: true,
+  bordered: false,
+  striped: true,
+  headerBackground: false,
   density: "default" as const,
   visibleColumns: categoryColumnOptions.map((column) => column.key),
 };

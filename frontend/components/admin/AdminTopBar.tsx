@@ -77,9 +77,9 @@ function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "interactive relative grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55 dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+        "interactive relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55",
         active &&
-          "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)]",
+          "bg-[color-mix(in_srgb,var(--admin-primary)_14%,transparent)] text-[var(--admin-primary)] ring-1 ring-[color-mix(in_srgb,var(--admin-primary)_18%,transparent)]",
       )}
     >
       {children}
@@ -99,7 +99,7 @@ function Popover({
   return (
     <div
       className={cn(
-        "absolute top-[calc(100%+0.55rem)] z-[75] origin-top rounded-lg border border-border bg-card shadow-2xl transition-all duration-200 dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
+        "absolute top-[calc(100%+0.55rem)] z-[75] origin-top rounded-xl border border-border bg-popover shadow-[var(--shadow-popover)] transition-all duration-200",
         open
           ? "visible pointer-events-auto translate-y-0 scale-100 opacity-100"
           : "invisible pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
@@ -388,7 +388,7 @@ export function AdminTopBar({
         ) : null}
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-0.5">
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-[color-mix(in_srgb,var(--admin-surface-muted)_82%,transparent)] px-1.5 py-1 shadow-sm">
         <IconButton
           label={fullscreen ? t("退出全屏") : t("进入全屏")}
           disabled={fullscreenTransition}

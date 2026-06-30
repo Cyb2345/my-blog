@@ -93,12 +93,12 @@ export function AdminDataTable<Row>({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+        "overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-none",
         className,
       )}
     >
       {toolbar ? (
-        <div className="border-b border-border px-4 py-3">{toolbar}</div>
+        <div className="border-b border-border px-4 py-3.5">{toolbar}</div>
       ) : null}
       <div className="overflow-x-auto">
         <table
@@ -171,7 +171,7 @@ export function AdminDataTable<Row>({
                     "border-t border-border transition-colors hover:bg-[var(--admin-table-hover)]",
                     mergedSettings.striped &&
                       rowIndex % 2 === 1 &&
-                      "bg-[color-mix(in_srgb,var(--foreground)_3%,transparent)]",
+                      "bg-[var(--admin-row-alt)]",
                     rowClassName?.(row, rowIndex),
                   )}
                 >
@@ -206,7 +206,7 @@ export function AdminDataTable<Row>({
                           column.sticky === "right" &&
                             mergedSettings.striped &&
                             rowIndex % 2 === 1 &&
-                            "bg-[color-mix(in_srgb,var(--foreground)_3%,var(--card))]",
+                            "bg-[var(--admin-row-alt)]",
                           column.align === "center" && "text-center",
                           column.align === "right" && "text-right",
                           column.ellipsis && "truncate",

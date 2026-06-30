@@ -155,7 +155,7 @@ function getEffectHint(key: string) {
       status: "hot",
       label: "立即生效",
       className:
-        "bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 dark:text-[var(--color-success)] dark:ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)]",
+        "bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] dark:text-[var(--color-success)] dark:ring-[color-mix(in_srgb,var(--color-success)_24%,transparent)]",
     };
   if (restartKeys.has(key))
     return {
@@ -612,7 +612,7 @@ export default function AdminParamsPage() {
         </p>
       ) : null}
       {notice ? (
-        <p className="notice-pop mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)]0/10 px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
+        <p className="notice-pop mb-4 rounded-md bg-[color-mix(in_srgb,var(--color-success)_14%,transparent)] px-3 py-2 text-sm font-bold text-[var(--color-success)] dark:text-[var(--color-success)]">
           {notice}
         </p>
       ) : null}

@@ -57,9 +57,9 @@ const linkColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultSettings: TableSettings = {
-  bordered: true,
+  bordered: false,
   striped: true,
-  headerBackground: true,
+  headerBackground: false,
   density: "default",
   visibleColumns: linkColumnOptions.map((column) => column.key),
 };

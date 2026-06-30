@@ -26,17 +26,17 @@ export function AdminTabs({
   if (!settings.showTabs) return null;
 
   return (
-    <div className="admin-tabs flex min-h-11 items-center gap-1 overflow-x-auto border-b border-border bg-card px-3 py-1.5 dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
+    <div className="admin-tabs flex min-h-11 items-center gap-1.5 overflow-x-auto border-b border-border/80 bg-[var(--admin-header-bg)] px-4 py-1.5">
       {tabs.map((tab) => {
         const active = tab.href === activeHref;
         return (
           <div
             key={tab.href}
             className={cn(
-              "group inline-flex h-8 shrink-0 items-center rounded-md border px-2 text-xs font-bold transition-colors",
+              "group inline-flex h-8 shrink-0 items-center rounded-lg border px-2 text-xs font-extrabold transition-colors",
               active
-                ? "border-[var(--admin-primary)] bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)]"
-                : "border-border bg-card text-muted-foreground hover:border-border hover:text-foreground dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text-muted)] dark:hover:text-[var(--text)]",
+                ? "border-[var(--admin-primary)] bg-[color-mix(in_srgb,var(--admin-primary)_13%,transparent)] text-[var(--admin-primary)]"
+                : "border-border bg-[var(--admin-surface)] text-muted-foreground hover:border-[var(--admin-control-border)] hover:text-foreground",
             )}
           >
             <button
@@ -53,7 +53,7 @@ export function AdminTabs({
               <button
                 type="button"
                 onClick={() => onClose(tab.href)}
-                className="ml-1 grid h-5 w-5 place-items-center rounded text-current/55 hover:bg-black/5 hover:text-current hover:bg-accent"
+                className="ml-1 grid h-5 w-5 place-items-center rounded text-current/55 hover:bg-accent hover:text-current"
                 aria-label={`${t("关闭")} ${t(tab.label)}`}
               >
                 <X className="h-3 w-3" aria-hidden="true" />
