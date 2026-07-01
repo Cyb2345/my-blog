@@ -1015,7 +1015,7 @@ export function PostModalEditor({
                 required
                 spellCheck={false}
                 className={cn(
-                  "min-h-[460px] resize-y border-0 bg-card px-4 py-4 font-mono text-sm leading-7 text-foreground outline-none ring-[var(--admin-focus-ring)] focus:ring-4",
+                  "min-h-[460px] resize-y border-0 bg-card px-4 py-4 font-mono text-sm leading-7 text-foreground outline-none ring-[var(--admin-focus-ring)] focus:ring-4 text-foreground dark:ring-sky-300/20",
                   fullscreen && "h-full min-h-0 resize-none overflow-auto",
                 )}
                 placeholder="在这里编写 Markdown 内容..."
@@ -1101,7 +1101,7 @@ export function PostModalEditor({
                         updateField("cover_image", asset.url);
                         setCoverLibraryOpen(false);
                       }}
-                      className="group grid gap-2 rounded-lg border border-border bg-muted p-2 text-left transition-all duration-150 hover:border-primary hover:shadow-md"
+                      className="group grid gap-2 rounded-lg border border-border bg-muted p-2 text-left transition-all duration-150 hover:border-primary hover:shadow-md border-border dark:hover:border-sky-300/50"
                     >
                       <span className="grid h-28 place-items-center overflow-hidden rounded-md bg-card text-xs font-bold text-muted-foreground text-muted-foreground">
                         <img

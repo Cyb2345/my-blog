@@ -46,9 +46,9 @@ const configColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultSettings: TableSettings = {
-  bordered: false,
-  striped: true,
-  headerBackground: false,
+  bordered: true,
+  striped: false,
+  headerBackground: true,
   density: "default",
   visibleColumns: configColumnOptions.map((column) => column.key),
 };

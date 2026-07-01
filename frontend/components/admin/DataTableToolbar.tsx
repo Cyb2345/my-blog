@@ -53,15 +53,15 @@ const densityOptions: Array<{ value: TableDensity; label: string }> = [
 ];
 
 export const tableDensityCellClass: Record<TableDensity, string> = {
-  compact: "px-3 py-2.5",
-  default: "px-4 py-3.5",
-  loose: "px-5 py-5",
+  compact: "p-2",
+  default: "p-3",
+  loose: "p-5",
 };
 
 export const defaultTableSettings: TableSettings = {
-  bordered: false,
-  striped: true,
-  headerBackground: false,
+  bordered: true,
+  striped: false,
+  headerBackground: true,
   density: "default",
   visibleColumns: [],
 };

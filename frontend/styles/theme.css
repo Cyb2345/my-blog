@@ -25,47 +25,6 @@
   --admin-focus-ring: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 24%, transparent);
   --admin-table-hover: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 7%, transparent);
   --admin-table-selected: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 12%, transparent);
-  --admin-bg: var(--color-bg);
-  --admin-sidebar-bg: var(--color-surface);
-  --admin-header-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
-  --admin-surface: var(--color-surface);
-  --admin-surface-raised: var(--color-surface-muted);
-  --admin-surface-muted: var(--color-bg-muted);
-  --admin-row: var(--color-surface);
-  --admin-row-alt: color-mix(in srgb, var(--color-surface) 82%, var(--color-bg-muted));
-  --admin-control-bg: var(--color-bg);
-  --admin-control-border: var(--color-border-strong);
-  --admin-text: var(--color-text);
-  --admin-text-muted: var(--color-text-muted);
-  --admin-text-subtle: var(--color-text-subtle);
-  --admin-accent-blue: #1688ff;
-  --admin-accent-purple: #9b72f2;
-  --admin-accent-pink: #ff5d8f;
-  --admin-accent-green: #19d38f;
-  --admin-accent-orange: #ffb22e;
-  --admin-accent-cyan: #35c8f2;
-  --admin-accent-red: #ff5c6c;
-}
-
-:root.dark,
-.dark {
-  --primary-foreground: #ffffff;
-  --admin-bg: #060607;
-  --admin-sidebar-bg: #141416;
-  --admin-header-bg: rgba(20, 20, 22, 0.96);
-  --admin-surface: #171719;
-  --admin-surface-raised: #1c1d21;
-  --admin-surface-muted: #202126;
-  --admin-row: #121314;
-  --admin-row-alt: #1d1d1f;
-  --admin-control-bg: #141416;
-  --admin-control-border: #3a3c44;
-  --admin-text: #f2f3f7;
-  --admin-text-muted: #b8bac4;
-  --admin-text-subtle: #858995;
-  --admin-focus-ring: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 30%, transparent);
-  --admin-table-hover: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 11%, transparent);
-  --admin-table-selected: color-mix(in srgb, var(--admin-primary, var(--color-primary)) 16%, transparent);
 }
 
 html[data-admin-radius="sm"] {
@@ -83,14 +42,14 @@ html[data-admin-radius="lg"] {
 .admin-surface {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--admin-surface);
-  box-shadow: none;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .admin-muted-surface {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--admin-surface-muted);
+  background: var(--color-bg-muted);
 }
 
 .admin-focusable:focus-visible {

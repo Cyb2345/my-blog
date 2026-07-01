@@ -72,9 +72,9 @@ const fileListColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultSettings: TableSettings = {
-  bordered: false,
+  bordered: true,
   striped: true,
-  headerBackground: false,
+  headerBackground: true,
   density: "default",
   visibleColumns: fileListColumnOptions.map((column) => column.key),
 };

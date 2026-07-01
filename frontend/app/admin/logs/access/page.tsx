@@ -67,9 +67,9 @@ const accessLogColumnOptions = [
   { key: "actions", label: "操作", locked: true },
 ];
 const defaultAccessLogTableSettings: TableSettings = {
-  bordered: false,
+  bordered: true,
   striped: true,
-  headerBackground: false,
+  headerBackground: true,
   density: "default",
   visibleColumns: accessLogColumnOptions.map((column) => column.key),
 };

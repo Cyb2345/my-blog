@@ -18,17 +18,15 @@ export function AdminPage({
   className,
 }: AdminPageProps) {
   return (
-    <div className={cn("grid gap-5", className)}>
+    <div className={cn("grid gap-4", className)}>
       {title || description || actions ? (
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             {title ? (
-              <h1 className="text-xl font-black leading-tight text-foreground">
-                {title}
-              </h1>
+              <h1 className="text-2xl font-black text-foreground">{title}</h1>
             ) : null}
             {description ? (
-              <p className="mt-1 max-w-3xl text-sm font-bold leading-6 text-muted-foreground">
+              <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-muted-foreground">
                 {description}
               </p>
             ) : null}

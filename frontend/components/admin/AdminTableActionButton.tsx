@@ -16,15 +16,15 @@ type AdminTableActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants: Record<AdminTableActionVariant, string> = {
-  edit: "bg-[color-mix(in_srgb,var(--admin-primary)_34%,transparent)] text-[color-mix(in_srgb,var(--admin-primary)_76%,white)] ring-[color-mix(in_srgb,var(--admin-primary)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--admin-primary)_46%,transparent)]",
+  edit: "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] ring-[color-mix(in_srgb,var(--admin-primary)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--admin-primary)_18%,transparent)]",
   delete:
-    "bg-[color-mix(in_srgb,var(--color-danger)_26%,transparent)] text-[color-mix(in_srgb,var(--color-danger)_78%,white)] ring-[color-mix(in_srgb,var(--color-danger)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-danger)_36%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] text-[var(--color-danger)] ring-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)]",
   warning:
-    "bg-[color-mix(in_srgb,var(--color-warning)_26%,transparent)] text-[color-mix(in_srgb,var(--color-warning)_78%,white)] ring-[color-mix(in_srgb,var(--color-warning)_34%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-warning)_36%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--color-warning)_16%,transparent)] text-[var(--color-warning)] ring-[color-mix(in_srgb,var(--color-warning)_32%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-warning)_22%,transparent)]",
   success:
-    "bg-[color-mix(in_srgb,var(--color-success)_24%,transparent)] text-[color-mix(in_srgb,var(--color-success)_78%,white)] ring-[color-mix(in_srgb,var(--color-success)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-success)_34%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--color-success)_12%,transparent)] text-[var(--color-success)] ring-[color-mix(in_srgb,var(--color-success)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-success)_18%,transparent)]",
   neutral:
-    "bg-[var(--admin-surface-muted)] text-[var(--admin-text-muted)] ring-[var(--color-border)] hover:bg-[var(--admin-surface-raised)] hover:text-[var(--admin-text)]",
+    "bg-[var(--color-bg-muted)] text-[var(--color-text-muted)] ring-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]",
 };
 
 export const adminTableActionIconClass = "h-4 w-4";
@@ -55,7 +55,7 @@ export function AdminTableActionButton({
       type={type}
       className={cn(
         buttonVariants({ variant: "ghost", size: "icon" }),
-        "h-9 w-9 rounded-lg ring-1 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
+        "h-9 w-9 rounded-md ring-1 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0",
         variants[variant],
         className,
       )}

@@ -177,22 +177,22 @@ export function DateTimePicker({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex min-h-10 w-full items-center justify-between gap-3 rounded-lg border border-input bg-background px-3 py-2 text-left text-sm font-bold text-foreground outline-none transition-colors duration-150",
-          "hover:border-primary focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)]",
-          "disabled:cursor-not-allowed disabled:opacity-60",
-          !value && "text-muted-foreground",
+          "flex min-h-10 w-full items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-sm font-bold text-foreground outline-none transition-colors duration-150",
+          "hover:border-ocean/40 focus-visible:border-ocean focus-visible:ring-2 focus-visible:ring-[var(--admin-focus-ring)]",
+          "disabled:cursor-not-allowed disabled:opacity-60 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text)] dark:hover:border-[var(--border)]",
+          !value && "text-muted-foreground dark:text-[var(--text-muted)]",
         )}
       >
         <span className="truncate">{displayValue(value) || placeholder}</span>
         <CalendarDays
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="h-4 w-4 shrink-0 text-muted-foreground dark:text-[var(--text-muted)]"
           aria-hidden="true"
         />
       </button>
 
       <div
         className={cn(
-          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(22rem,calc(100vw-2rem))] origin-top-left rounded-xl border border-border bg-popover p-3 shadow-[var(--shadow-popover)] transition-all duration-200 motion-reduce:transition-none",
+          "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-[min(22rem,calc(100vw-2rem))] origin-top-left rounded-lg border border-border bg-card p-3 shadow-xl transition-all duration-200 motion-reduce:transition-none dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]",
           open
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-none -translate-y-1 scale-[0.98] opacity-0",
@@ -202,25 +202,25 @@ export function DateTimePicker({
           <button
             type="button"
             onClick={() => updateMonth(-1)}
-            className="interactive grid h-9 w-9 place-items-center rounded-lg bg-muted text-muted-foreground hover:text-foreground"
+            className="interactive grid h-9 w-9 place-items-center rounded-md bg-muted text-muted-foreground hover:text-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             aria-label="上个月"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
-          <div className="text-sm font-black text-foreground">
+          <div className="text-sm font-black text-foreground dark:text-[var(--text)]">
             {viewYear} 年 {viewMonth} 月
           </div>
           <button
             type="button"
             onClick={() => updateMonth(1)}
-            className="interactive grid h-9 w-9 place-items-center rounded-lg bg-muted text-muted-foreground hover:text-foreground"
+            className="interactive grid h-9 w-9 place-items-center rounded-md bg-muted text-muted-foreground hover:text-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             aria-label="下个月"
           >
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-black text-muted-foreground">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-black text-muted-foreground dark:text-[var(--text-muted)]">
           {weekDays.map((item) => (
             <span key={item} className="py-1">
               {item}
@@ -245,8 +245,8 @@ export function DateTimePicker({
                 className={cn(
                   "interactive h-9 rounded-md text-sm font-black transition-colors duration-150",
                   active
-                    ? "bg-primary text-white"
-                    : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary",
+                    ? "bg-primary text-white dark:bg-[var(--primary)] dark:text-white"
+                    : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary dark:bg-[var(--surface)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
                 )}
               >
                 {day}
@@ -257,8 +257,8 @@ export function DateTimePicker({
           })}
         </div>
 
-        <div className="mt-3 grid gap-2 rounded-lg bg-muted p-3">
-          <div className="flex items-center gap-2 text-xs font-black text-muted-foreground">
+        <div className="mt-3 grid gap-2 rounded-md bg-muted p-3 dark:bg-[var(--bg-soft)]">
+          <div className="flex items-center gap-2 text-xs font-black text-muted-foreground dark:text-[var(--text-muted)]">
             <Clock className="h-4 w-4" aria-hidden="true" />
             时间
           </div>
@@ -270,7 +270,7 @@ export function DateTimePicker({
             ].map(([key, label, options]) => (
               <label
                 key={key as string}
-                className="grid gap-1 text-xs font-bold text-muted-foreground"
+                className="grid gap-1 text-xs font-bold text-muted-foreground dark:text-[var(--text-muted)]"
               >
                 {label as string}
                 <CustomSelect
@@ -300,7 +300,7 @@ export function DateTimePicker({
           <button
             type="button"
             onClick={selectToday}
-            className="interactive min-h-9 rounded-lg bg-muted px-3 text-sm font-black text-muted-foreground hover:text-foreground"
+            className="interactive min-h-9 rounded-md bg-muted px-3 text-sm font-black text-muted-foreground hover:text-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
           >
             此刻
           </button>
@@ -308,7 +308,7 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={() => onChange("")}
-              className="interactive inline-flex min-h-9 items-center gap-1 rounded-lg bg-muted px-3 text-sm font-black text-muted-foreground hover:text-foreground"
+              className="interactive inline-flex min-h-9 items-center gap-1 rounded-md bg-muted px-3 text-sm font-black text-muted-foreground hover:text-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
             >
               <X className="h-4 w-4" aria-hidden="true" />
               清空
@@ -316,7 +316,7 @@ export function DateTimePicker({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="interactive min-h-9 rounded-lg bg-primary px-3 text-sm font-black text-white"
+              className="interactive min-h-9 rounded-md bg-primary px-3 text-sm font-black text-white dark:bg-[var(--primary)] dark:text-white"
             >
               完成
             </button>

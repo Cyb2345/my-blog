@@ -169,9 +169,9 @@ const tableColumnOptions = postColumns.map(({ key, label, locked }) => ({
   locked,
 }));
 const defaultPostTableSettings: TableSettings = {
-  bordered: false,
-  striped: true,
-  headerBackground: false,
+  bordered: true,
+  striped: false,
+  headerBackground: true,
   density: "default",
   visibleColumns: postColumns.map((column) => column.key),
 };
