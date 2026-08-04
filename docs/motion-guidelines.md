@@ -7,11 +7,10 @@
 - `--motion-fast: 120ms`
 - `--motion-normal: 200ms`
 - `--motion-slow: 300ms`
-- `--motion-page-fade: 200ms`
-- `--motion-page-slide: 220ms`
-- `--motion-page-zoom-enter: 280ms`
-- `--motion-page-zoom-exit: 180ms`
-- `--motion-page-zoom-enter-delay: 40ms`
+- `--motion-page-fade: 150ms`
+- `--motion-page-slide: 180ms`
+- `--motion-page-zoom-enter: 190ms`
+- `--motion-page-zoom-exit: 110ms`
 - `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)`
 - `--ease-in: cubic-bezier(0.4, 0, 1, 1)`
 - `--ease-out: cubic-bezier(0, 0, 0.2, 1)`
@@ -24,11 +23,11 @@
 支持的 `admin_page_transition` 值：
 
 - `none`：无动画。页面立即显示，不加 `opacity` 动画，不加 `transform` 动画。
-- `fade`：淡入淡出。`opacity: 0 -> 1`，不做位移，推荐 180ms 到 220ms。
-- `slide-right`：向右滑动。`opacity: 0 -> 1`，`translateX(-12px) -> translateX(0)`，推荐 200ms 到 240ms。
-- `slide-up`：向上滑动。`opacity: 0 -> 1`，`translateY(10px) -> translateY(0)`，推荐 200ms 到 240ms。
-- `slide-down`：向下滑动。`opacity: 0 -> 1`，`translateY(-10px) -> translateY(0)`，推荐 200ms 到 240ms。
-- `zoom`：Fade-Scale 缩放。只作用于主内容区域整体容器，内部搜索栏、表格、分页、表单和卡片不得分别动画。旧内容 `opacity: 1 -> 0`、`scale(1) -> scale(0.96)`，180ms，`cubic-bezier(0.4, 0, 1, 1)`；新内容 `opacity: 0 -> 1`、`scale(0.96) -> scale(1)`，280ms，`cubic-bezier(0, 0, 0.2, 1)`，允许 40ms 极小延迟形成干净交叉过渡。不得使用 `translateX`、`translateY`、弹簧、回弹或 stagger。
+- `fade`：淡入淡出。旧内容快速淡出，新内容 `opacity: 0 -> 1`，不做位移，推荐 140ms 到 170ms。
+- `slide-right`：旧内容快速淡出，新内容 `opacity: 0 -> 1`，`translateX(-8px) -> translateX(0)`，推荐 170ms 到 190ms。
+- `slide-up`：旧内容快速淡出，新内容 `opacity: 0 -> 1`，`translateY(7px) -> translateY(0)`，推荐 170ms 到 190ms。
+- `slide-down`：旧内容快速淡出，新内容 `opacity: 0 -> 1`，`translateY(-7px) -> translateY(0)`，推荐 170ms 到 190ms。
+- `zoom`：Fade-Scale 缩放。只作用于主内容区域整体容器，内部搜索栏、表格、分页、表单和卡片不得分别动画。旧内容 `opacity: 1 -> 0`、`scale(1) -> scale(0.99)`，110ms；新内容 `opacity: 0 -> 1`、`scale(0.985) -> scale(1)`，190ms，不增加空场延迟。不得使用位移、弹簧、回弹或 stagger。
 
 默认值：
 
@@ -47,7 +46,9 @@
 
 所有后台菜单、标签页、快捷入口和后台内链跳转必须走 `useAdminViewTransitionNavigate`。浏览器不支持 View Transition API、用户选择 `none` 或系统开启 `prefers-reduced-motion: reduce` 时，必须直接普通路由跳转，不调用 `startViewTransition`。
 
-缩放模式以稳定为先，快照动画只允许使用 opacity 和小幅 scale。旧快照必须快速淡出收起，新快照随后淡入放大，两者只能短暂交叉，避免黑屏、空场、长时间双页叠加或旧页闪回。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景。
+缩放模式以稳定为先，快照动画只允许使用 opacity 和小幅 scale。旧快照必须快速淡出，新快照立即淡入放大，两者只能短暂交叉，避免黑屏、空场、长时间双页叠加或旧页闪回。主内容容器不得长期设置 `will-change`，只允许在 View Transition 的临时快照层上按需合成。不得维护 `displayLocation`、`transitionStage` 或类似延迟路由状态；不得在动画结束后再切换页面；不得手动清空主内容区域、制造黑色/深色空场背景。
+
+后台主内容已使用 View Transition 时，页面内的 `motion-card`、`motion-panel`、`motion-surface`、列表和表格行入场动画必须关闭，避免同一次路由切换重复动画。连续快速点击导航时应结束当前快照动画并直接切换，禁止叠加多个 View Transition。
 
 ## 性能限制
 

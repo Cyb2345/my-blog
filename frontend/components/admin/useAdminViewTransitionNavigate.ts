@@ -18,6 +18,8 @@ type ViewTransitionDocument = Document & {
   ) => ViewTransition;
 };
 
+let activeViewTransition: ViewTransition | null = null;
+
 const pageTransitionValues = new Set<AdminPageTransition>([
   "none",
   "fade",
@@ -62,13 +64,23 @@ export function useAdminViewTransitionNavigate() {
       if (
         transitionMode === "none" ||
         prefersReducedMotion() ||
-        !transitionDocument.startViewTransition
+        !transitionDocument.startViewTransition ||
+        document.visibilityState !== "visible"
       ) {
         router.push(to);
         return;
       }
 
       const root = document.documentElement;
+
+      if (activeViewTransition) {
+        activeViewTransition.skipTransition();
+        activeViewTransition = null;
+        root.classList.remove("admin-view-transitioning");
+        router.push(to);
+        return;
+      }
+
       root.classList.add("admin-view-transitioning");
       root.dataset.pageTransition = transitionMode;
 
@@ -76,10 +88,16 @@ export function useAdminViewTransitionNavigate() {
         const transition = transitionDocument.startViewTransition(() => {
           router.push(to);
         });
-        void transition.finished.finally(() => {
+        activeViewTransition = transition;
+
+        const finish = () => {
+          if (activeViewTransition !== transition) return;
+          activeViewTransition = null;
           root.classList.remove("admin-view-transitioning");
-        });
+        };
+        void transition.finished.then(finish, finish);
       } catch {
+        activeViewTransition = null;
         root.classList.remove("admin-view-transitioning");
         router.push(to);
       }

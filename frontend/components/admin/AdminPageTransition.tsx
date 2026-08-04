@@ -27,7 +27,9 @@ export function AdminPageTransition({
     const currentContainer = rootRef.current;
     if (!currentContainer) return;
     const container: HTMLDivElement = currentContainer;
-    let applying = false;
+    const pendingNodes = new Set<Node>();
+    const pendingAttributeElements = new Set<Element>();
+    let animationFrame: number | null = null;
 
     function translateTextNode(node: Text) {
       const current = node.nodeValue ?? "";
@@ -64,30 +66,84 @@ export function AdminPageTransition({
       attributeRecords.current.set(element, records);
     }
 
-    function applyTranslations() {
-      if (applying) return;
-      applying = true;
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    function translateSubtree(root: Node) {
+      if (root.nodeType === Node.TEXT_NODE) {
+        translateTextNode(root as Text);
+        return;
+      }
+
+      if (root instanceof Element) {
+        translateAttributes(root);
+        root
+          .querySelectorAll("[placeholder], [title], [aria-label]")
+          .forEach(translateAttributes);
+      }
+
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       let node = walker.nextNode();
       while (node) {
         translateTextNode(node as Text);
         node = walker.nextNode();
       }
-      container
-        .querySelectorAll("[placeholder], [title], [aria-label]")
-        .forEach(translateAttributes);
-      applying = false;
     }
 
-    applyTranslations();
-    const observer = new MutationObserver(() => applyTranslations());
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
+    function observe() {
+      observer.observe(container, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["placeholder", "title", "aria-label"],
+      });
+    }
+
+    function flushPendingTranslations() {
+      animationFrame = null;
+      observer.disconnect();
+
+      pendingNodes.forEach((node) => {
+        if (node === container || container.contains(node)) {
+          translateSubtree(node);
+        }
+      });
+      pendingAttributeElements.forEach((element) => {
+        if (container.contains(element)) translateAttributes(element);
+      });
+      pendingNodes.clear();
+      pendingAttributeElements.clear();
+
+      observe();
+    }
+
+    function scheduleTranslationFlush() {
+      if (animationFrame !== null) return;
+      animationFrame = window.requestAnimationFrame(flushPendingTranslations);
+    }
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes") {
+          pendingAttributeElements.add(mutation.target as Element);
+          return;
+        }
+        if (mutation.type === "characterData") {
+          pendingNodes.add(mutation.target);
+          return;
+        }
+        mutation.addedNodes.forEach((node) => pendingNodes.add(node));
+      });
+      if (pendingNodes.size || pendingAttributeElements.size) {
+        scheduleTranslationFlush();
+      }
     });
-    return () => observer.disconnect();
+
+    translateSubtree(container);
+    observe();
+
+    return () => {
+      observer.disconnect();
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
   }, [locale, transitionKey]);
 
   return (

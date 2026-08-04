@@ -161,7 +161,7 @@ const dashboardTab: AdminTab = {
   label: "仪表盘",
   pinned: true,
 };
-const pageEnterMs = 220;
+const pageEnterMs = 180;
 
 function resolveIcon(icon?: string | null) {
   return icon ? (iconMap[icon] ?? LayoutGrid) : LayoutGrid;
