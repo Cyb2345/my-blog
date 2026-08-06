@@ -12,13 +12,6 @@ import {
 export type AdminLocale = "zh-CN" | "en-US";
 export type AdminBoxStyle = "border" | "shadow";
 export type AdminContainerWidth = "full" | "fixed";
-export type AdminPageTransition =
-  | "none"
-  | "fade"
-  | "slide-right"
-  | "slide-up"
-  | "slide-down"
-  | "zoom";
 export type AdminRadius = "sm" | "md" | "lg";
 export type AdminFontSize = "small" | "default" | "large";
 
@@ -35,7 +28,6 @@ export type AdminLayoutSettings = {
   showLanguage: boolean;
   showProgress: boolean;
   autoCloseSettings: boolean;
-  pageTransition: AdminPageTransition;
   radius: AdminRadius;
   fontSize: AdminFontSize;
   menuWidth: number;
@@ -65,27 +57,10 @@ const defaultSettings: AdminLayoutSettings = {
   showLanguage: true,
   showProgress: true,
   autoCloseSettings: false,
-  pageTransition: "fade",
   radius: "md",
   fontSize: "default",
   menuWidth: 256,
 };
-
-export const adminPageTransitionOptions: Array<{
-  label: string;
-  value: AdminPageTransition;
-}> = [
-  { label: "无动画", value: "none" },
-  { label: "淡入淡出", value: "fade" },
-  { label: "向右滑动", value: "slide-right" },
-  { label: "向上滑动", value: "slide-up" },
-  { label: "向下滑动", value: "slide-down" },
-  { label: "缩放", value: "zoom" },
-];
-
-const pageTransitionValues = new Set<AdminPageTransition>(
-  adminPageTransitionOptions.map((option) => option.value),
-);
 
 const storageKeys: Record<keyof AdminLayoutSettings, string> = {
   sidebarCollapsed: "admin_sidebar_collapsed",
@@ -100,7 +75,6 @@ const storageKeys: Record<keyof AdminLayoutSettings, string> = {
   showLanguage: "admin_show_language",
   showProgress: "admin_show_progress",
   autoCloseSettings: "admin_auto_close_settings",
-  pageTransition: "admin_page_transition",
   radius: "admin_radius",
   fontSize: "admin_font_size",
   menuWidth: "admin_menu_width",
@@ -178,7 +152,6 @@ const englishLabels: Record<string, string> = {
   显示语言选择: "Show language switcher",
   显示顶部进度条: "Show top progress",
   自动关闭设置中心: "Auto-close settings",
-  页面切换动画: "Page transition",
   无动画: "No animation",
   淡入淡出: "Fade",
   向右滑动: "Slide right",
@@ -278,20 +251,9 @@ export function translateAdminText(label: string, locale: AdminLocale) {
 function parseStoredValue<Key extends keyof AdminLayoutSettings>(
   key: Key,
   raw: string | null,
-  prefersReducedMotion = false,
 ): AdminLayoutSettings[Key] {
-  if (raw === null) {
-    if (key === "pageTransition" && prefersReducedMotion)
-      return "none" as AdminLayoutSettings[Key];
-    return defaultSettings[key];
-  }
+  if (raw === null) return defaultSettings[key];
   const fallback = defaultSettings[key];
-  if (key === "pageTransition") {
-    if (raw === "slide") return "slide-up" as AdminLayoutSettings[Key];
-    if (pageTransitionValues.has(raw as AdminPageTransition))
-      return raw as AdminLayoutSettings[Key];
-    return fallback as AdminLayoutSettings[Key];
-  }
   if (typeof fallback === "boolean")
     return (raw === "true") as AdminLayoutSettings[Key];
   if (typeof fallback === "number") {
@@ -318,8 +280,6 @@ function applyLayoutSettings(
   root.style.setProperty("--admin-menu-width", `${settings.menuWidth}px`);
   root.dataset.adminBoxStyle = settings.boxStyle;
   root.dataset.adminContainerWidth = settings.containerWidth;
-  root.dataset.adminTransition = settings.pageTransition;
-  root.dataset.pageTransition = settings.pageTransition;
   root.dataset.adminRadius = settings.radius;
   root.dataset.adminFontSize = settings.fontSize;
   root.lang = locale === "en-US" ? "en" : "zh-CN";
@@ -334,14 +294,11 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const restored = { ...defaultSettings };
-    const prefersReducedMotion =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     (Object.keys(storageKeys) as Array<keyof AdminLayoutSettings>).forEach(
       (key) => {
         (restored[key] as AdminLayoutSettings[typeof key]) = parseStoredValue(
           key,
           window.localStorage.getItem(storageKeys[key]),
-          prefersReducedMotion,
         );
       },
     );
@@ -365,10 +322,6 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
   ) {
     setSettings((current) => ({ ...current, [key]: value }));
     window.localStorage.setItem(storageKeys[key], String(value));
-    if (key === "pageTransition") {
-      document.documentElement.dataset.adminTransition = String(value);
-      document.documentElement.dataset.pageTransition = String(value);
-    }
   }
 
   function setLocale(nextLocale: AdminLocale) {

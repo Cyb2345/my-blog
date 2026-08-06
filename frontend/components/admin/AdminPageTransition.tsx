@@ -1,11 +1,84 @@
 "use client";
 
+import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useRef } from "react";
 
 import {
   translateAdminText,
   useAdminLayout,
 } from "@/components/admin/AdminLayoutContext";
+
+type AdminMotionPreset =
+  | "dashboard"
+  | "list"
+  | "settings"
+  | "editor"
+  | "media"
+  | "monitor";
+
+const motionEase = [0.16, 1, 0.3, 1] as const;
+
+const pageMotionPresets = {
+  dashboard: {
+    initial: { opacity: 0, y: 6, scale: 0.995 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { type: "tween", duration: 0.22, ease: motionEase },
+  },
+  list: {
+    initial: { opacity: 0, y: 5 },
+    animate: { opacity: 1, y: 0 },
+    transition: { type: "tween", duration: 0.17, ease: motionEase },
+  },
+  settings: {
+    initial: { opacity: 0, x: 6 },
+    animate: { opacity: 1, x: 0 },
+    transition: { type: "tween", duration: 0.18, ease: motionEase },
+  },
+  editor: {
+    initial: { opacity: 0, scale: 0.99 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { type: "tween", duration: 0.2, ease: motionEase },
+  },
+  media: {
+    initial: { opacity: 0, y: 4, scale: 0.997 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { type: "tween", duration: 0.19, ease: motionEase },
+  },
+  monitor: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { type: "tween", duration: 0.2, ease: "easeOut" },
+  },
+} as const;
+
+const settingsMotionRoutes = new Set([
+  "/admin/settings",
+  "/admin/files/config",
+  "/admin/system/params",
+  "/admin/site/config",
+  "/admin/site/home",
+  "/admin/site/login",
+  "/admin/site/navigation",
+  "/admin/site/about",
+]);
+
+function resolveAdminMotionPreset(pathname: string): AdminMotionPreset {
+  if (pathname === "/admin" || pathname === "/admin/dashboard") {
+    return "dashboard";
+  }
+  if (/^\/admin\/posts\/(new|[^/]+\/edit)$/.test(pathname)) {
+    return "editor";
+  }
+  if (
+    pathname === "/admin/media" ||
+    pathname.endsWith("/files/list")
+  ) {
+    return "media";
+  }
+  if (pathname.includes("/monitor/")) return "monitor";
+  if (settingsMotionRoutes.has(pathname)) return "settings";
+  return "list";
+}
 
 export function AdminPageTransition({
   children,
@@ -15,7 +88,10 @@ export function AdminPageTransition({
   transitionKey: string;
 }) {
   const { locale } = useAdminLayout();
+  const reduceMotion = useReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
+  const presetName = resolveAdminMotionPreset(transitionKey);
+  const preset = pageMotionPresets[presetName];
   const textRecords = useRef(
     new WeakMap<Text, { original: string; rendered: string }>(),
   );
@@ -147,11 +223,18 @@ export function AdminPageTransition({
   }, [locale, transitionKey]);
 
   return (
-    <div
-      ref={rootRef}
-      className="admin-page-transition admin-page-content min-w-0"
-    >
-      {children}
-    </div>
+    <LazyMotion features={domAnimation} strict>
+      <m.div
+        key={transitionKey}
+        ref={rootRef}
+        initial={reduceMotion ? false : preset.initial}
+        animate={preset.animate}
+        transition={reduceMotion ? { duration: 0 } : preset.transition}
+        data-motion-preset={presetName}
+        className="admin-page-transition admin-page-content min-w-0"
+      >
+        {children}
+      </m.div>
+    </LazyMotion>
   );
 }

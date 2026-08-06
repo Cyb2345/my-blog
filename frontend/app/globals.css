@@ -342,108 +342,9 @@ select:focus {
 
 .admin-page-transition {
   position: relative;
-  isolation: isolate;
   width: 100%;
   min-height: 1px;
   background: transparent;
-  transform-origin: center top;
-  view-transition-name: none;
-}
-
-html.admin-view-transitioning .admin-page-transition {
-  view-transition-name: admin-page-content;
-}
-
-html[data-page-transition="none"] .admin-top-progress::after {
-  animation: none !important;
-}
-
-html.admin-view-transitioning::view-transition-group(admin-page-content) {
-  animation: none;
-}
-
-html.admin-view-transitioning::view-transition-old(admin-page-content),
-html.admin-view-transitioning::view-transition-new(admin-page-content) {
-  backface-visibility: hidden;
-  mix-blend-mode: normal;
-  overflow: clip;
-  will-change: opacity, transform;
-}
-
-html.admin-view-transitioning[data-page-transition="none"]::view-transition-old(
-    admin-page-content
-  ),
-html.admin-view-transitioning[data-page-transition="none"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: none;
-}
-
-html.admin-view-transitioning[data-page-transition="fade"]::view-transition-old(
-    admin-page-content
-  ) {
-  animation: admin-vt-fade-out 90ms var(--ease-in) both;
-}
-
-html.admin-view-transitioning[data-page-transition="fade"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: admin-vt-fade-in var(--motion-page-fade, 150ms) var(--ease-out)
-    both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-old(
-    admin-page-content
-  ) {
-  animation: admin-vt-fade-out 90ms var(--ease-in) both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-right"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: admin-vt-slide-right-in var(--motion-page-slide, 180ms)
-    var(--ease-out) both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-old(
-    admin-page-content
-  ) {
-  animation: admin-vt-fade-out 90ms var(--ease-in) both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-up"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: admin-vt-slide-up-in var(--motion-page-slide, 180ms)
-    var(--ease-out) both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-old(
-    admin-page-content
-  ) {
-  animation: admin-vt-fade-out 90ms var(--ease-in) both;
-}
-
-html.admin-view-transitioning[data-page-transition="slide-down"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: admin-vt-slide-down-in var(--motion-page-slide, 180ms)
-    var(--ease-out) both;
-}
-
-html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-old(
-    admin-page-content
-  ) {
-  animation: admin-vt-zoom-out var(--motion-page-zoom-exit, 110ms)
-    var(--ease-in) both;
-  transform-origin: center top;
-}
-
-html.admin-view-transitioning[data-page-transition="zoom"]::view-transition-new(
-    admin-page-content
-  ) {
-  animation: admin-vt-zoom-in var(--motion-page-zoom-enter, 190ms)
-    var(--ease-out) both;
   transform-origin: center top;
 }
 
@@ -534,79 +435,6 @@ html[data-admin-font-size="large"] .admin-shell {
 @media (min-width: 768px) {
   .admin-main {
     margin-left: var(--admin-sidebar-width, 256px);
-  }
-}
-
-@keyframes admin-vt-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes admin-vt-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes admin-vt-slide-right-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes admin-vt-slide-up-in {
-  from {
-    opacity: 0;
-    transform: translateY(7px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes admin-vt-slide-down-in {
-  from {
-    opacity: 0;
-    transform: translateY(-7px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes admin-vt-zoom-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.99);
-  }
-}
-
-@keyframes admin-vt-zoom-in {
-  from {
-    opacity: 0;
-    transform: scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -1148,9 +976,7 @@ html.theme-transitioning *::after {
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
-  ::view-transition-new(root),
-  html.admin-view-transitioning::view-transition-old(admin-page-content),
-  html.admin-view-transitioning::view-transition-new(admin-page-content) {
+  ::view-transition-new(root) {
     animation-duration: 1ms;
   }
 

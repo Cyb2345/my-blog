@@ -3,7 +3,6 @@
 import { Check, Settings2, X } from "lucide-react";
 
 import {
-  adminPageTransitionOptions,
   adminPrimaryColors,
   type AdminLayoutSettings,
   useAdminLayout,
@@ -243,23 +242,6 @@ export function AdminSettingsDrawer({
                 onChange={(value) => update("autoCloseSettings", value)}
               />
             </div>
-          </SettingSection>
-
-          <SettingSection title={t("页面切换动画")}>
-            <CustomSelect
-              value={settings.pageTransition}
-              onChange={(value) =>
-                update(
-                  "pageTransition",
-                  value as AdminLayoutSettings["pageTransition"],
-                )
-              }
-              options={adminPageTransitionOptions.map((option) => ({
-                ...option,
-                label: t(option.label),
-              }))}
-              panelClassName="z-[100]"
-            />
           </SettingSection>
 
           <SettingSection title={t("圆角大小")}>

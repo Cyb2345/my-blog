@@ -2,10 +2,6 @@
   --motion-fast: 120ms;
   --motion-normal: 200ms;
   --motion-slow: 300ms;
-  --motion-page-fade: 150ms;
-  --motion-page-slide: 180ms;
-  --motion-page-zoom-enter: 190ms;
-  --motion-page-zoom-exit: 110ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -130,17 +126,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-html[data-page-transition="none"] .route-transition,
-html[data-page-transition="none"] .motion-fade-in,
-html[data-page-transition="none"] .motion-slide-in,
-html[data-page-transition="none"] .motion-surface,
-html[data-page-transition="none"] .motion-panel,
-html[data-page-transition="none"] .motion-card,
-html[data-page-transition="none"] .motion-notice,
-html[data-page-transition="none"] .motion-list > * {
-  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

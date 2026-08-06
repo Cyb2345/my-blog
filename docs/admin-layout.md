@@ -59,7 +59,6 @@ AdminLayout
 - 多标签栏
 - 手风琴菜单
 - 顶部进度条
-- 页面切换动画
 - 圆角
 - 字号
 - 菜单宽度
@@ -78,18 +77,9 @@ AdminLayout
 
 页面切换动画只作用于主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。后台 Layout 必须稳定挂载，路由切换时只替换 `AdminPageTransition` 内部的 `PageContent`。
 
-后台路由跳转必须统一使用 `useAdminViewTransitionNavigate`。支持 View Transition API 时，hook 调用 `document.startViewTransition(() => navigate(targetPath))`；不支持、用户选择无动画或系统开启减少动画时，直接普通路由跳转。`AdminPageTransition` 只负责承载主内容和挂载 `view-transition-name: admin-page-content`，不得再维护子页面 key 入场动画。
+后台路由跳转统一使用 `useAdminViewTransitionNavigate`，该 hook 立即调用 `router.push`，不等待动画。`AdminPageTransition` 使用 Motion 根据当前路径自动匹配仪表盘、列表、配置、编辑器、媒体和监控预设，只执行新页面的轻量入场，不保留旧页面、不生成全页快照。
 
-`useAdminViewTransitionNavigate` 根据 localStorage 中的 `admin_page_transition` 和 `html[data-page-transition]` 读取动画模式：
-
-- `none`：无动画。
-- `fade`：淡入淡出，默认值。
-- `slide-right`：新页面从左侧轻微进入。
-- `slide-up`：新页面从下方轻微上浮进入。
-- `slide-down`：新页面从上方轻微下落进入。
-- `zoom`：Fade-Scale。主内容旧快照从 `scale(1)` 轻微缩到 `scale(0.99)` 并快速淡出，新主内容从 `scale(0.985)` 立即淡入恢复到正常尺寸；不使用位移，不设置等待空场，不让 Sidebar、TopBar、Tabs 参与缩放。
-
-用户选择关闭动画后必须完全禁用页面切换的 transition 和 animation。用户设备开启 `prefers-reduced-motion: reduce` 时，页面切换动画必须实际禁用。
+设置中心不提供页面动画选择，也不再读写 `admin_page_transition`。用户设备开启 `prefers-reduced-motion: reduce` 时，Motion 页面入场必须实际禁用。
 
 页面切换动画不能阻塞路由切换和数据加载。点击菜单后应立即 `router.push`，新页面立即渲染；接口慢时由页面内部的 skeleton/loading 状态承接。
 

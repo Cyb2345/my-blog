@@ -80,6 +80,8 @@ Layout 必须稳定挂载，页面切换只替换主内容区域。
 
 Tailwind 只作为 token 消费层，不在页面里新增随机颜色。
 
+后台主内容动画使用 `motion`，由 `AdminPageTransition` 根据路由类型自动选择预设，不在页面中重复定义路由动画。
+
 ## 主题系统
 
 公开主题由 `ThemeProvider` / `ThemeToggle` 管理。后台主题由 `AdminLayoutContext` 管理，并保存到 localStorage：
@@ -87,7 +89,6 @@ Tailwind 只作为 token 消费层，不在页面里新增随机颜色。
 - `admin_primary_color`
 - `admin_box_style`
 - `admin_container_width`
-- `admin_page_transition`
 - `admin_radius`
 - `admin_font_size`
 - `admin_menu_width`

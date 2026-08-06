@@ -536,7 +536,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
       () => setProgressVisible(false),
       pageEnterMs + 80,
     );
-  }, [clearProgressTimer, current, settings.pageTransition]);
+  }, [clearProgressTimer, current]);
 
   useEffect(
     () => () => {
