@@ -333,7 +333,9 @@ function SidebarContent({
                 <SectionIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 {!collapsed ? (
                   <>
-                    <span className="flex-1">{t(section.label)}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {t(section.label)}
+                    </span>
                     <ChevronDown
                       className={cn(
                         "h-4 w-4 transition-transform duration-200",
@@ -377,7 +379,9 @@ function SidebarContent({
                               className="h-4 w-4 shrink-0"
                               aria-hidden="true"
                             />
-                            {t(item.label)}
+                            <span className="min-w-0 flex-1 truncate">
+                              {t(item.label)}
+                            </span>
                           </button>
                         );
                       })}
@@ -634,7 +638,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         <div className="admin-top-progress" />
       ) : null}
 
-      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
         <SidebarContent
           sections={sections}
           current={current}

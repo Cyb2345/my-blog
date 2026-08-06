@@ -62,6 +62,8 @@ const defaultSettings: AdminLayoutSettings = {
   menuWidth: 256,
 };
 
+const validAdminMenuWidths = new Set([224, 256, 280]);
+
 const storageKeys: Record<keyof AdminLayoutSettings, string> = {
   sidebarCollapsed: "admin_sidebar_collapsed",
   primaryColor: "admin_primary_color",
@@ -258,6 +260,9 @@ function parseStoredValue<Key extends keyof AdminLayoutSettings>(
     return (raw === "true") as AdminLayoutSettings[Key];
   if (typeof fallback === "number") {
     const value = Number(raw);
+    if (key === "menuWidth" && !validAdminMenuWidths.has(value)) {
+      return fallback as AdminLayoutSettings[Key];
+    }
     return (
       Number.isFinite(value) ? value : fallback
     ) as AdminLayoutSettings[Key];
@@ -307,6 +312,10 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
       storedLocale === "en-US" ? "en-US" : "zh-CN";
     setSettings(restored);
     setLocaleState(nextLocale);
+    window.localStorage.setItem(
+      storageKeys.menuWidth,
+      String(restored.menuWidth),
+    );
     applyLayoutSettings(restored, nextLocale);
     setHydrated(true);
   }, []);
@@ -320,8 +329,13 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
     key: Key,
     value: AdminLayoutSettings[Key],
   ) {
-    setSettings((current) => ({ ...current, [key]: value }));
-    window.localStorage.setItem(storageKeys[key], String(value));
+    const normalizedValue = (
+      key === "menuWidth" && !validAdminMenuWidths.has(Number(value))
+        ? defaultSettings.menuWidth
+        : value
+    ) as AdminLayoutSettings[Key];
+    setSettings((current) => ({ ...current, [key]: normalizedValue }));
+    window.localStorage.setItem(storageKeys[key], String(normalizedValue));
   }
 
   function setLocale(nextLocale: AdminLocale) {
