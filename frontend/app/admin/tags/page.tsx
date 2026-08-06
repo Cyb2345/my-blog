@@ -387,7 +387,7 @@ export default function AdminTagsPage() {
   );
 
   return (
-    <AdminPage title="标签管理" description="管理博客文章标签。">
+    <AdminPage>
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
@@ -423,7 +423,7 @@ export default function AdminTagsPage() {
         toolbar={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" onClick={openCreateModal}>
+              <Button type="button" variant="outline" onClick={openCreateModal}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 新增
               </Button>
@@ -470,13 +470,13 @@ export default function AdminTagsPage() {
       <AdminModal
         open={Boolean(editing)}
         title={editing?.id ? "编辑标签" : "新增标签"}
-        size="sm"
+        size="md"
         onClose={closeEditModal}
         footer={
           <>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={closeEditModal}
               disabled={saving}
             >

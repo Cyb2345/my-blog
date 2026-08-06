@@ -52,7 +52,7 @@ export function Pagination({
   return (
     <nav
       className={cn(
-        "flex flex-wrap items-center justify-center gap-2 text-sm font-bold text-muted-foreground",
+        "flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-muted-foreground",
         className,
       )}
       aria-label="分页"
@@ -68,7 +68,7 @@ export function Pagination({
             label: `${value}条/页`,
             value: String(value),
           }))}
-          className="h-10 w-32"
+          className="h-9 min-h-9 w-28"
         />
       ) : null}
       <Button
@@ -79,7 +79,7 @@ export function Pagination({
         onClick={() => goToPage(page - 1)}
       >
         <ChevronLeft className="size-4" aria-hidden="true" />
-        上一页
+        <span className="hidden sm:inline">上一页</span>
       </Button>
       {numbers.map((number) => (
         <Button
@@ -90,7 +90,7 @@ export function Pagination({
           disabled={isDisabled}
           onClick={() => goToPage(number)}
           aria-current={number === page ? "page" : undefined}
-          className="min-w-10 px-3"
+          className="min-w-9 px-3"
         >
           {number}
         </Button>
@@ -102,7 +102,7 @@ export function Pagination({
         disabled={isDisabled || page >= normalizedTotal}
         onClick={() => goToPage(page + 1)}
       >
-        下一页
+        <span className="hidden sm:inline">下一页</span>
         <ChevronRight className="size-4" aria-hidden="true" />
       </Button>
       <span>前往</span>
@@ -113,13 +113,13 @@ export function Pagination({
           if (event.key === "Enter") goToPage(Number(jumpPage));
         }}
         disabled={isDisabled}
-        className="h-10 w-20 rounded-md border border-input bg-background px-3 text-center text-foreground outline-none focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-9 w-16 rounded-md border border-input bg-background px-2 text-center text-foreground outline-none focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
         aria-label="跳转页码"
       />
       <span>页</span>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
         disabled={isDisabled}
         onClick={() => goToPage(Number(jumpPage))}

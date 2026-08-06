@@ -6,6 +6,7 @@ import {
   type TableSettings,
 } from "@/components/admin/DataTableToolbar";
 import { TableSkeletonRows } from "@/components/admin/TableSkeletonRows";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Empty } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
@@ -93,12 +94,15 @@ export function AdminDataTable<Row>({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+        "overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-none",
         className,
       )}
+      aria-busy={loading}
     >
       {toolbar ? (
-        <div className="border-b border-border px-4 py-3">{toolbar}</div>
+        <div className="min-h-14 border-b border-border px-4 py-3">
+          {toolbar}
+        </div>
       ) : null}
       <div className="overflow-x-auto">
         <table
@@ -123,18 +127,18 @@ export function AdminDataTable<Row>({
           <thead
             className={cn(
               "text-left text-muted-foreground",
-              mergedSettings.headerBackground && "bg-muted",
+              mergedSettings.headerBackground && "bg-muted/60",
             )}
           >
             <tr>
               {selectable ? (
                 <th className={cn("text-center", cellClass)}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={Boolean(allSelected)}
-                    onChange={(event) => onSelectAll?.(event.target.checked)}
+                    onCheckedChange={(checked) =>
+                      onSelectAll?.(Boolean(checked))
+                    }
                     aria-label="选择当前页"
-                    className="size-4 accent-[var(--primary)]"
                   />
                 </th>
               ) : null}
@@ -177,17 +181,15 @@ export function AdminDataTable<Row>({
                 >
                   {selectable ? (
                     <td className={cn("text-center", cellClass)}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedRowKeys?.has(key)}
-                        onChange={(event) =>
-                          onSelectRow?.(row, event.target.checked)
+                        onCheckedChange={(checked) =>
+                          onSelectRow?.(row, Boolean(checked))
                         }
                         aria-label={
                           getCheckboxLabel?.(row, rowIndex) ??
                           `选择第 ${rowIndex + 1} 行`
                         }
-                        className="size-4 accent-[var(--primary)]"
                       />
                     </td>
                   ) : null}
@@ -243,7 +245,7 @@ export function AdminDataTable<Row>({
         </table>
       </div>
       {pagination ? (
-        <div className="border-t border-border px-4 py-4">{pagination}</div>
+        <div className="border-t border-border px-4 py-3">{pagination}</div>
       ) : null}
     </section>
   );

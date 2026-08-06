@@ -4,24 +4,11 @@
 
 ## 审计结论
 
-当前前端位于 `frontend/`，Next.js App Router 页面位于 `frontend/app`。后台页面集中在 `frontend/app/admin`，其中 `content/*`、`site/*`、`system/*` 多数是对旧路径页面的 re-export。后台已具备 `AdminShell`、`AdminTopBar`、`AdminTabs`、`AdminSettingsDrawer`、`AdminPageTransition` 等布局能力，但列表页仍大量手写 `<table>`、分页、状态标签和操作按钮。
+当前前端位于 `frontend/`，Next.js App Router 页面位于 `frontend/app`。后台页面集中在 `frontend/app/admin`，其中 `content/*`、`site/*`、`system/*` 保留旧路径兼容 re-export。后台已经具备 `AdminShell`、`AdminTopBar`、`AdminTabs`、`AdminSettingsDrawer`、`AdminPageTransition` 等稳定布局能力。
 
-已存在的可复用组件包括 `Button`、`EmptyState`、`AdminModal`、`DeleteConfirmDialog`、`DataTableToolbar`、`AdminTableActionButton`、`CustomSelect`、`AdminField`、`TableSkeletonRows`。缺失或不完整的核心层包括 `AdminPage`、`AdminSearchForm`、`AdminDataTable`、`StatusTag`、`RowActions`、统一 `Pagination`、统一 `Dialog/Drawer` 和完整 token 文档。
+后台列表页统一复用 `AdminPage`、`AdminSearchForm`、`AdminDataTable`、`AdminTableToolbar`、`StatusTag`、`RowActions`、`Pagination`、`Dialog/Drawer` 等源码组件。文章、分类、标签等内容管理页面不再独立实现表格、分页、行选择和删除确认。
 
-重复样式主要集中在：
-
-- `rounded-lg border border-ink/10 bg-white shadow-sm` 卡片结构。
-- `bg-red-50 text-red-700`、`bg-green-50 text-green-700` 通知。
-- `bg-emerald-*`、`bg-rose-*` 状态标签。
-- `bg-paper` / `dark:bg-slate-*` 表格表头、斑马纹和分页按钮。
-- 页面内反复定义查询栏、工具栏、分页和空状态。
-
-优先迁移页面：
-
-1. 文章管理：`frontend/app/admin/posts/page.tsx`
-2. 友链管理：`frontend/app/admin/links/page.tsx`
-3. 文件列表：`frontend/app/admin/files/list/page.tsx`
-4. 文件配置：`frontend/app/admin/files/config/page.tsx`
+当前视觉收口采用紧凑型管理后台结构：60px TopBar、40px Tabs、16px 主内容间距、细边框小圆角卡片、低投影或无投影表面。面包屑和激活标签已经表达页面名称时，列表页省略重复的大标题区域，把首屏空间优先留给查询与数据表格。
 
 ## 设计 Token
 
@@ -99,7 +86,7 @@ font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
 - `--space-6`
 - `--space-8`
 
-后台页面默认主内容内边距为移动端 `--space-4`，桌面端 `--space-6`。
+后台页面默认主内容内边距为 `--space-4`；页面内部模块间距同样优先使用 `--space-4`，配置页和编辑页可按信息密度提升到 `--space-6`。
 
 ## 圆角和阴影
 

@@ -262,7 +262,7 @@ function SidebarContent({
           onNavigate("/admin/dashboard");
         }}
         className={cn(
-          "interactive flex h-[64px] w-full items-center border-b border-border font-black dark:border-[var(--border-soft)]",
+          "interactive flex h-[60px] w-full items-center overflow-hidden border-b border-border font-bold dark:border-[var(--border-soft)]",
           collapsed ? "justify-center px-2" : "gap-3 px-4",
         )}
       >
@@ -282,7 +282,7 @@ function SidebarContent({
         ) : null}
       </button>
 
-      <nav className="py-3">
+      <nav className="py-2">
         {sections.map((section) => {
           const SectionIcon = section.icon;
           const activeSection =
@@ -290,10 +290,10 @@ function SidebarContent({
             section.children.some((item) => isActivePath(current, item.href));
           const open = isSectionOpen(section);
           const baseClass = cn(
-            "interactive mx-2 flex min-h-11 items-center rounded-md text-sm font-bold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+            "interactive relative mx-2 flex min-h-11 items-center rounded-md text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
             collapsed ? "justify-center px-2" : "gap-3 px-3",
             activeSection &&
-              "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
+              "bg-[color-mix(in_srgb,var(--admin-primary)_11%,transparent)] text-[var(--admin-primary)] before:absolute before:-left-2 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
           );
 
           if (section.href) {
@@ -370,9 +370,9 @@ function SidebarContent({
                             }}
                             aria-current={active ? "page" : undefined}
                             className={cn(
-                              "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-left text-sm font-bold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+                              "interactive ml-7 flex min-h-10 items-center gap-3 rounded-md px-3 text-left text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-[var(--admin-primary)] dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
                               active &&
-                                "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
+                                "bg-[color-mix(in_srgb,var(--admin-primary)_10%,transparent)] text-[var(--admin-primary)] dark:text-[color-mix(in_srgb,var(--admin-primary)_76%,white)]",
                             )}
                           >
                             <ItemIcon
@@ -638,7 +638,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         <div className="admin-top-progress" />
       ) : null}
 
-      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-200 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
         <SidebarContent
           sections={sections}
           current={current}
@@ -679,9 +679,9 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         />
       </aside>
 
-      <div className="admin-main min-w-0 transition-[margin-left] duration-300">
-        <header className="sticky top-0 z-40 border-b border-border bg-card backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_92%,transparent)]">
-          <div className="flex h-[64px] items-center gap-2 px-2 sm:px-4">
+      <div className="admin-main min-w-0 transition-[margin-left] duration-200">
+        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
+          <div className="flex h-[60px] items-center gap-2 px-2 sm:px-4">
             <AdminTopBar
               breadcrumb={breadcrumb}
               sidebarCollapsed={settings.sidebarCollapsed}
@@ -706,7 +706,7 @@ function AdminShellContent({ children }: { children: ReactNode }) {
           />
         </header>
 
-        <main className="admin-content min-w-0 p-4 md:p-6">
+        <main className="admin-content min-w-0 p-4">
           <div
             className={cn(
               "admin-content-inner mx-auto w-full",

@@ -415,7 +415,7 @@ export default function AdminCategoriesPage() {
   );
 
   return (
-    <AdminPage title="分类管理" description="管理博客文章分类和排序。">
+    <AdminPage>
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
@@ -451,7 +451,7 @@ export default function AdminCategoriesPage() {
         toolbar={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" onClick={openCreateModal}>
+              <Button type="button" variant="outline" onClick={openCreateModal}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 新增
               </Button>
@@ -498,13 +498,13 @@ export default function AdminCategoriesPage() {
       <AdminModal
         open={Boolean(editing)}
         title={editing?.id ? "编辑分类" : "新增分类"}
-        size="sm"
+        size="md"
         onClose={closeEditModal}
         footer={
           <>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={closeEditModal}
               disabled={saving}
             >

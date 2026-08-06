@@ -172,6 +172,7 @@ function ToolIconButton({
       type="button"
       variant={active ? "primary" : "secondary"}
       size="icon"
+      className="h-9 w-9"
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -355,7 +356,7 @@ export function DataTableToolbar({
   }
 
   return (
-    <div ref={toolbarRef} className="flex flex-wrap items-center gap-2">
+    <div ref={toolbarRef} className="flex flex-wrap items-center gap-1.5">
       {enableRefresh ? (
         <ToolIconButton label={t("刷新")} onClick={() => onRefresh?.()}>
           <RefreshCw

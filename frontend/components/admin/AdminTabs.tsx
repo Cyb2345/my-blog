@@ -26,16 +26,16 @@ export function AdminTabs({
   if (!settings.showTabs) return null;
 
   return (
-    <div className="admin-tabs flex min-h-11 items-center gap-1 overflow-x-auto border-b border-border bg-card px-3 py-1.5 dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
+    <div className="admin-tabs flex min-h-10 items-center gap-1 overflow-x-auto border-b border-border bg-card px-4 py-1 dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
       {tabs.map((tab) => {
         const active = tab.href === activeHref;
         return (
           <div
             key={tab.href}
             className={cn(
-              "group inline-flex h-8 shrink-0 items-center rounded-md border px-2 text-xs font-bold transition-colors",
+              "group inline-flex h-8 shrink-0 items-center rounded-md border px-2 text-xs font-semibold transition-colors",
               active
-                ? "border-[var(--admin-primary)] bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)]"
+                ? "border-[var(--admin-primary)] bg-[color-mix(in_srgb,var(--admin-primary)_9%,transparent)] text-[var(--admin-primary)]"
                 : "border-border bg-card text-muted-foreground hover:border-border hover:text-foreground dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)] dark:text-[var(--text-muted)] dark:hover:text-[var(--text)]",
             )}
           >

@@ -701,10 +701,7 @@ export default function AdminPostsPage() {
   );
 
   return (
-    <AdminPage
-      title="文章管理"
-      description="管理博客文章、分类、标签和发布状态。"
-    >
+    <AdminPage>
       {error ? <Notice variant="error">{error}</Notice> : null}
       {notice ? <Notice variant="success">{notice}</Notice> : null}
 
@@ -719,7 +716,7 @@ export default function AdminPostsPage() {
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={resetSearch}
               className="min-w-20"
             >
@@ -738,7 +735,7 @@ export default function AdminPostsPage() {
           }
           placeholder="请输入文章标题"
         />
-        <div className="grid gap-2 text-sm font-bold text-[var(--color-text)]">
+        <div className="grid gap-2 text-sm font-semibold text-foreground">
           <span>文章分类</span>
           <PostCategorySelect
             value={filters.category_id}
@@ -748,7 +745,7 @@ export default function AdminPostsPage() {
             categories={categories}
           />
         </div>
-        <div className="grid gap-2 text-sm font-bold text-[var(--color-text)]">
+        <div className="grid gap-2 text-sm font-semibold text-foreground">
           <span>文章标签</span>
           <PostTagMultiSelect
             value={filters.tag_ids}
@@ -781,7 +778,7 @@ export default function AdminPostsPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => setModal({ mode: "create" })}
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />

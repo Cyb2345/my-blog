@@ -33,18 +33,18 @@ export function AdminSearchForm({
     <form
       onSubmit={onSubmit}
       className={cn(
-        "rounded-lg border border-border bg-card p-4 text-card-foreground shadow-sm",
+        "rounded-md border border-border bg-card px-4 py-4 text-card-foreground shadow-none",
         className,
       )}
     >
       <div
         className={cn(
-          "grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto]",
+          "grid items-end gap-x-4 gap-y-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(220px,1fr))_auto]",
           contentClassName,
         )}
       >
         {children}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 sm:col-span-2 sm:justify-end xl:col-span-1 xl:col-start-4">
           {actions ?? (
             <>
               <Button type="submit" loading={loading}>
@@ -54,7 +54,7 @@ export function AdminSearchForm({
               {onReset ? (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={onReset}
                   disabled={loading}
                 >

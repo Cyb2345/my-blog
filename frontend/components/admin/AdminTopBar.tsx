@@ -77,7 +77,7 @@ function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "interactive relative grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55 dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
+        "interactive relative grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55 dark:text-[var(--text-muted)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
         active &&
           "bg-[color-mix(in_srgb,var(--admin-primary)_12%,transparent)] text-[var(--admin-primary)]",
       )}
@@ -370,7 +370,7 @@ export function AdminTopBar({
         </div>
 
         {settings.showBreadcrumb ? (
-          <div className="ml-1 hidden min-w-0 items-center gap-1 text-sm font-bold text-muted-foreground dark:text-[var(--text-muted)] lg:flex">
+          <div className="ml-1 hidden min-w-0 items-center gap-1 text-sm font-semibold text-muted-foreground dark:text-[var(--text-muted)] lg:flex">
             {breadcrumb.map((item, index) => (
               <span
                 key={`${item}-${index}`}
@@ -388,7 +388,7 @@ export function AdminTopBar({
         ) : null}
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-0.5">
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/45 p-1 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
         <IconButton
           label={fullscreen ? t("退出全屏") : t("进入全屏")}
           disabled={fullscreenTransition}
@@ -559,7 +559,7 @@ export function AdminTopBar({
             onClick={() =>
               setOpenPanel((current) => (current === "user" ? null : "user"))
             }
-            className="ml-1 grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-[var(--admin-primary)] text-white ring-2 ring-transparent hover:ring-[color-mix(in_srgb,var(--admin-primary)_35%,transparent)]"
+            className="ml-1 grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[var(--admin-primary)] text-white ring-2 ring-transparent hover:ring-[color-mix(in_srgb,var(--admin-primary)_35%,transparent)]"
             aria-label={t("用户菜单")}
             title={t("用户菜单")}
           >
