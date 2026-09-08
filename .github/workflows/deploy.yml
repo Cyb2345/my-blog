@@ -1,0 +1,73 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [schadcn]
+  workflow_dispatch:
+
+# Keep image publishing and deployment ordered; never cancel an active deploy.
+concurrency:
+  group: blog-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_prefix: ${{ steps.images.outputs.prefix }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Validate deployment scripts
+        run: |
+          for script in scripts/deploy/*.sh; do bash -n "$script"; done
+          bash scripts/deploy/test-deploy.sh
+      - name: Build and publish immutable images
+        id: images
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://www.ccby.us/api/v1' }}
+        run: |
+          set -euo pipefail
+          prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          # Sequential builds limit peak memory on the hosted runner too.
+          docker build --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            -t "$prefix/backend:$GITHUB_SHA" ./backend
+          docker build --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --build-arg "NEXT_PUBLIC_API_BASE_URL=$API_URL" \
+            -t "$prefix/frontend:$GITHUB_SHA" ./frontend
+          docker push "$prefix/backend:$GITHUB_SHA"
+          docker push "$prefix/frontend:$GITHUB_SHA"
+      - name: Registry logout
+        if: always()
+        run: docker logout ghcr.io
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/schadcn' && vars.ENABLE_AUTO_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Deploy over verified SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/my-blog' }}
+          IMAGE_PREFIX: ${{ needs.build.outputs.image_prefix }}
+        run: bash scripts/deploy/remote.sh

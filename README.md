@@ -199,3 +199,9 @@ PROMETHEUS_DEFAULT_RANGE_MINUTES=5
 - RSS 和站点地图
 - 评论通知与更细的防刷策略
 - Nginx/Traefik HTTPS 部署示例
+
+## GitHub Actions 云端构建部署
+
+服务器内存较小时，可把镜像构建移至 GitHub 托管 runner，服务器只拉取并运行镜像。
+配置和 Jenkins 切换步骤见 [GitHub Actions 部署指南](docs/github-actions-deployment.md)。
+自动部署默认关闭，配置 Secrets 并设置 `ENABLE_AUTO_DEPLOY=true` 后启用。

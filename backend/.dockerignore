@@ -3,3 +3,8 @@
 __pycache__/
 *.pyc
 uploads/
+
+# Exclude all environment secrets from build contexts.
+.env.*
+!.env.example
+.git/

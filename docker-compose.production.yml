@@ -1,0 +1,91 @@
+# Image-only deployment; keep the existing project and uploads volume.
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 30s
+    container_name: blog-backend
+    restart: unless-stopped
+
+    env_file:
+      - ${BACKEND_ENV_FILE:-/opt/.env}
+
+    environment:
+      PYTHONPATH: /app
+      UPLOAD_DIR: /app/uploads
+
+    volumes:
+      - uploads:/app/uploads
+
+    networks:
+      - traefik_proxy
+      - monitoring_net
+
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # API 路由：同域名 /api 转发到 backend
+      - "traefik.http.routers.blog-api.rule=Host(`www.ccby.us`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.blog-api.entrypoints=websecure"
+      - "traefik.http.routers.blog-api.tls=true"
+      - "traefik.http.routers.blog-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-api.priority=100"
+      - "traefik.http.services.blog-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.blog-uploads.rule=Host(`www.ccby.us`) && PathPrefix(`/uploads`)"
+      - "traefik.http.routers.blog-uploads.entrypoints=websecure"
+      - "traefik.http.routers.blog-uploads.tls=true"
+      - "traefik.http.routers.blog-uploads.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-uploads.priority=100"
+      - "traefik.http.routers.blog-uploads.service=blog-api"
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE}
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/admin/login', {signal: AbortSignal.timeout(5000)}).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 30s
+    container_name: blog-frontend
+    restart: unless-stopped
+
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: https://www.ccby.us/api/v1
+
+    depends_on:
+      - backend
+
+    networks:
+      - traefik_proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # 前端路由：所有非 /api 请求转发到 frontend
+      - "traefik.http.routers.blog-web.rule=Host(`www.ccby.us`)"
+      - "traefik.http.routers.blog-web.entrypoints=websecure"
+      - "traefik.http.routers.blog-web.tls=true"
+      - "traefik.http.routers.blog-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blog-web.priority=1"
+      - "traefik.http.services.blog-web.loadbalancer.server.port=3000"
+
+volumes:
+  uploads:
+    external: true
+    name: ${UPLOADS_VOLUME:?Set existing upload volume name}
+
+networks:
+  traefik_proxy:
+    external: true
+  monitoring_net:
+    external: true

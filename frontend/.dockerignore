@@ -3,3 +3,8 @@ node_modules/
 .env
 .env.local
 tsconfig.tsbuildinfo
+
+# Exclude all environment secrets from build contexts.
+.env.*
+!.env.example
+.git/
