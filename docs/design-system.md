@@ -162,4 +162,4 @@ font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
 
 ## 动画
 
-后台页面切换由 `AdminPageTransition` 使用 Motion 自动匹配轻量动画预设，只作用于后台主内容区域。设置中心不提供页面动画选择，路由切换保持立即执行。大表格、侧边栏、顶部栏、标签栏不得参与页面切换动画。
+后台页面切换由 `AdminPageTransition` 使用统一原生轻量淡入，只作用于后台主内容区域。设置中心不提供页面动画选择，路由切换保持立即执行。大表格、侧边栏、顶部栏、标签栏不得参与页面切换动画。

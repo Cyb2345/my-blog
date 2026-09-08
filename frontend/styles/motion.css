@@ -1,4 +1,6 @@
 :root {
+  --admin-motion-enter: 160ms;
+  --admin-motion-drawer: 240ms;
   --motion-fast: 120ms;
   --motion-normal: 200ms;
   --motion-slow: 300ms;
@@ -140,4 +142,9 @@
     animation-duration: 1ms;
     animation-delay: 0ms !important;
   }
+}
+
+.ui-sheet[data-state] {
+  animation-duration: var(--admin-motion-drawer);
+  animation-timing-function: var(--ease-out);
 }

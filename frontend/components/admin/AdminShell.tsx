@@ -34,11 +34,11 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
+  useRef,
+  useTransition,
 } from "react";
 
 import {
@@ -161,7 +161,6 @@ const dashboardTab: AdminTab = {
   label: "仪表盘",
   pinned: true,
 };
-const pageEnterMs = 180;
 
 function resolveIcon(icon?: string | null) {
   return icon ? (iconMap[icon] ?? LayoutGrid) : LayoutGrid;
@@ -300,6 +299,7 @@ function SidebarContent({
             return (
               <button
                 key={section.label}
+                data-admin-href={section.href}
                 type="button"
                 onClick={() => {
                   onCloseMobile?.();
@@ -346,10 +346,10 @@ function SidebarContent({
                   </>
                 ) : null}
               </button>
-              {!collapsed && section.children.length ? (
+              {!collapsed && open && section.children.length ? (
                 <div
                   className={cn(
-                    "grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out",
+                    "grid overflow-hidden",
                     open
                       ? "grid-rows-[1fr] opacity-100"
                       : "grid-rows-[0fr] opacity-0",
@@ -363,6 +363,7 @@ function SidebarContent({
                         return (
                           <button
                             key={item.href}
+                            data-admin-href={item.href}
                             type="button"
                             onClick={() => {
                               onCloseMobile?.();
@@ -411,23 +412,21 @@ function AdminShellContent({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tabs, setTabs] = useState<AdminTab[]>([dashboardTab]);
   const [tabsHydrated, setTabsHydrated] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [progressVisible, setProgressVisible] = useState(false);
-  const progressTimer = useRef<number | null>(null);
-
-  const clearProgressTimer = useCallback(() => {
-    if (progressTimer.current) window.clearTimeout(progressTimer.current);
-    progressTimer.current = null;
-  }, []);
-
-  const finishProgressSoon = useCallback(() => {
-    clearProgressTimer();
-    progressTimer.current = window.setTimeout(() => {
-      setProgressVisible(false);
-      setRefreshing(false);
-      progressTimer.current = null;
-    }, pageEnterMs + 80);
-  }, [clearProgressTimer]);
+  const [navigating, startNavigation] = useTransition();
+  const [refreshing, startRefresh] = useTransition();
+  const progressVisible = navigating || refreshing;
+  const prefetched = useRef(new Map<string, number>());
+  function prefetchIntent(event: React.SyntheticEvent) {
+    const element = event.target as HTMLElement;
+    const link = element.closest("[data-admin-href], a[href]");
+    const href = link?.getAttribute("data-admin-href") ?? link?.getAttribute("href");
+    if (!href || !href.startsWith("/admin/")) return;
+    const now = Date.now();
+    if (now - (prefetched.current.get(href) ?? 0) < 30000) return;
+    if (prefetched.current.size > 50) prefetched.current.clear();
+    prefetched.current.set(href, now);
+    router.prefetch(href);
+  }
 
   const breadcrumb = useMemo(
     () => findBreadcrumb(current, sections),
@@ -534,21 +533,6 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     setMobileSidebarOpen(false);
   }, [current, sections, settings.accordionMenu]);
 
-  useEffect(() => {
-    clearProgressTimer();
-    progressTimer.current = window.setTimeout(
-      () => setProgressVisible(false),
-      pageEnterMs + 80,
-    );
-  }, [clearProgressTimer, current]);
-
-  useEffect(
-    () => () => {
-      clearProgressTimer();
-    },
-    [clearProgressTimer],
-  );
-
   function navigate(href: string) {
     if (!href) return;
     const targetUrl = new URL(href, window.location.origin);
@@ -557,11 +541,10 @@ function AdminShellContent({ children }: { children: ReactNode }) {
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (targetPath === currentPath) return;
     if (targetAdminPath === current) {
-      viewTransitionNavigate(targetPath);
+      startNavigation(() => viewTransitionNavigate(targetPath));
       return;
     }
-    setProgressVisible(true);
-    viewTransitionNavigate(targetPath);
+    startNavigation(() => viewTransitionNavigate(targetPath));
   }
 
   function handleLinkCapture(event: ReactMouseEvent<HTMLDivElement>) {
@@ -599,11 +582,10 @@ function AdminShellContent({ children }: { children: ReactNode }) {
 
   function refreshPage() {
     if (refreshing) return;
-    setRefreshing(true);
-    setProgressVisible(true);
-    router.refresh();
-    window.dispatchEvent(new CustomEvent("admin:refresh"));
-    finishProgressSoon();
+    startRefresh(() => {
+      router.refresh();
+      window.dispatchEvent(new CustomEvent("admin:refresh"));
+    });
   }
 
   function closeTab(href: string) {
@@ -633,12 +615,14 @@ function AdminShellContent({ children }: { children: ReactNode }) {
       )}
       style={{ "--admin-sidebar-width": `${sidebarWidth}px` } as CSSProperties}
       onClickCapture={handleLinkCapture}
+      onPointerOverCapture={prefetchIntent}
+      onFocusCapture={prefetchIntent}
     >
       {settings.showProgress && progressVisible ? (
-        <div className="admin-top-progress" />
+        <div className="admin-top-progress" role="progressbar" aria-label="正在切换页面" />
       ) : null}
 
-      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-200 dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 hidden overflow-x-hidden overflow-y-auto border-r border-border bg-card dark:border-[var(--border-soft)] dark:bg-[var(--surface)] md:block">
         <SidebarContent
           sections={sections}
           current={current}
@@ -679,8 +663,8 @@ function AdminShellContent({ children }: { children: ReactNode }) {
         />
       </aside>
 
-      <div className="admin-main min-w-0 transition-[margin-left] duration-200">
-        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
+      <div className="admin-main min-w-0">
+        <header className="sticky top-0 z-40 border-b border-border bg-card dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]">
           <div className="flex h-[60px] items-center gap-2 px-2 sm:px-4">
             <AdminTopBar
               breadcrumb={breadcrumb}

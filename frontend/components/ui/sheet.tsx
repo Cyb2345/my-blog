@@ -33,7 +33,7 @@ export const SheetOverlay = forwardRef<
 });
 
 const sheetVariants = cva(
-  "fixed z-[90] flex flex-col gap-4 border-border bg-popover text-popover-foreground shadow-[var(--shadow-dialog)] transition ease-[var(--ease-standard)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300",
+  "ui-sheet fixed z-[90] flex flex-col gap-4 border-border bg-popover text-popover-foreground shadow-[var(--shadow-dialog)] [animation-timing-function:var(--ease-out)] [animation-duration:var(--admin-motion-drawer)] data-[state=open]:animate-in data-[state=closed]:animate-out",
   {
     variants: {
       side: {

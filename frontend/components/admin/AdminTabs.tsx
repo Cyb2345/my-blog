@@ -41,6 +41,8 @@ export function AdminTabs({
           >
             <button
               type="button"
+              data-admin-href={tab.href}
+              aria-current={active ? "page" : undefined}
               onClick={() => onNavigate(tab.href)}
               className="inline-flex h-full items-center gap-1.5 px-1"
             >

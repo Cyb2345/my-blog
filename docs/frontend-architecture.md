@@ -80,7 +80,7 @@ Layout 必须稳定挂载，页面切换只替换主内容区域。
 
 Tailwind 只作为 token 消费层，不在页面里新增随机颜色。
 
-后台主内容动画使用 `motion`，由 `AdminPageTransition` 根据路由类型自动选择预设，不在页面中重复定义路由动画。
+后台主内容动画由 `AdminPageTransition` 使用原生 Web Animations 统一轻量淡入，不在页面中重复定义路由动画。
 
 ## 主题系统
 

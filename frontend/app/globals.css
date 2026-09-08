@@ -1264,3 +1264,21 @@ html.theme-transitioning *::after {
     transform: none;
   }
 }
+
+
+/* Admin micro-interactions do not move text, controls or table surfaces. */
+.admin-shell .interactive:hover,
+.admin-shell .interactive-card:hover,
+.admin-shell button:active,
+.admin-shell [role="button"]:active,
+.admin-shell a:active,
+.admin-shell input:focus,
+.admin-shell textarea:focus,
+.admin-shell select:focus {
+  transform: none;
+}
+.admin-shell .interactive,
+.admin-shell .interactive-card {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: var(--motion-fast);
+}

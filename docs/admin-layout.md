@@ -27,7 +27,7 @@ AdminLayout
 - 折叠宽度 72px，展开宽度来自 `settings.menuWidth`。
 - 激活态使用 `--admin-primary`。
 - 折叠后只显示居中的菜单图标，菜单文字、分组标题和展开箭头必须隐藏，且不得产生横向溢出。
-- 桌面端宽度动画统一为 200ms，只过渡容器宽度和主区域偏移，不给菜单子树添加位移动画。
+- 桌面端侧栏宽度与主区域偏移立即更新，不做逐帧重排动画。
 - 移动端侧边栏使用抽屉，不参与页面切换动画。
 
 ## TopBar
@@ -81,9 +81,9 @@ AdminLayout
 
 页面切换动画只作用于主内容区域，禁止包裹 Sidebar、TopBar、Tabs 和 SettingsDrawer。后台 Layout 必须稳定挂载，路由切换时只替换 `AdminPageTransition` 内部的 `PageContent`。
 
-后台路由跳转统一使用 `useAdminViewTransitionNavigate`，该 hook 立即调用 `router.push`，不等待动画。`AdminPageTransition` 使用 Motion 根据当前路径自动匹配仪表盘、列表、配置、编辑器、媒体和监控预设，只执行新页面的轻量入场，不保留旧页面、不生成全页快照。
+后台路由跳转统一使用 `useAdminViewTransitionNavigate`，该 hook 立即调用 `router.push`，不等待动画。`AdminPageTransition` 使用统一的 160ms 轻量淡入，只执行新页面的轻量入场，不保留旧页面、不生成全页快照。
 
-设置中心不提供页面动画选择，也不再读写 `admin_page_transition`。用户设备开启 `prefers-reduced-motion: reduce` 时，Motion 页面入场必须实际禁用。
+设置中心不提供页面动画选择，也不再读写 `admin_page_transition`。用户设备开启 `prefers-reduced-motion: reduce` 时，页面入场必须实际禁用。
 
 页面切换动画不能阻塞路由切换和数据加载。点击菜单后应立即 `router.push`，新页面立即渲染；接口慢时由页面内部的 skeleton/loading 状态承接。
 
