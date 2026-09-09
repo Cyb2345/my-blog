@@ -4,12 +4,23 @@ set -euo pipefail
 root=${1:?Deployment directory required}
 prefix=${2:?Image prefix required}
 sha=${3:?Full commit SHA required}
+: "${GHCR_USER:?Registry username required}"
 [[ $root == /* && $root != / ]]
 [[ $sha =~ ^[0-9a-f]{40}$ ]]
 [[ $prefix =~ ^ghcr.io/[a-z0-9._/-]+$ ]]
 mkdir -p "$root"
 exec 9>"$root/.deploy.lock"
 flock -w 300 9
+# The workflow sends its short-lived token on stdin. Keep Docker credentials in
+# a temporary directory and remove them at process exit.
+IFS= read -r ghcr_token
+[[ -n $ghcr_token ]]
+docker_config=$(mktemp -d /tmp/my-blog-docker.XXXXXXXXXX)
+cleanup_registry() { rm -rf "$docker_config"; }
+trap cleanup_registry EXIT
+export DOCKER_CONFIG=$docker_config
+printf '%s' "$ghcr_token" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+unset ghcr_token
 # Optional, admin-owned settings; secrets stay on the server.
 if [[ -f "$root/deploy.conf" ]]; then source "$root/deploy.conf"; fi
 project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' blog-backend 2>/dev/null || true)
@@ -32,7 +43,6 @@ mkdir -p "$release"
 cp docker-compose.production.yml "$release/compose.yml"
 compose=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$release/compose.yml")
 "${compose[@]}" config --quiet
-# Login to GHCR once as this deploy user during server setup.
 "${compose[@]}" pull
 umask 077
 printf 'BACKEND_IMAGE=%q\nFRONTEND_IMAGE=%q\n' "$old_backend" "$old_frontend" > "$root/previous-images.env"

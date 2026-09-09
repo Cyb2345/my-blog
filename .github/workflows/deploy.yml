@@ -57,6 +57,9 @@ jobs:
     if: github.ref == 'refs/heads/schadcn' && vars.ENABLE_AUTO_DEPLOY == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -70,4 +73,6 @@ jobs:
           SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/my-blog' }}
           IMAGE_PREFIX: ${{ needs.build.outputs.image_prefix }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/deploy/remote.sh

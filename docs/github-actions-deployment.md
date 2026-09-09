@@ -109,23 +109,15 @@ ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 
 本次没有改变业务域名。换域名时还需同步修改生产 Compose 的 Traefik Host 规则和相关环境配置，单独改 API_URL 不代表整个域名配置已更新。
 
-## 4. 首次构建与服务器 GHCR 登录
+## 4. 首次构建
 
 提交推送后，进入仓库 **Actions → Build and Deploy**。即使未启用自动部署，build 仍会构建并发布镜像，deploy 显示跳过属于预期。
 
 如果构建镜像发布报权限问题，检查仓库 Actions 权限和对应 Package 的 Actions access 是否允许本仓库写入。
 
-GHCR 私有镜像需要服务器拉取权限。在 GitHub 账户设置中创建具有 `read:packages` 的 classic PAT，并确保账户有对应包的读取权限；组织若要求 SSO，还需完成对应授权。作为**实际 SSH 部署账户**在服务器执行一次：
+部署任务使用 GitHub 自动签发、短期有效的 `GITHUB_TOKEN` 拉取当前仓库镜像。令牌通过 SSH 标准输入发送，服务器仅在临时 `DOCKER_CONFIG` 中使用，部署结束即删除；服务器不需要保存 classic PAT 或长期 GHCR 登录信息。
 
-```bash
-read -r -p 'GitHub username: ' GH_USER
-read -r -s -p 'GHCR token: ' GHCR_TOKEN
-printf '\n'
-printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GH_USER" --password-stdin
-unset GHCR_TOKEN GH_USER
-```
-
-Docker 会保存登录配置；限制该部署账户访问，不把配置文件提交到仓库。已公开的包可匿名拉取。先手工拉取 Actions 已发布的完整 SHA 镜像，确认网络、权限和 CPU 架构匹配。
+Actions build 成功后，可先保持 `ENABLE_AUTO_DEPLOY` 关闭。服务器镜像拉取权限、网络和 CPU 架构会在首次 deploy 中统一验证。
 
 ## 5. 正式切换
 
@@ -142,7 +134,7 @@ GitHub workflow concurrency 与服务器 flock 两层避免并发。GitHub 可�
 
 ## 6. 失败处理与回滚
 
-- pull 失败：尚未更新容器，检查 GHCR 登录、镜像标签、网络和磁盘。
+- pull 失败：尚未更新容器，检查 Actions 的 `packages: read` 权限、镜像标签、服务器网络和磁盘。
 - up 或健康检查失败：尝试用更新前的两个镜像恢复容器，仍将该部署标记为失败。
 - 后端健康探测 `/api/v1/health`、前端探测 `/admin/login`；它们不覆盖全部业务，应另行检查登录、数据和上传。
 - 回退仅切换镜像，不撤销数据库变更；旧镜像缺失或旧服务本身不健康时，回退也可能失败，应查看 Actions 和容器日志。
