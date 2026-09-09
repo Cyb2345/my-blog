@@ -43,7 +43,16 @@ mkdir -p "$release"
 cp docker-compose.production.yml "$release/compose.yml"
 compose=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$release/compose.yml")
 "${compose[@]}" config --quiet
-"${compose[@]}" pull
+pull_attempt=1
+until "${compose[@]}" pull; do
+  if (( pull_attempt >= 3 )); then
+    echo "Image pull failed after $pull_attempt attempts." >&2
+    exit 1
+  fi
+  echo "Image pull attempt $pull_attempt failed; retrying." >&2
+  sleep $((pull_attempt * 5))
+  pull_attempt=$((pull_attempt + 1))
+done
 umask 077
 printf 'BACKEND_IMAGE=%q\nFRONTEND_IMAGE=%q\n' "$old_backend" "$old_frontend" > "$root/previous-images.env"
 if ! "${compose[@]}" up -d --no-build --wait --wait-timeout 180; then

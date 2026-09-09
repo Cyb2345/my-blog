@@ -10,6 +10,10 @@ cat > "$work/bin/flock" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
 MOCK
+cat > "$work/bin/sleep" <<'MOCK'
+#!/usr/bin/env bash
+exit 0
+MOCK
 cat > "$work/bin/docker" <<'MOCK'
 #!/usr/bin/env bash
 set -eu
