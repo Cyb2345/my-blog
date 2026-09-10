@@ -231,11 +231,12 @@ function RoleSelector({
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-left text-sm font-semibold text-foreground outline-none focus:border-primary focus-visible:ring-4 focus-visible:ring-[var(--admin-focus-ring)]",
+          "flex w-full justify-between whitespace-normal px-3 text-left focus:border-primary",
           open && "ring-4 ring-[var(--admin-focus-ring)]",
         )}
         aria-haspopup="listbox"
@@ -257,7 +258,7 @@ function RoleSelector({
           )}
           aria-hidden="true"
         />
-      </button>
+      </Button>
       <div
         className={cn(
           "absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] max-h-60 origin-top overflow-y-auto rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-xl transition-all duration-200",

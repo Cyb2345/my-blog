@@ -283,14 +283,16 @@ export default function AdminFileListPage() {
         align: "center",
         hidden: !settings.visibleColumns.includes("preview"),
         render: (item) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setPreview(item)}
-            className="mx-auto block"
+            className="mx-auto flex h-12 w-16 p-0 [&_svg]:size-6"
+            aria-label={`预览 ${item.original_name}`}
             title={item.url}
           >
             <FilePreview item={item} />
-          </button>
+          </Button>
         ),
       },
       {
