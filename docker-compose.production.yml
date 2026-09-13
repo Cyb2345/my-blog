@@ -56,9 +56,7 @@ services:
       - -c
       - >-
         while :; do
-          certbot renew --quiet --webroot --webroot-path /var/www/certbot
-          --preferred-profile shortlived
-          --deploy-hook 'touch /traefik-dynamic/tls.yml';
+          timeout 300 certbot renew --quiet --webroot --webroot-path /var/www/certbot --preferred-profile shortlived --deploy-hook 'touch /traefik-dynamic/tls.yml' || true;
           sleep 12h & wait $${!};
         done
     volumes:

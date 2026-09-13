@@ -52,8 +52,23 @@ tls:
 EOF
 compose=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$release/compose.yml")
 "${compose[@]}" config --quiet
-# Bring up the HTTP-01 responder before requesting the IP certificate. Traefik
-# still serves port 80 while the referenced TLS files do not exist yet.
+letsencrypt_volume=${LETSENCRYPT_VOLUME:-${COMPOSE_PROJECT_NAME}-letsencrypt}
+# Seed a usable IP certificate in case this server cannot reach the ACME
+# directory. Certbot replaces it in-place whenever the short-lived profile is
+# reachable.
+docker run --rm --entrypoint sh -v "$letsencrypt_volume:/etc/letsencrypt" \
+  certbot/certbot:v5.4.0 -ceu "$(cat <<SCRIPT
+cert_dir="/etc/letsencrypt/live/$PUBLIC_IP"
+if [ ! -s "\$cert_dir/fullchain.pem" ] || [ ! -s "\$cert_dir/privkey.pem" ]; then
+  mkdir -p "\$cert_dir"
+  openssl req -x509 -nodes -newkey rsa:2048 -days 30 \
+    -keyout "\$cert_dir/privkey.pem" -out "\$cert_dir/fullchain.pem" \
+    -subj "/CN=$PUBLIC_IP" -addext "subjectAltName=IP:$PUBLIC_IP"
+  chmod 600 "\$cert_dir/privkey.pem"
+fi
+SCRIPT
+)"
+# Bring up the HTTP-01 responder before requesting the IP certificate.
 "${compose[@]}" up -d --no-build --pull never traefik acme-challenge
 certbot_args=(
   certonly --non-interactive --agree-tos --preferred-profile shortlived
@@ -65,7 +80,9 @@ if [[ -n ${LETSENCRYPT_EMAIL:-} ]]; then
 else
   certbot_args+=(--register-unsafely-without-email)
 fi
-"${compose[@]}" run --rm --no-deps --entrypoint certbot certbot-renew "${certbot_args[@]}"
+if ! timeout 90 "${compose[@]}" run --rm --no-deps --entrypoint certbot certbot-renew "${certbot_args[@]}"; then
+  echo 'ACME IP certificate request was not reachable; continuing with the generated certificate.' >&2
+fi
 touch "$release/traefik-dynamic/tls.yml"
 "${compose[@]}" restart traefik
 umask 077
