@@ -21,19 +21,23 @@ trap cleanup_registry EXIT
 export DOCKER_CONFIG=$docker_config
 printf '%s' "$ghcr_token" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
 unset ghcr_token
-# Optional, admin-owned settings; secrets stay on the server.
+# Admin-owned settings and secrets stay on the server.
 if [[ -f "$root/deploy.conf" ]]; then source "$root/deploy.conf"; fi
-project=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' blog-backend 2>/dev/null || true)
-export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$project}
-volume=$(docker inspect -f '{{range .Mounts}}{{if and (eq .Destination "/app/uploads") (eq .Type "volume")}}{{.Name}}{{end}}{{end}}' blog-backend 2>/dev/null || true)
-export UPLOADS_VOLUME=${UPLOADS_VOLUME:-$volume}
-export BACKEND_ENV_FILE=${BACKEND_ENV_FILE:-/opt/.env}
-: "${COMPOSE_PROJECT_NAME:?Set existing Compose project in deploy.conf}"
-: "${UPLOADS_VOLUME:?Set existing uploads volume in deploy.conf}"
+export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-my-blog}
+export BACKEND_ENV_FILE=${BACKEND_ENV_FILE:-$root/backend.env}
+export POSTGRES_ENV_FILE=${POSTGRES_ENV_FILE:-$root/postgres.env}
+: "${PUBLIC_API_BASE_URL:?Set PUBLIC_API_BASE_URL in deploy.conf}"
+export PUBLIC_API_BASE_URL
 [[ -f $BACKEND_ENV_FILE ]]
-docker volume inspect "$UPLOADS_VOLUME" >/dev/null
-docker network inspect traefik_proxy >/dev/null
-docker network inspect monitoring_net >/dev/null
+[[ -f $POSTGRES_ENV_FILE ]]
+for image in \
+  traefik:v3.7.4 \
+  postgres:16-alpine \
+  prom/prometheus:v3.5.0 \
+  prom/node-exporter:v1.8.2 \
+  gcr.io/cadvisor/cadvisor:v0.49.1; do
+  docker image inspect "$image" >/dev/null
+done
 old_backend=$(docker inspect -f '{{.Config.Image}}' blog-backend 2>/dev/null || true)
 old_frontend=$(docker inspect -f '{{.Config.Image}}' blog-frontend 2>/dev/null || true)
 export BACKEND_IMAGE="$prefix/backend:$sha"
@@ -41,10 +45,11 @@ export FRONTEND_IMAGE="$prefix/frontend:$sha"
 release="$root/releases/$sha"
 mkdir -p "$release"
 cp docker-compose.production.yml "$release/compose.yml"
+cp deploy/prometheus.yml "$release/prometheus.yml"
 compose=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$release/compose.yml")
 "${compose[@]}" config --quiet
 pull_attempt=1
-until "${compose[@]}" pull; do
+until "${compose[@]}" pull backend frontend; do
   if (( pull_attempt >= 3 )); then
     echo "Image pull failed after $pull_attempt attempts." >&2
     exit 1

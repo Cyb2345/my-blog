@@ -34,9 +34,10 @@ jobs:
         id: images
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://www.ccby.us/api/v1' }}
+          API_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
         run: |
           set -euo pipefail
+          : "${API_URL:?Set the NEXT_PUBLIC_API_BASE_URL repository variable}"
           prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
           echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
           printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin

@@ -26,7 +26,7 @@ cleanup() {
   rm -rf "$work"
 }
 trap cleanup EXIT
-tar -cf "$work/release.tar" docker-compose.production.yml scripts/deploy/deploy.sh
+tar -cf "$work/release.tar" docker-compose.production.yml deploy/prometheus.yml scripts/deploy/deploy.sh
 scp "${options[@]}" -P "$SERVER_PORT" "$work/release.tar" "$target:$remote/release.tar"
 printf '%s\n' "$GHCR_TOKEN" | ssh "${options[@]}" -p "$SERVER_PORT" "$target" \
   "cd '$remote' && tar -xf release.tar && GHCR_USER='$GHCR_USER' bash scripts/deploy/deploy.sh '$DEPLOY_PATH' '$IMAGE_PREFIX' '$GITHUB_SHA'"

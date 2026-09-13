@@ -1,91 +1,169 @@
-# Image-only deployment; keep the existing project and uploads volume.
+# Image-only production stack for a fresh Docker host.
 services:
+  traefik:
+    image: traefik:v3.7.4
+    container_name: blog-traefik
+    restart: unless-stopped
+    command:
+      - --log.level=INFO
+      - --accesslog=true
+      - --entrypoints.web.address=:80
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik_proxy
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: blog-postgres
+    restart: unless-stopped
+    env_file:
+      - ${POSTGRES_ENV_FILE:-/opt/my-blog/postgres.env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_internal
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: blog-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=512MB
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring_net
+    logging: *default-logging
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: blog-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring_net
+    logging: *default-logging
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: blog-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - monitoring_net
+    logging: *default-logging
+
   backend:
     image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    container_name: blog-backend
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-/opt/my-blog/backend.env}
+    environment:
+      PYTHONPATH: /app
+      UPLOAD_DIR: /app/uploads
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"]
       interval: 10s
       timeout: 6s
-      retries: 6
-      start_period: 30s
-    container_name: blog-backend
-    restart: unless-stopped
-
-    env_file:
-      - ${BACKEND_ENV_FILE:-/opt/.env}
-
-    environment:
-      PYTHONPATH: /app
-      UPLOAD_DIR: /app/uploads
-
+      retries: 8
+      start_period: 40s
     volumes:
       - uploads:/app/uploads
-
     networks:
+      - app_internal
       - traefik_proxy
       - monitoring_net
-
-    command: >
-      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
-
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_proxy"
-
-      # API 路由：同域名 /api 转发到 backend
-      - "traefik.http.routers.blog-api.rule=Host(`www.ccby.us`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.blog-api.entrypoints=websecure"
-      - "traefik.http.routers.blog-api.tls=true"
-      - "traefik.http.routers.blog-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.blog-api.priority=100"
-      - "traefik.http.services.blog-api.loadbalancer.server.port=8000"
-      - "traefik.http.routers.blog-uploads.rule=Host(`www.ccby.us`) && PathPrefix(`/uploads`)"
-      - "traefik.http.routers.blog-uploads.entrypoints=websecure"
-      - "traefik.http.routers.blog-uploads.tls=true"
-      - "traefik.http.routers.blog-uploads.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.blog-uploads.priority=100"
-      - "traefik.http.routers.blog-uploads.service=blog-api"
+      - traefik.enable=true
+      - traefik.docker.network=traefik_proxy
+      - traefik.http.routers.blog-api.rule=PathPrefix(`/api`)
+      - traefik.http.routers.blog-api.entrypoints=web
+      - traefik.http.routers.blog-api.priority=100
+      - traefik.http.services.blog-api.loadbalancer.server.port=8000
+      - traefik.http.routers.blog-uploads.rule=PathPrefix(`/uploads`)
+      - traefik.http.routers.blog-uploads.entrypoints=web
+      - traefik.http.routers.blog-uploads.priority=90
+      - traefik.http.routers.blog-uploads.service=blog-api
+    logging: *default-logging
 
   frontend:
     image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE}
-
+    container_name: blog-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:?Set PUBLIC_API_BASE_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/admin/login', {signal: AbortSignal.timeout(5000)}).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
       interval: 10s
       timeout: 6s
-      retries: 6
+      retries: 8
       start_period: 30s
-    container_name: blog-frontend
-    restart: unless-stopped
-
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: https://www.ccby.us/api/v1
-
-    depends_on:
-      - backend
-
     networks:
       - traefik_proxy
-
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_proxy"
-
-      # 前端路由：所有非 /api 请求转发到 frontend
-      - "traefik.http.routers.blog-web.rule=Host(`www.ccby.us`)"
-      - "traefik.http.routers.blog-web.entrypoints=websecure"
-      - "traefik.http.routers.blog-web.tls=true"
-      - "traefik.http.routers.blog-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.blog-web.priority=1"
-      - "traefik.http.services.blog-web.loadbalancer.server.port=3000"
+      - traefik.enable=true
+      - traefik.docker.network=traefik_proxy
+      - traefik.http.routers.blog-web.rule=PathPrefix(`/`)
+      - traefik.http.routers.blog-web.entrypoints=web
+      - traefik.http.routers.blog-web.priority=1
+      - traefik.http.services.blog-web.loadbalancer.server.port=3000
+    logging: *default-logging
 
 volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-my-blog-postgres}
   uploads:
-    external: true
-    name: ${UPLOADS_VOLUME:?Set existing upload volume name}
+    name: ${UPLOADS_VOLUME:-my-blog-uploads}
+  prometheus_data:
+    name: ${PROMETHEUS_VOLUME:-my-blog-prometheus}
 
 networks:
+  app_internal:
+    name: my-blog-internal
+    internal: true
   traefik_proxy:
-    external: true
+    name: traefik_proxy
   monitoring_net:
-    external: true
+    name: monitoring_net
