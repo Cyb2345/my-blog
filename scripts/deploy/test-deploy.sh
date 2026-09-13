@@ -24,19 +24,19 @@ if [[ $1 == inspect ]]; then
   esac
 elif [[ $1 == compose ]]; then
   case " $* " in
-    *" pull "*) [[ ${TEST_MODE:-} != pull-failure ]] ;;
     *" up "*)
       if [[ ${TEST_MODE:-} == health-failure && $* != *"--pull never"* ]]; then exit 1; fi ;;
   esac
+elif [[ $1 == image && $2 == inspect ]]; then
+  if [[ ${TEST_MODE:-} == missing-image && $3 == *"/frontend:"* ]]; then exit 1; fi
 elif [[ $1 == login ]]; then
   cat >/dev/null
 fi
 MOCK
 chmod +x "$work/bin/"*
 export PATH="$work/bin:$PATH"
-export GHCR_USER=test-user
 sha=0123456789abcdef0123456789abcdef01234567
-for mode in success pull-failure health-failure missing-env invalid-sha; do
+for mode in success health-failure missing-env invalid-sha missing-image; do
   export TEST_MODE=$mode TEST_LOG="$work/$mode.log"
   : > "$TEST_LOG"
   root="$work/$mode"
@@ -52,7 +52,7 @@ CONF
   commit=$sha
   [[ $mode != invalid-sha ]] || commit=1234567
   result=0
-  printf '%s\n' test-token | bash "$repo/scripts/deploy/deploy.sh" "$root" ghcr.io/example/blog "$commit" > "$work/$mode.out" 2>&1 || result=$?
+  bash "$repo/scripts/deploy/deploy.sh" "$root" ghcr.io/example/blog "$commit" > "$work/$mode.out" 2>&1 || result=$?
   if [[ $mode == success ]]; then
     [[ $result == 0 && $(cat "$root/current-sha") == "$sha" ]]
     [[ -f "$root/releases/$sha/prometheus.yml" ]]
@@ -66,7 +66,7 @@ CONF
       [[ $(grep -c ' up ' "$TEST_LOG") == 2 ]]
     else
       ! grep -q ' up ' "$TEST_LOG"
-      if [[ $mode == missing-env || $mode == invalid-sha ]]; then ! grep -q ' pull ' "$TEST_LOG"; fi
+      ! grep -q ' up ' "$TEST_LOG"
     fi
   fi
   echo "PASS: $mode"

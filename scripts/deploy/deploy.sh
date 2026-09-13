@@ -4,23 +4,12 @@ set -euo pipefail
 root=${1:?Deployment directory required}
 prefix=${2:?Image prefix required}
 sha=${3:?Full commit SHA required}
-: "${GHCR_USER:?Registry username required}"
 [[ $root == /* && $root != / ]]
 [[ $sha =~ ^[0-9a-f]{40}$ ]]
 [[ $prefix =~ ^ghcr.io/[a-z0-9._/-]+$ ]]
 mkdir -p "$root"
 exec 9>"$root/.deploy.lock"
 flock -w 300 9
-# The workflow sends its short-lived token on stdin. Keep Docker credentials in
-# a temporary directory and remove them at process exit.
-IFS= read -r ghcr_token
-[[ -n $ghcr_token ]]
-docker_config=$(mktemp -d /tmp/my-blog-docker.XXXXXXXXXX)
-cleanup_registry() { rm -rf "$docker_config"; }
-trap cleanup_registry EXIT
-export DOCKER_CONFIG=$docker_config
-printf '%s' "$ghcr_token" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
-unset ghcr_token
 # Admin-owned settings and secrets stay on the server.
 if [[ -f "$root/deploy.conf" ]]; then source "$root/deploy.conf"; fi
 export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-my-blog}
@@ -42,22 +31,14 @@ old_backend=$(docker inspect -f '{{.Config.Image}}' blog-backend 2>/dev/null || 
 old_frontend=$(docker inspect -f '{{.Config.Image}}' blog-frontend 2>/dev/null || true)
 export BACKEND_IMAGE="$prefix/backend:$sha"
 export FRONTEND_IMAGE="$prefix/frontend:$sha"
+docker image inspect "$BACKEND_IMAGE" >/dev/null
+docker image inspect "$FRONTEND_IMAGE" >/dev/null
 release="$root/releases/$sha"
 mkdir -p "$release"
 cp docker-compose.production.yml "$release/compose.yml"
 cp deploy/prometheus.yml "$release/prometheus.yml"
 compose=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$release/compose.yml")
 "${compose[@]}" config --quiet
-pull_attempt=1
-until "${compose[@]}" pull backend frontend; do
-  if (( pull_attempt >= 3 )); then
-    echo "Image pull failed after $pull_attempt attempts." >&2
-    exit 1
-  fi
-  echo "Image pull attempt $pull_attempt failed; retrying." >&2
-  sleep $((pull_attempt * 5))
-  pull_attempt=$((pull_attempt + 1))
-done
 umask 077
 printf 'BACKEND_IMAGE=%q\nFRONTEND_IMAGE=%q\n' "$old_backend" "$old_frontend" > "$root/previous-images.env"
 if ! "${compose[@]}" up -d --no-build --wait --wait-timeout 180; then

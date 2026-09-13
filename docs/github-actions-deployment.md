@@ -25,7 +25,7 @@ Traefik 监听 80 端口，以 `/api` 和 `/uploads` 转发后端，其余路径
 
 PostgreSQL、Prometheus 和上传目录使用固定命名卷。PostgreSQL 与监控端口不映射到公网；只有 Traefik 的 80 端口对外提供服务。Prometheus 默认保留 15 天、最多 512MB 数据，以适配小内存服务器。
 
-基础镜像需提前存在于目标服务器。部署脚本只拉取本项目的 GHCR 前后端镜像，避免目标网络访问 Docker Hub 不稳定时影响日常发布。
+基础镜像需提前存在于目标服务器。GitHub 托管 runner 拉取本项目的 GHCR 前后端镜像，并通过已校验的 SSH 连接压缩传输到目标服务器，避免目标网络访问 Docker Hub 或 GHCR 不稳定时影响日常发布。
 
 ## 服务器文件
 
@@ -93,9 +93,9 @@ Repository Variables：
 
 部署脚本会：
 
-1. 校验完整 SHA、服务器配置、基础镜像。
-2. 使用 GitHub 短期令牌登录 GHCR。
-3. 最多三次拉取当前 SHA 的前后端镜像。
+1. GitHub runner 使用短期令牌登录 GHCR，并拉取当前完整 SHA 的前后端镜像。
+2. runner 将镜像压缩后经已校验的 SSH 连接导入目标服务器。
+3. 校验完整 SHA、服务器配置、基础镜像和应用镜像。
 4. 执行 Alembic migration 并等待 PostgreSQL、后端、前端健康检查。
 5. 成功后写入 `current-sha`；失败时恢复上一次前后端镜像。
 
