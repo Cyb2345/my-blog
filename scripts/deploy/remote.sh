@@ -32,11 +32,13 @@ scp "${options[@]}" -P "$SERVER_PORT" "$work/release.tar" "$target:$remote/relea
 printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
 backend_image="$IMAGE_PREFIX/backend:$GITHUB_SHA"
 frontend_image="$IMAGE_PREFIX/frontend:$GITHUB_SHA"
+certbot_image="certbot/certbot:v5.4.0"
 # Pull on the hosted runner, then stream one archive over the verified SSH
 # connection. This avoids slow or blocked registry paths on the target host.
 docker pull "$backend_image"
 docker pull "$frontend_image"
-docker save "$backend_image" "$frontend_image" | gzip -1 | \
+docker pull --platform linux/amd64 "$certbot_image"
+docker save "$backend_image" "$frontend_image" "$certbot_image" | gzip -1 | \
   ssh "${options[@]}" -p "$SERVER_PORT" "$target" 'gunzip | docker load'
 ssh "${options[@]}" -p "$SERVER_PORT" "$target" \
   "cd '$remote' && tar -xf release.tar && bash scripts/deploy/deploy.sh '$DEPLOY_PATH' '$IMAGE_PREFIX' '$GITHUB_SHA'"

@@ -26,7 +26,7 @@ Traefik 监听 80/443 端口。80 端口保留 Certbot HTTP-01 校验路径，�
 
 PostgreSQL、Prometheus、上传目录、ACME 校验目录和 Let's Encrypt 证书使用固定命名卷。PostgreSQL 与监控端口不映射到公网；只有 Traefik 的 80/443 端口对外提供服务。Prometheus 默认保留 15 天、最多 512MB 数据，以适配小内存服务器。
 
-基础镜像需提前存在于目标服务器。GitHub 托管 runner 拉取本项目的 GHCR 前后端镜像，并通过已校验的 SSH 连接压缩传输到目标服务器，避免目标网络访问 Docker Hub 或 GHCR 不稳定时影响日常发布。
+基础镜像需提前存在于目标服务器。GitHub 托管 runner 拉取本项目的 GHCR 前后端镜像和固定架构的 Certbot 镜像，并通过已校验的 SSH 连接压缩传输到目标服务器，避免目标网络访问 Docker Hub 或 GHCR 不稳定时影响日常发布。
 
 ## 服务器文件
 
