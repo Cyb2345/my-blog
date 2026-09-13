@@ -1,0 +1,38 @@
+name: Renew IP Certificate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+concurrency:
+  group: blog-ip-certificate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: schadcn
+          persist-credentials: false
+      - name: Install Certbot with IP certificate support
+        run: |
+          python3 -m venv "$RUNNER_TEMP/certbot"
+          "$RUNNER_TEMP/certbot/bin/pip" install --disable-pip-version-check 'certbot==5.4.0'
+      - name: Renew and install trusted certificate
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/my-blog' }}
+          PUBLIC_IP: ${{ vars.DEPLOY_PUBLIC_IP || secrets.SERVER_HOST }}
+          CERTBOT_BIN: ${{ runner.temp }}/certbot/bin/certbot
+        run: bash scripts/deploy/renew-ip-certificate.sh
