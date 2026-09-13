@@ -34,7 +34,7 @@ jobs:
         id: images
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          API_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          API_URL: ${{ vars.DEPLOY_API_BASE_URL }}
         run: |
           set -euo pipefail
           : "${API_URL:?Set the NEXT_PUBLIC_API_BASE_URL repository variable}"

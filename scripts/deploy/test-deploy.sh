@@ -25,7 +25,7 @@ if [[ $1 == inspect ]]; then
 elif [[ $1 == compose ]]; then
   case " $* " in
     *" up "*)
-      if [[ ${TEST_MODE:-} == health-failure && $* != *"--pull never"* ]]; then exit 1; fi ;;
+      if [[ ${TEST_MODE:-} == health-failure && $* == *"--wait"* && $* != *"--pull never"* ]]; then exit 1; fi ;;
   esac
 elif [[ $1 == image && $2 == inspect ]]; then
   if [[ ${TEST_MODE:-} == missing-image && $3 == *"/frontend:"* ]]; then exit 1; fi
@@ -43,7 +43,8 @@ for mode in success health-failure missing-env invalid-sha missing-image; do
   mkdir -p "$root"
   cat > "$root/deploy.conf" <<CONF
 COMPOSE_PROJECT_NAME=my-blog
-PUBLIC_API_BASE_URL=http://192.0.2.10/api/v1
+PUBLIC_IP=192.0.2.10
+PUBLIC_API_BASE_URL=https://192.0.2.10/api/v1
 BACKEND_ENV_FILE=$root/backend.env
 POSTGRES_ENV_FILE=$root/postgres.env
 CONF
@@ -56,16 +57,17 @@ CONF
   if [[ $mode == success ]]; then
     [[ $result == 0 && $(cat "$root/current-sha") == "$sha" ]]
     [[ -f "$root/releases/$sha/prometheus.yml" ]]
+    grep -q '/etc/letsencrypt/live/192.0.2.10/fullchain.pem' "$root/releases/$sha/traefik-dynamic/tls.yml"
+    grep -q 'compose -p my-blog .* run --rm --no-deps --entrypoint certbot certbot-renew' "$TEST_LOG"
     grep -q 'compose -p my-blog .* up -d --no-build --wait' "$TEST_LOG"
     grep -q 'old-blog-backend:previous' "$root/previous-images.env"
-    grep -q 'http://192.0.2.10/api/v1' "$TEST_LOG"
+    grep -q 'https://192.0.2.10/api/v1' "$TEST_LOG"
   else
     [[ $result != 0 && ! -f "$root/current-sha" ]]
     if [[ $mode == health-failure ]]; then
       grep -q 'up -d --no-build --pull never.*old-blog-backend:previous.*old-blog-frontend:previous' "$TEST_LOG"
-      [[ $(grep -c ' up ' "$TEST_LOG") == 2 ]]
+      [[ $(grep -c ' up ' "$TEST_LOG") == 3 ]]
     else
-      ! grep -q ' up ' "$TEST_LOG"
       ! grep -q ' up ' "$TEST_LOG"
     fi
   fi

@@ -8,13 +8,19 @@ services:
       - --log.level=INFO
       - --accesslog=true
       - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=traefik_proxy
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik-dynamic:/etc/traefik/dynamic:ro
+      - letsencrypt:/etc/letsencrypt:ro
     networks:
       - traefik_proxy
     logging: &default-logging
@@ -22,6 +28,46 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+
+  acme-challenge:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    container_name: blog-acme-challenge
+    restart: unless-stopped
+    command: python -m http.server 8080 --directory /var/www/certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot:ro
+    networks:
+      - traefik_proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_proxy
+      - traefik.http.routers.blog-acme.rule=PathPrefix(`/.well-known/acme-challenge/`)
+      - traefik.http.routers.blog-acme.entrypoints=web
+      - traefik.http.routers.blog-acme.priority=1000
+      - traefik.http.services.blog-acme.loadbalancer.server.port=8080
+    logging: *default-logging
+
+  certbot-renew:
+    image: certbot/certbot:v5.4.0
+    container_name: blog-certbot-renew
+    restart: unless-stopped
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - >-
+        while :; do
+          certbot renew --quiet --webroot --webroot-path /var/www/certbot
+          --preferred-profile shortlived
+          --deploy-hook 'touch /traefik-dynamic/tls.yml';
+          sleep 12h & wait $${!};
+        done
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+      - ./traefik-dynamic:/traefik-dynamic
+    networks:
+      - traefik_proxy
+    logging: *default-logging
 
   postgres:
     image: postgres:16-alpine
@@ -116,11 +162,13 @@ services:
       - traefik.enable=true
       - traefik.docker.network=traefik_proxy
       - traefik.http.routers.blog-api.rule=PathPrefix(`/api`)
-      - traefik.http.routers.blog-api.entrypoints=web
+      - traefik.http.routers.blog-api.entrypoints=websecure
+      - traefik.http.routers.blog-api.tls=true
       - traefik.http.routers.blog-api.priority=100
       - traefik.http.services.blog-api.loadbalancer.server.port=8000
       - traefik.http.routers.blog-uploads.rule=PathPrefix(`/uploads`)
-      - traefik.http.routers.blog-uploads.entrypoints=web
+      - traefik.http.routers.blog-uploads.entrypoints=websecure
+      - traefik.http.routers.blog-uploads.tls=true
       - traefik.http.routers.blog-uploads.priority=90
       - traefik.http.routers.blog-uploads.service=blog-api
     logging: *default-logging
@@ -146,9 +194,17 @@ services:
       - traefik.enable=true
       - traefik.docker.network=traefik_proxy
       - traefik.http.routers.blog-web.rule=PathPrefix(`/`)
-      - traefik.http.routers.blog-web.entrypoints=web
+      - traefik.http.routers.blog-web.entrypoints=websecure
+      - traefik.http.routers.blog-web.tls=true
       - traefik.http.routers.blog-web.priority=1
       - traefik.http.services.blog-web.loadbalancer.server.port=3000
+      - traefik.http.routers.blog-redirect.rule=PathPrefix(`/`)
+      - traefik.http.routers.blog-redirect.entrypoints=web
+      - traefik.http.routers.blog-redirect.priority=1
+      - traefik.http.routers.blog-redirect.middlewares=blog-https-redirect
+      - traefik.http.routers.blog-redirect.service=blog-web
+      - traefik.http.middlewares.blog-https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.blog-https-redirect.redirectscheme.permanent=true
     logging: *default-logging
 
 volumes:
@@ -158,6 +214,10 @@ volumes:
     name: ${UPLOADS_VOLUME:-my-blog-uploads}
   prometheus_data:
     name: ${PROMETHEUS_VOLUME:-my-blog-prometheus}
+  letsencrypt:
+    name: ${LETSENCRYPT_VOLUME:-my-blog-letsencrypt}
+  certbot_webroot:
+    name: ${CERTBOT_WEBROOT_VOLUME:-my-blog-certbot-webroot}
 
 networks:
   app_internal:

@@ -4,13 +4,13 @@
 
 推送到 `schadcn` 后，GitHub 托管 runner 顺序构建后端与前端镜像，按完整提交 SHA 推送到 GHCR，再通过 SSH 将该 SHA 部署到目标服务器。服务器不执行源码构建。
 
-当前临时入口使用服务器 IP：
+当前入口使用服务器 IP 的可信 HTTPS 证书：
 
-- 站点：`http://SERVER_IP/`
-- 后台：`http://SERVER_IP/admin/login`
-- API：`http://SERVER_IP/api/v1`
+- 站点：`https://SERVER_IP/`
+- 后台：`https://SERVER_IP/admin/login`
+- API：`https://SERVER_IP/api/v1`
 
-Traefik 监听 80 端口，以 `/api` 和 `/uploads` 转发后端，其余路径转发前端。备案和域名准备完成后，再为 Traefik 增加 Host、HTTPS 与证书配置。
+Traefik 监听 80/443 端口。80 端口保留 Certbot HTTP-01 校验路径，其余请求永久重定向到 HTTPS；443 端口以 `/api` 和 `/uploads` 转发后端，其余路径转发前端。Certbot 使用 Let's Encrypt `shortlived` 配置签发约六天有效的 IP 地址证书，并每 12 小时检查续期。
 
 ## 生产服务
 
@@ -21,9 +21,10 @@ Traefik 监听 80 端口，以 `/api` 和 `/uploads` 转发后端，其余路径
 - Prometheus `v3.5.0`
 - node-exporter `v1.8.2`
 - cAdvisor `v0.49.1`
+- Certbot `v5.4.0`
 - 博客后端与前端 GHCR 镜像
 
-PostgreSQL、Prometheus 和上传目录使用固定命名卷。PostgreSQL 与监控端口不映射到公网；只有 Traefik 的 80 端口对外提供服务。Prometheus 默认保留 15 天、最多 512MB 数据，以适配小内存服务器。
+PostgreSQL、Prometheus、上传目录、ACME 校验目录和 Let's Encrypt 证书使用固定命名卷。PostgreSQL 与监控端口不映射到公网；只有 Traefik 的 80/443 端口对外提供服务。Prometheus 默认保留 15 天、最多 512MB 数据，以适配小内存服务器。
 
 基础镜像需提前存在于目标服务器。GitHub 托管 runner 拉取本项目的 GHCR 前后端镜像，并通过已校验的 SSH 连接压缩传输到目标服务器，避免目标网络访问 Docker Hub 或 GHCR 不稳定时影响日常发布。
 
@@ -46,12 +47,16 @@ PostgreSQL、Prometheus 和上传目录使用固定命名卷。PostgreSQL 与监
 
 ```bash
 COMPOSE_PROJECT_NAME=my-blog
-PUBLIC_API_BASE_URL=http://SERVER_IP/api/v1
+PUBLIC_IP=SERVER_IP
+PUBLIC_API_BASE_URL=https://SERVER_IP/api/v1
+# LETSENCRYPT_EMAIL=OPTIONAL_EMAIL
 BACKEND_ENV_FILE=/opt/my-blog/backend.env
 POSTGRES_ENV_FILE=/opt/my-blog/postgres.env
 POSTGRES_VOLUME=my-blog-postgres
 UPLOADS_VOLUME=my-blog-uploads
 PROMETHEUS_VOLUME=my-blog-prometheus
+LETSENCRYPT_VOLUME=my-blog-letsencrypt
+CERTBOT_WEBROOT_VOLUME=my-blog-certbot-webroot
 ```
 
 `backend.env` 至少应正确配置：
@@ -59,7 +64,7 @@ PROMETHEUS_VOLUME=my-blog-prometheus
 ```text
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@postgres:5432/DATABASE
 SECRET_KEY=LONG_RANDOM_SECRET
-BACKEND_CORS_ORIGINS=["http://SERVER_IP"]
+BACKEND_CORS_ORIGINS=["https://SERVER_IP"]
 PROMETHEUS_ENABLED=true
 PROMETHEUS_BASE_URL=http://prometheus:9090
 ```
@@ -84,10 +89,10 @@ Repository Variables：
 | --- | --- |
 | `ENABLE_AUTO_DEPLOY` | `true` |
 | `DEPLOY_PATH` | `/opt/my-blog` |
-| `NEXT_PUBLIC_API_BASE_URL` | `http://SERVER_IP/api/v1` |
+| `DEPLOY_API_BASE_URL` | `https://SERVER_IP/api/v1` |
 | `BUILD_RUNNER` | 可省略，默认 `ubuntu-latest` |
 
-工作流要求显式设置 `NEXT_PUBLIC_API_BASE_URL`，防止误把旧域名编译进前端镜像。
+工作流要求显式设置 `DEPLOY_API_BASE_URL`，防止误把旧地址编译进前端镜像。
 
 ## 发布和回滚
 
@@ -96,8 +101,9 @@ Repository Variables：
 1. GitHub runner 使用短期令牌登录 GHCR，并拉取当前完整 SHA 的前后端镜像。
 2. runner 将镜像压缩后经已校验的 SSH 连接导入目标服务器。
 3. 校验完整 SHA、服务器配置、基础镜像和应用镜像。
-4. 执行 Alembic migration 并等待 PostgreSQL、后端、前端健康检查。
-5. 成功后写入 `current-sha`；失败时恢复上一次前后端镜像。
+4. 启动 HTTP-01 响应服务，签发或复用当前 IP 的短期证书并让 Traefik 加载。
+5. 执行 Alembic migration 并等待 PostgreSQL、后端、前端健康检查。
+6. 成功后写入 `current-sha`；失败时恢复上一次前后端镜像。
 
 回滚只切换应用镜像，不回滚数据库 migration。服务器不会自动 prune 镜像或删除卷。
 
