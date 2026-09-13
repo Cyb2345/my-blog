@@ -1,5 +1,5 @@
 import { AdminLoginForm, type CaptchaType } from "./AdminLoginForm";
-import type { Envelope } from "@/types/blog";
+import { serverApiFetch } from "@/lib/serverApi";
 
 export const dynamic = "force-dynamic";
 
@@ -50,29 +50,16 @@ function resolveAssetUrl(url?: string | null) {
   return url;
 }
 
-async function fetchPublicData<T>(path: string, fallback: T): Promise<T> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      cache: "no-store",
-    });
-    if (!response.ok) return fallback;
-    const body = (await response.json()) as Envelope<T>;
-    return body.data ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 export default async function AdminLoginPage() {
   const [background, options] = await Promise.all([
-    fetchPublicData<LoginBackgroundPayload>("/site/login-background", {
+    serverApiFetch<LoginBackgroundPayload>("/site/login-background", {
       image_url: "",
       display: "cover",
       position: "center center",
       overlay_enabled: true,
       overlay_opacity: 0.35,
     }),
-    fetchPublicData<LoginOptionsPayload>(
+    serverApiFetch<LoginOptionsPayload>(
       "/auth/login-options",
       fallbackLoginOptions,
     ),

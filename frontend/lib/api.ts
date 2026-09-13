@@ -1,6 +1,9 @@
-import type { Envelope } from "@/types/blog";
+import "server-only";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+import type { Envelope } from "@/types/blog";
+import { SERVER_API_BASE_URL } from "@/lib/serverApi";
+
+const API_BASE_URL = SERVER_API_BASE_URL;
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
