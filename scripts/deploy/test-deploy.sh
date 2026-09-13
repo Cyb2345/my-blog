@@ -14,6 +14,11 @@ cat > "$work/bin/sleep" <<'MOCK'
 #!/usr/bin/env bash
 exit 0
 MOCK
+cat > "$work/bin/timeout" <<'MOCK'
+#!/usr/bin/env bash
+shift
+exec "$@"
+MOCK
 cat > "$work/bin/docker" <<'MOCK'
 #!/usr/bin/env bash
 set -eu
@@ -73,3 +78,9 @@ CONF
   fi
   echo "PASS: $mode"
 done
+
+# The IP-only HTTPS workflow must keep using the public CA's short-lived
+# profile; a self-signed fallback is not browser-trusted.
+grep -q -- '--preferred-profile shortlived' scripts/deploy/renew-ip-certificate.sh
+grep -q -- '--ip-address "$PUBLIC_IP"' scripts/deploy/renew-ip-certificate.sh
+echo "PASS: IP certificate renewal configuration"
