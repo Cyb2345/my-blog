@@ -239,7 +239,7 @@ export function Header() {
   const navLogo = siteConfig.frontend_nav_logo_url || siteConfig.site_logo_url;
 
   return (
-    <header className={cn("site-header top-0 z-50 border-b border-border bg-card text-foreground", isHome ? "fixed" : "sticky")}>
+    <header className={cn("site-header top-0 z-50 border-b backdrop-blur-xl", isHome ? "fixed site-header--hero" : "sticky border-border bg-muted text-foreground dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--bg-soft)_88%,transparent)]")}>
       <div className="site-header-grid">
         <Link href="/" className="site-brand flex min-w-0 items-center gap-3 font-bold" aria-label={siteConfig.site_name || "首页"}>
           <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-primary text-primary-foreground">

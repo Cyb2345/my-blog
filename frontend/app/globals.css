@@ -1299,3 +1299,36 @@ html.theme-transitioning *::after {
   .site-header-grid { gap: var(--space-2); padding-inline: var(--space-3); }
   .site-brand > span:last-child { display: none; }
 }
+
+/* Restore the original translucent homepage header without changing layout. */
+.site-header--hero {
+  background: var(--color-header-overlay);
+  border-color: color-mix(in srgb, var(--color-on-image) 20%, transparent);
+  color: var(--color-on-image);
+}
+.site-header--hero .site-brand,
+.site-header--hero .site-header-actions > a,
+.site-header--hero .site-header-actions > button,
+.site-header--hero .site-header-actions > .relative > button,
+.site-header--hero .theme-toggle > button {
+  color: var(--color-on-image);
+}
+.site-header--hero .site-brand > span:first-child,
+.site-header--hero .site-header-actions > a,
+.site-header--hero .site-header-actions > button,
+.site-header--hero .site-header-actions > .relative > button,
+.site-header--hero .theme-toggle > button {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--color-on-image) 20%, transparent);
+}
+.site-header--hero .site-brand > span:last-child > span {
+  color: color-mix(in srgb, var(--color-on-image) 80%, transparent);
+}
+.site-header--hero .site-desktop-nav .site-nav-link {
+  color: color-mix(in srgb, var(--color-on-image) 80%, transparent);
+}
+.site-header--hero .site-desktop-nav .site-nav-link:hover,
+.site-header--hero .site-desktop-nav .site-nav-link--active {
+  color: var(--color-on-image);
+  background: var(--accent);
+}
