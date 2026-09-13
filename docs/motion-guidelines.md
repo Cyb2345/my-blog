@@ -14,6 +14,7 @@ Sidebar、TopBar、Tabs 不参与页面入场。桌面侧栏折叠及分组展�
 
 ## 动效层级
 - 页面：--admin-motion-enter，160ms，纯 opacity。
+- 监控仪表：`--motion-gauge-enter`，800ms，仅 SVG 圆弧从零绘制至采样值；数据首次呈现时播放，刷新和主题切换不重播。不动画卡片、数字或布局；减少动画时直接显示最终值。
 - 按钮和表单：--motion-fast，120ms，颜色/边框反馈，不上浮或按压位移。
 - 设置抽屉：统一 Radix Sheet，--admin-motion-drawer，240ms，translate；遮罩淡入淡出。
 - 抽屉关闭保留离场动画，支持 Escape、焦点约束和关闭后焦点恢复。

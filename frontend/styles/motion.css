@@ -2,6 +2,7 @@
   --admin-motion-enter: 160ms;
   --admin-motion-drawer: 240ms;
   --motion-fast: 120ms;
+  --motion-gauge-enter: 800ms;
   --motion-normal: 200ms;
   --motion-slow: 300ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -147,4 +148,21 @@
 .ui-sheet[data-state] {
   animation-duration: var(--admin-motion-drawer);
   animation-timing-function: var(--ease-out);
+}
+
+/* Draw only the small gauge arc; never animate its card or the admin shell. */
+.percent-gauge-arc {
+  animation: percent-gauge-enter var(--motion-gauge-enter) var(--ease-out);
+}
+
+@keyframes percent-gauge-enter {
+  from {
+    stroke-dashoffset: 100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .percent-gauge-arc {
+    animation: none;
+  }
 }

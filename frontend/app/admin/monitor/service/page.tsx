@@ -10,20 +10,27 @@ import {
   MemoryStick,
   RefreshCw,
   Server,
+  UserRound,
+  Settings2,
+  Timer,
+  Database,
+  ChartPie,
+  Monitor,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AdminDataTable,
   type AdminDataTableColumn,
 } from "@/components/admin/AdminDataTable";
 import { AdminPage } from "@/components/admin/AdminPage";
+import {
+  MonitorCard,
+  MetricItem,
+} from "@/components/admin/monitor/MonitorCard";
+import { PercentGauge } from "@/components/ui/percent-gauge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tag } from "@/components/ui/tag";
 import { StatusTag } from "@/components/admin/StatusTag";
 import { Button } from "@/components/ui/button";
 import { adminRequest } from "@/lib/auth";
@@ -79,76 +86,21 @@ function formatDuration(seconds: number) {
 function toneForPercent(value: number, warning = 70) {
   if (value >= 85)
     return {
-      color: "var(--destructive)",
+      variant: "danger" as const,
       text: "text-destructive",
       bg: "bg-destructive",
     };
   if (value >= warning)
     return {
-      color: "var(--warning)",
-      text: "text-[var(--warning)]",
-      bg: "bg-[var(--warning)]",
+      variant: "warning" as const,
+      text: "text-[var(--color-warning)]",
+      bg: "bg-[var(--color-warning)]",
     };
   return {
-    color: "var(--color-success)",
+    variant: "success" as const,
     text: "text-[var(--color-success)]",
     bg: "bg-[var(--color-success)]",
   };
-}
-
-function PercentDial({ value, warning }: { value: number; warning?: number }) {
-  const tone = toneForPercent(value, warning);
-  const angle = Math.max(0, Math.min(100, value)) * 3.6;
-
-  return (
-    <div className="mx-auto grid h-36 w-36 place-items-center rounded-full bg-muted">
-      <div
-        className="grid h-32 w-32 place-items-center rounded-full"
-        style={{
-          background: `conic-gradient(${tone.color} ${angle}deg, rgba(148, 163, 184, 0.16) 0deg)`,
-        }}
-      >
-        <div className="grid h-24 w-24 place-items-center rounded-full bg-card text-center shadow-inner">
-          <span className={cn("text-2xl font-black", tone.text)}>
-            {value.toFixed(1)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MonitorCard({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="interactive-card overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <span className="grid h-9 w-9 place-items-center rounded-md bg-accent text-accent-foreground">
-          {icon}
-        </span>
-        <h2 className="text-base font-black text-foreground">{title}</h2>
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function MetricItem({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex min-h-11 items-center justify-between gap-4 rounded-md bg-muted px-4 py-2">
-      <span className="text-sm font-bold text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-right text-sm font-black text-foreground">
-        {value}
-      </span>
-    </div>
-  );
 }
 
 function LoadingGrid() {
@@ -156,17 +108,11 @@ function LoadingGrid() {
     <div className="grid gap-4">
       <div className="grid gap-4 xl:grid-cols-2">
         {[0, 1].map((item) => (
-          <div
-            key={item}
-            className="h-72 animate-pulse rounded-lg border border-border bg-card"
-          />
+          <Skeleton key={item} className="h-80" />
         ))}
       </div>
       {[0, 1, 2].map((item) => (
-        <div
-          key={item}
-          className="h-44 animate-pulse rounded-lg border border-border bg-card"
-        />
+        <Skeleton key={item} className="h-44" />
       ))}
     </div>
   );
@@ -332,7 +278,10 @@ export default function ServiceMonitorPage() {
       title="服务监控"
       description="查看当前博客服务所在服务器的 CPU、内存、磁盘和运行环境状态。"
       actions={
-        <Button onClick={() => void loadMonitor(true)} disabled={refreshing}>
+        <Button
+          onClick={() => void loadMonitor(true)}
+          disabled={loading || refreshing}
+        >
           <RefreshCw
             className={cn("h-4 w-4", refreshing && "animate-spin")}
             aria-hidden="true"
@@ -341,32 +290,37 @@ export default function ServiceMonitorPage() {
         </Button>
       }
     >
-      <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-bold text-muted-foreground">
           最后更新：{lastUpdated}
           {refreshing ? " · 正在刷新..." : " · 每 30 秒自动刷新"}
         </p>
         {monitor ? (
-          <p className="inline-flex w-fit rounded-full border border-border bg-accent px-3 py-1 text-xs font-black text-accent-foreground">
-            数据来源：{dataSourceLabel}
-          </p>
+          <Tag variant="primary">数据来源：{dataSourceLabel}</Tag>
         ) : null}
       </div>
 
       {error ? (
-        <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive sm:flex-row sm:items-center sm:justify-between"
+        >
           <div className="flex items-center gap-2 text-sm font-bold">
             <AlertCircle className="h-4 w-4" aria-hidden="true" />
             {error || "监控数据获取失败，请稍后重试"}
           </div>
-          <Button variant="ghost" onClick={() => void loadMonitor()}>
+          <Button
+            variant="ghost"
+            disabled={loading || refreshing}
+            onClick={() => void loadMonitor(Boolean(monitor))}
+          >
             重试
           </Button>
         </div>
       ) : null}
 
       {monitor?.warning ? (
-        <div className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] p-4 text-sm font-bold text-[var(--warning)]">
+        <div className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--color-warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] p-4 text-sm font-bold text-[var(--color-warning)]">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           {monitor.warning}
         </div>
@@ -379,21 +333,32 @@ export default function ServiceMonitorPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             <MonitorCard
               title="CPU 使用率"
-              icon={<Cpu className="h-5 w-5" aria-hidden="true" />}
+              icon={<Monitor className="h-5 w-5" aria-hidden="true" />}
             >
-              <div className="grid gap-5">
-                <PercentDial value={cpuUsage} warning={60} />
+              <div className="grid gap-4">
+                <PercentGauge
+                  value={cpuUsage}
+                  label="CPU 使用率"
+                  tone={toneForPercent(cpuUsage, 60).variant}
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricItem label="核心数" value={monitor.cpu.core_count} />
                   <MetricItem
+                    icon={<Cpu />}
+                    label="核心数"
+                    value={monitor.cpu.core_count}
+                  />
+                  <MetricItem
+                    icon={<UserRound />}
                     label="用户使用率"
                     value={`${monitor.cpu.user_percent.toFixed(1)}%`}
                   />
                   <MetricItem
+                    icon={<Settings2 />}
                     label="系统使用率"
                     value={`${monitor.cpu.system_percent.toFixed(1)}%`}
                   />
                   <MetricItem
+                    icon={<Timer />}
                     label="当前空闲率"
                     value={`${monitor.cpu.idle_percent.toFixed(1)}%`}
                   />
@@ -403,24 +368,37 @@ export default function ServiceMonitorPage() {
 
             <MonitorCard
               title="内存使用率"
+              accent="success"
               icon={<MemoryStick className="h-5 w-5" aria-hidden="true" />}
             >
-              <div className="grid gap-5">
-                <PercentDial value={memory?.usage_percent ?? 0} />
+              <div className="grid gap-4">
+                <PercentGauge
+                  value={memory?.usage_percent ?? 0}
+                  label="内存使用率"
+                  tone={toneForPercent(memory?.usage_percent ?? 0).variant}
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <MetricItem
+                    icon={<MemoryStick />}
+                    accent="success"
                     label="总内存"
                     value={formatBytes(memory?.total ?? 0)}
                   />
                   <MetricItem
+                    icon={<Database />}
+                    accent="success"
                     label="已用内存"
                     value={formatBytes(memory?.used ?? 0)}
                   />
                   <MetricItem
+                    icon={<HardDrive />}
+                    accent="success"
                     label="剩余内存"
                     value={formatBytes(memory?.available ?? 0)}
                   />
                   <MetricItem
+                    icon={<ChartPie />}
+                    accent="success"
                     label="使用率"
                     value={`${(memory?.usage_percent ?? 0).toFixed(1)}%`}
                   />
@@ -463,70 +441,78 @@ export default function ServiceMonitorPage() {
             </MonitorCard>
           ) : null}
 
-          <MonitorCard
-            title="服务器信息"
-            icon={<Server className="h-5 w-5" aria-hidden="true" />}
-          >
-            <div className="grid gap-3 lg:grid-cols-2">
-              <MetricItem label="服务器名称" value={monitor.server.hostname} />
-              <MetricItem label="服务器 IP" value={monitor.server.ip} />
-              <MetricItem label="操作系统" value={monitor.server.os} />
-              <MetricItem
-                label="系统架构"
-                value={monitor.server.architecture}
-              />
-              <MetricItem label="系统版本" value={monitor.server.platform} />
-              <MetricItem
-                label="启动时间"
-                value={formatDateTime(monitor.server.boot_time)}
-              />
-              <MetricItem
-                label="运行时长"
-                value={formatDuration(monitor.server.uptime_seconds)}
-              />
-            </div>
-          </MonitorCard>
+          <div className="grid items-start gap-4 xl:grid-cols-2">
+            <MonitorCard
+              title="服务器信息"
+              icon={<Server className="h-5 w-5" aria-hidden="true" />}
+            >
+              <div className="grid gap-3">
+                <MetricItem
+                  label="服务器名称"
+                  value={monitor.server.hostname}
+                />
+                <MetricItem label="服务器 IP" value={monitor.server.ip} />
+                <MetricItem label="操作系统" value={monitor.server.os} />
+                <MetricItem
+                  label="系统架构"
+                  value={monitor.server.architecture}
+                />
+                <MetricItem label="系统版本" value={monitor.server.platform} />
+                <MetricItem
+                  label="启动时间"
+                  value={formatDateTime(monitor.server.boot_time)}
+                />
+                <MetricItem
+                  label="运行时长"
+                  value={formatDuration(monitor.server.uptime_seconds)}
+                />
+              </div>
+            </MonitorCard>
 
-          <MonitorCard
-            title="运行环境信息"
-            icon={<Info className="h-5 w-5" aria-hidden="true" />}
-          >
-            <div className="grid gap-3 lg:grid-cols-2">
-              <MetricItem
-                label="后端框架"
-                value={monitor.runtime.backend_framework}
-              />
-              <MetricItem
-                label="Python 版本"
-                value={monitor.runtime.python_version}
-              />
-              <MetricItem label="进程 ID" value={monitor.runtime.process_id} />
-              <MetricItem
-                label="后端启动时间"
-                value={formatDateTime(monitor.runtime.process_start_time)}
-              />
-              <MetricItem
-                label="后端运行时长"
-                value={formatDuration(monitor.runtime.process_uptime_seconds)}
-              />
-              <MetricItem
-                label="项目路径"
-                value={monitor.runtime.project_path}
-              />
-              <MetricItem
-                label="上传存储"
-                value={
-                  monitor.runtime.storage_type === "r2"
-                    ? "Cloudflare R2"
-                    : "本地存储"
-                }
-              />
-              <MetricItem
-                label="R2 状态"
-                value={monitor.runtime.r2_enabled ? "已启用" : "未启用"}
-              />
-            </div>
-          </MonitorCard>
+            <MonitorCard
+              title="运行环境信息"
+              icon={<Info className="h-5 w-5" aria-hidden="true" />}
+            >
+              <div className="grid gap-3">
+                <MetricItem
+                  label="后端框架"
+                  value={monitor.runtime.backend_framework}
+                />
+                <MetricItem
+                  label="Python 版本"
+                  value={monitor.runtime.python_version}
+                />
+                <MetricItem
+                  label="进程 ID"
+                  value={monitor.runtime.process_id}
+                />
+                <MetricItem
+                  label="后端启动时间"
+                  value={formatDateTime(monitor.runtime.process_start_time)}
+                />
+                <MetricItem
+                  label="后端运行时长"
+                  value={formatDuration(monitor.runtime.process_uptime_seconds)}
+                />
+                <MetricItem
+                  label="项目路径"
+                  value={monitor.runtime.project_path}
+                />
+                <MetricItem
+                  label="上传存储"
+                  value={
+                    monitor.runtime.storage_type === "r2"
+                      ? "Cloudflare R2"
+                      : "本地存储"
+                  }
+                />
+                <MetricItem
+                  label="R2 状态"
+                  value={monitor.runtime.r2_enabled ? "已启用" : "未启用"}
+                />
+              </div>
+            </MonitorCard>
+          </div>
 
           <MonitorCard
             title="容器监控"
