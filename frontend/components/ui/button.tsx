@@ -34,7 +34,7 @@ export const buttonVariants = cva(
         link: "bg-transparent p-0 text-primary underline-offset-4 shadow-none hover:underline",
         inverse: "bg-background text-foreground shadow-sm hover:bg-secondary",
         glass:
-          "border border-[color-mix(in_srgb,var(--background)_28%,transparent)] bg-[color-mix(in_srgb,var(--background)_14%,transparent)] text-background shadow-sm backdrop-blur-md hover:bg-[color-mix(in_srgb,var(--background)_24%,transparent)]",
+          "border border-[color-mix(in_srgb,var(--color-on-image)_40%,transparent)] bg-[var(--color-image-glass)] text-[var(--color-on-image)] shadow-sm backdrop-blur-md hover:bg-[color-mix(in_srgb,var(--color-image-glass)_85%,black)]",
       },
       size: {
         sm: "min-h-9 px-3 py-1.5 text-xs",

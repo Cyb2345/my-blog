@@ -13,6 +13,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type MutableRefObject, useEffect, useRef, useState } from "react";
 
+import { Button, LinkButton } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { API_BASE_URL, clearToken, getToken } from "@/lib/auth";
 import { cn, getAssetUrl } from "@/lib/utils";
@@ -139,7 +141,7 @@ export function Header() {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const desktopMenuRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/site/navigation`, { cache: "no-store" })
@@ -183,8 +185,7 @@ export function Header() {
     function handleClick(event: MouseEvent) {
       const target = event.target as Node;
       if (
-        !desktopMenuRef.current?.contains(target) &&
-        !mobileMenuRef.current?.contains(target)
+        !desktopMenuRef.current?.contains(target)
       ) {
         setUserMenuOpen(false);
       }
@@ -211,55 +212,24 @@ export function Header() {
   function renderAccountButton(ref: MutableRefObject<HTMLDivElement | null>) {
     return user ? (
       <div ref={ref} className="relative">
-        <button
-          type="button"
-          onClick={() => setUserMenuOpen((value) => !value)}
-          className={cn(
-            "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-card px-3 py-2 text-sm font-bold text-foreground shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
-            isHome &&
-              "bg-accent text-white ring-1 ring-white/20 hover:bg-accent bg-accent dark:text-white",
-          )}
-          aria-label="打开用户菜单"
-          aria-expanded={userMenuOpen}
-        >
-          <UserCircle className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden lg:inline">
-            {user.nickname || user.username}
-          </span>
-        </button>
-        {userMenuOpen ? (
+        <Button variant="ghost" onClick={() => setUserMenuOpen(value => !value)}
+          aria-label="打开用户菜单" aria-expanded={userMenuOpen}>
+          <UserCircle aria-hidden="true" />
+          <span className="hidden max-w-24 truncate sm:inline">{user.nickname || user.username}</span>
+        </Button>
+        {userMenuOpen && (
           <div className="theme-menu motion-surface min-w-36">
-            <Link
-              href="/admin"
-              onClick={() => setUserMenuOpen(false)}
-              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-bold text-muted-foreground hover:bg-muted dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)]"
-            >
-              <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-              进入后台
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-bold text-muted-foreground hover:bg-muted dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)]"
-            >
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              退出登录
-            </button>
+            <LinkButton href="/admin" variant="ghost" onClick={() => setUserMenuOpen(false)}>
+              <LayoutDashboard aria-hidden="true" />进入后台
+            </LinkButton>
+            <Button variant="ghost" onClick={logout}><LogOut aria-hidden="true" />退出登录</Button>
           </div>
-        ) : null}
+        )}
       </div>
     ) : (
-      <Link
-        href="/admin/login"
-        className={cn(
-          "interactive inline-flex min-h-10 items-center gap-2 rounded-md bg-card px-3 py-2 text-sm font-bold text-foreground shadow-sm hover:text-primary dark:bg-[var(--surface-soft)] dark:text-[var(--text)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
-          isHome &&
-            "bg-accent text-white ring-1 ring-white/20 hover:bg-accent hover:text-white bg-accent dark:text-white dark:hover:text-white",
-        )}
-      >
-        <LogIn className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden lg:inline">登录</span>
-      </Link>
+      <LinkButton href="/admin/login" variant="ghost" aria-label="登录">
+        <LogIn aria-hidden="true" /><span className="hidden sm:inline">登录</span>
+      </LinkButton>
     );
   }
 
@@ -269,149 +239,49 @@ export function Header() {
   const navLogo = siteConfig.frontend_nav_logo_url || siteConfig.site_logo_url;
 
   return (
-    <header
-      className={cn(
-        "site-header top-0 z-50 border-b backdrop-blur-xl",
-        isHome
-          ? "fixed border-white/20 bg-black/25 text-white"
-          : "sticky border-border bg-muted dark:border-[var(--border-soft)] dark:bg-[color-mix(in_srgb,var(--bg-soft)_88%,transparent)]",
-      )}
-    >
-      <div className="site-shell flex items-center justify-between py-3">
-        <Link
-          href="/"
-          className={cn(
-            "interactive flex items-center gap-3 font-black text-foreground dark:text-[var(--text)]",
-            isHome && "text-white dark:text-white",
-          )}
-        >
-          <span
-            className={cn(
-              "grid h-10 w-10 place-items-center overflow-hidden rounded-md bg-primary text-white dark:bg-[var(--primary)]",
-              isHome &&
-                "bg-accent text-white ring-1 ring-white/20 bg-accent dark:text-white",
-            )}
-          >
-            {navLogo ? (
-              <img
-                src={getAssetUrl(navLogo)}
-                alt=""
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              "B"
-            )}
+    <header className={cn("site-header top-0 z-50 border-b border-border bg-card text-foreground", isHome ? "fixed" : "sticky")}>
+      <div className="site-header-grid">
+        <Link href="/" className="site-brand flex min-w-0 items-center gap-3 font-bold" aria-label={siteConfig.site_name || "首页"}>
+          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-primary text-primary-foreground">
+            {navLogo ? <img src={getAssetUrl(navLogo)} alt="" className="h-full w-full object-contain" /> : "B"}
           </span>
-          <span className="leading-tight">
-            {siteConfig.site_name ?? "技术札记"}
-            <span
-              className={cn(
-                "block text-xs font-medium text-muted-foreground dark:text-[var(--text-muted)]",
-                isHome && "text-white/65 dark:text-white/65",
-              )}
-            >
-              {siteConfig.site_subtitle ?? "Ops, DevOps, Python"}
-            </span>
+          <span className="min-w-0 truncate leading-tight">
+            {siteConfig.site_name || "技术札记"}
+            <span className="block truncate text-xs font-medium text-muted-foreground">{siteConfig.site_subtitle || "Ops, DevOps, Python"}</span>
           </span>
         </Link>
-
-        <nav className="hidden items-center gap-1 md:flex">
-          {visibleNavItems.map((item) => {
-            const { label, href } = item;
-            const active = isActivePath(pathname, href);
-
-            return (
-              <Link
-                key={`${item.id}-${href}`}
-                href={href}
-                target={item.target === "blank" ? "_blank" : undefined}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "interactive rounded-md px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent hover:text-foreground dark:text-[var(--text-secondary)] dark:hover:bg-[var(--hover)] dark:hover:text-[var(--text)]",
-                  active &&
-                    "bg-card text-foreground shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
-                  isHome &&
-                    "text-white/80 hover:bg-accent hover:text-white dark:text-white/80 hover:bg-accent dark:hover:text-white",
-                  isHome &&
-                    active &&
-                    "bg-accent text-white shadow-sm bg-accent dark:text-white",
-                )}
-              >
-                {label}
-              </Link>
-            );
-          })}
-          <Link
-            href="/search"
-            className={cn(
-              "interactive ml-2 grid h-10 w-10 place-items-center rounded-md bg-card text-muted-foreground shadow-sm hover:text-primary dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)] dark:hover:text-[color-mix(in_srgb,var(--primary)_78%,white)]",
-              isHome &&
-                "bg-accent text-white ring-1 ring-white/20 hover:bg-accent hover:text-white bg-accent dark:text-white dark:hover:text-white",
-            )}
-            aria-label="搜索"
-            title="搜索"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
-          </Link>
-          <ThemeToggle hero={isHome} />
-          {renderAccountButton(desktopMenuRef)}
+        <nav aria-label="主导航" className="site-desktop-nav items-center justify-center gap-1">
+          {visibleNavItems.map(({ id, label, href, target }) => (
+            <Link key={id} href={href} target={target === "blank" ? "_blank" : undefined}
+              rel={target === "blank" ? "noopener noreferrer" : undefined}
+              aria-current={isActivePath(pathname, href) ? "page" : undefined}
+              className={cn("site-nav-link", isActivePath(pathname, href) && "site-nav-link--active")}>
+              {label}
+            </Link>
+          ))}
         </nav>
-
-        <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle compact hero={isHome} />
-          {renderAccountButton(mobileMenuRef)}
-          <button
-            type="button"
-            className={cn(
-              "interactive grid h-10 w-10 place-items-center rounded-md bg-card text-foreground shadow-sm dark:bg-[var(--surface-soft)] dark:text-[var(--text)]",
-              isHome &&
-                "bg-accent text-white ring-1 ring-white/20 hover:bg-accent bg-accent dark:text-white",
-            )}
-            onClick={() => setOpen((value) => !value)}
-            aria-label={open ? "关闭导航" : "打开导航"}
-            title={open ? "关闭导航" : "打开导航"}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+        <div className="site-header-actions flex items-center justify-end gap-1">
+          <LinkButton href="/search" variant="ghost" size="icon" aria-label="搜索"><Search aria-hidden="true" /></LinkButton>
+          {renderAccountButton(desktopMenuRef)}
+          <ThemeToggle compact />
+          <IconButton variant="ghost" className="site-menu-toggle" label={open ? "关闭导航" : "打开导航"}
+            aria-expanded={open} aria-controls="site-mobile-navigation" onClick={() => setOpen(value => !value)}>
+            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+          </IconButton>
         </div>
       </div>
-
-      <div
-        className={cn(
-          "mobile-menu-shell md:hidden",
-          open && "mobile-menu-shell--open",
-        )}
-      >
-        <nav className="border-t border-border bg-muted py-3 dark:border-[var(--border-soft)] dark:bg-[var(--bg-soft)]">
-          <div className="motion-list site-shell grid grid-cols-2 gap-2">
-            {visibleNavItems.map((item) => {
-              const { label, href } = item;
-              const active = isActivePath(pathname, href);
-
-              return (
-                <Link
-                  key={`${item.id}-${href}`}
-                  href={href}
-                  target={item.target === "blank" ? "_blank" : undefined}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "interactive rounded-md bg-card px-3 py-3 text-sm font-semibold text-muted-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]",
-                    active &&
-                      "bg-primary text-white dark:bg-[var(--primary)] dark:text-[var(--bg)]",
-                  )}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-            <Link
-              href="/search"
-              onClick={() => setOpen(false)}
-              className="interactive rounded-md bg-card px-3 py-3 text-sm font-semibold text-muted-foreground dark:bg-[var(--surface-soft)] dark:text-[var(--text-secondary)]"
-            >
-              搜索
-            </Link>
+      <div id="site-mobile-navigation" className={cn("mobile-menu-shell site-mobile-navigation", open && "mobile-menu-shell--open")}
+        inert={!open}>
+        <nav aria-label="移动导航" className="border-t border-border bg-card py-3">
+          <div className="site-shell grid grid-cols-2 gap-2">
+            {visibleNavItems.map(({ id, label, href, target }) => (
+              <Link key={id} href={href} target={target === "blank" ? "_blank" : undefined}
+                rel={target === "blank" ? "noopener noreferrer" : undefined}
+                onClick={() => setOpen(false)} aria-current={isActivePath(pathname, href) ? "page" : undefined}
+                className={cn("site-nav-link", isActivePath(pathname, href) && "site-nav-link--active")}>
+                {label}
+              </Link>
+            ))}
           </div>
         </nav>
       </div>

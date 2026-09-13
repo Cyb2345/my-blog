@@ -1,4 +1,6 @@
 :root {
+  --color-on-image: #ffffff;
+  --color-image-glass: rgba(0, 0, 0, 0.35);
   --color-primary: #44708f;
   --color-primary-hover: #365f7b;
   --color-success: #5a7f68;
@@ -16,7 +18,7 @@
 
   --color-text: #1f2933;
   --color-text-muted: rgba(31, 41, 51, 0.72);
-  --color-text-subtle: rgba(31, 41, 51, 0.52);
+  --color-text-subtle: #666b70;
   --color-text-inverse: #ffffff;
 
   --font-size-xs: 0.75rem;

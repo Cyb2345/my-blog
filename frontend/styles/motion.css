@@ -1,4 +1,5 @@
 :root {
+  --motion-theme: 400ms;
   --admin-motion-enter: 160ms;
   --admin-motion-drawer: 240ms;
   --motion-fast: 120ms;

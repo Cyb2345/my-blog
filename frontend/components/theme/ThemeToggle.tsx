@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ type ThemeAnimationOptions = KeyframeAnimationOptions & {
 
 const THEME_STORAGE_KEY = "personal-blog-theme";
 const THEME_TRANSITION_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
-const THEME_TRANSITION_MS = 1200;
+
 
 function applyTheme(nextTheme: ThemeMode, setTheme: (theme: string) => void) {
   const root = document.documentElement;
@@ -36,24 +36,8 @@ function applyTheme(nextTheme: ThemeMode, setTheme: (theme: string) => void) {
   root.classList.remove("light", "dark");
   root.classList.add(nextTheme);
   root.style.colorScheme = nextTheme;
-  window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  try { window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme); } catch { /* Storage may be unavailable. */ }
   setTheme(nextTheme);
-}
-
-function createFallbackMask(nextTheme: ThemeMode, x: number, y: number) {
-  const mask = document.createElement("div");
-  mask.className = `theme-transition-mask theme-transition-mask--${nextTheme}`;
-  mask.style.setProperty("--x", `${x}px`);
-  mask.style.setProperty("--y", `${y}px`);
-  document.body.appendChild(mask);
-  window.requestAnimationFrame(() => mask.classList.add("active"));
-  return mask;
-}
-
-function getThemeTransitionOrigin(nextTheme: ThemeMode) {
-  return nextTheme === "light"
-    ? { x: window.innerWidth, y: 0 }
-    : { x: 0, y: window.innerHeight };
 }
 
 export function ThemeToggle({
@@ -74,12 +58,15 @@ export function ThemeToggle({
   const Icon = isDark ? Sun : Moon;
   const label = isDark ? "切换到白天模式" : "切换到黑夜模式";
 
-  async function toggleThemeWithTransition() {
+  async function toggleThemeWithTransition(event: MouseEvent<HTMLButtonElement>) {
     if (!mounted || transitioningRef.current) return;
 
     const currentTheme: ThemeMode = resolvedTheme === "dark" ? "dark" : "light";
     const nextTheme: ThemeMode = currentTheme === "dark" ? "light" : "dark";
-    const { x, y } = getThemeTransitionOrigin(nextTheme);
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = bounds.left + bounds.width / 2;
+    const y = bounds.top + bounds.height / 2;
+    const duration = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--motion-theme")) || 400;
     const root = document.documentElement;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -97,21 +84,14 @@ export function ThemeToggle({
 
     if (reducedMotion) {
       applyTheme(nextTheme, setTheme);
-      window.setTimeout(finishTransition, 80);
+      finishTransition();
       return;
     }
 
     const transitionDocument = document as ViewTransitionDocument;
     if (!transitionDocument.startViewTransition) {
-      const mask = createFallbackMask(nextTheme, x, y);
-      window.setTimeout(
-        () => applyTheme(nextTheme, setTheme),
-        THEME_TRANSITION_MS * 0.42,
-      );
-      window.setTimeout(() => {
-        mask.remove();
-        finishTransition();
-      }, THEME_TRANSITION_MS + 80);
+      applyTheme(nextTheme, setTheme);
+      finishTransition();
       return;
     }
 
@@ -133,13 +113,16 @@ export function ThemeToggle({
           ],
         },
         {
-          duration: THEME_TRANSITION_MS,
+          duration,
           easing: THEME_TRANSITION_EASING,
           pseudoElement: "::view-transition-new(root)",
         } as ThemeAnimationOptions,
       );
       await animation.finished;
       await transition.finished;
+    } catch {
+      transition.skipTransition();
+      await transition.updateCallbackDone.catch(() => applyTheme(nextTheme, setTheme));
     } finally {
       finishTransition();
     }
@@ -152,7 +135,7 @@ export function ThemeToggle({
         className={cn(
           "disabled:hover:translate-y-0",
           hero &&
-            "border-[color-mix(in_srgb,var(--background)_28%,transparent)] bg-[color-mix(in_srgb,var(--background)_14%,transparent)] text-background hover:bg-[color-mix(in_srgb,var(--background)_24%,transparent)] hover:text-background",
+            "theme-toggle--hero",
           !compact && "md:h-10 md:w-10",
         )}
         onClick={toggleThemeWithTransition}
