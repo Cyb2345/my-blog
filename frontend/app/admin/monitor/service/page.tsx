@@ -1,23 +1,14 @@
 "use client";
 
 import {
-  Activity,
   AlertCircle,
   Boxes,
-  Cpu,
   HardDrive,
   Info,
-  MemoryStick,
   RefreshCw,
   Server,
-  UserRound,
-  Settings2,
-  Timer,
-  Database,
-  ChartPie,
-  Monitor,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
 import {
   AdminDataTable,
@@ -28,7 +19,7 @@ import {
   MonitorCard,
   MetricItem,
 } from "@/components/admin/monitor/MonitorCard";
-import { PercentGauge } from "@/components/ui/percent-gauge";
+import { LiveMonitorOverview, sampleMonitor, type MonitorSample } from "@/components/admin/monitor/LiveMonitorOverview";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag } from "@/components/ui/tag";
 import { StatusTag } from "@/components/admin/StatusTag";
@@ -37,7 +28,7 @@ import { adminRequest } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { ServiceMonitor } from "@/types/blog";
 
-const AUTO_REFRESH_MS = 30_000;
+const AUTO_REFRESH_MS = 5_000;
 type ContainerMonitor = ServiceMonitor["containers"][number];
 type DiskMonitor = ServiceMonitor["disks"][number];
 
@@ -51,10 +42,6 @@ function formatBytes(value: number) {
     unitIndex += 1;
   }
   return `${size >= 10 || unitIndex === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[unitIndex]}`;
-}
-
-function formatRate(value: number) {
-  return `${formatBytes(value)}/s`;
 }
 
 function formatDateTime(value?: string) {
@@ -124,43 +111,65 @@ export default function ServiceMonitorPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadMonitor = useCallback(async (silent = false) => {
-    if (silent) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setError("");
+  const [history, setHistory] = useState<MonitorSample[]>([]);
+  const [paused, setPaused] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const activeRequest = useRef<AbortController | null>(null);
+
+  const loadMonitor = useCallback(async () => {
+    if (activeRequest.current || document.hidden) return;
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 20_000);
+    setRefreshing(true);
     try {
-      const data = await adminRequest<ServiceMonitor>("/admin/monitor/service");
+      const data = await adminRequest<ServiceMonitor>("/admin/monitor/service", { signal: controller.signal, cache: "no-store" });
+      if (controller.signal.aborted) return;
       setMonitor(data);
+      setError("");
+      const sample = sampleMonitor(data);
+      if (Number.isFinite(sample.time)) setHistory(previous => {
+        const sameSource = previous.at(-1)?.source === sample.source ? previous : [];
+        if (sameSource.at(-1)?.time === sample.time) return sameSource;
+        return [...sameSource.filter(p => p.time > sample.time - 300_000), sample].slice(-61);
+      });
     } catch (exc) {
-      setError(
-        exc instanceof Error ? exc.message : "监控数据获取失败，请稍后重试",
-      );
+      if (activeRequest.current === controller) setError(controller.signal.aborted ? "采集超时，保留上次数据，稍后自动重试" : exc instanceof Error ? exc.message : "监控数据获取失败");
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      window.clearTimeout(timeout);
+      if (activeRequest.current === controller) {
+        activeRequest.current = null;
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void loadMonitor();
-    const timer = window.setInterval(() => {
-      void loadMonitor(true);
-    }, AUTO_REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [loadMonitor]);
+    setRefreshing(false);
+    const tick = () => { if (!paused) void loadMonitor(); };
+    const visibility = () => {
+      setHidden(document.hidden);
+      if (!document.hidden) tick();
+    };
+    tick();
+    const timer = window.setInterval(tick, AUTO_REFRESH_MS);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", visibility);
+      const request = activeRequest.current;
+      activeRequest.current = null;
+      request?.abort();
+    };
+  }, [loadMonitor, paused]);
 
   const lastUpdated = useMemo(
     () => formatDateTime(monitor?.timestamp),
     [monitor?.timestamp],
   );
-  const host = monitor?.host ?? null;
   const dataSourceLabel =
-    monitor?.data_source === "prometheus" ? "Prometheus" : "psutil 基础监控";
-  const cpuUsage = host?.cpu.usage_percent ?? monitor?.cpu.usage_percent ?? 0;
-  const memory = host?.memory ?? monitor?.memory;
+    monitor?.data_source === "prometheus" ? "Prometheus" : "psutil（当前运行环境）";
   const containerColumns = useMemo<
     Array<AdminDataTableColumn<ContainerMonitor>>
   >(
@@ -278,8 +287,8 @@ export default function ServiceMonitorPage() {
       title="服务监控"
       description="查看当前博客服务所在服务器的 CPU、内存、磁盘和运行环境状态。"
       actions={
-        <Button
-          onClick={() => void loadMonitor(true)}
+        <div className="flex gap-2"><Button variant="outline" onClick={() => setPaused(value => !value)}>{paused ? "恢复实时" : "暂停实时"}</Button><Button
+          onClick={() => void loadMonitor()}
           disabled={loading || refreshing}
         >
           <RefreshCw
@@ -287,13 +296,13 @@ export default function ServiceMonitorPage() {
             aria-hidden="true"
           />
           刷新
-        </Button>
+        </Button></div>
       }
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-bold text-muted-foreground">
           最后更新：{lastUpdated}
-          {refreshing ? " · 正在刷新..." : " · 每 30 秒自动刷新"}
+          {paused ? " · 已暂停" : hidden ? " · 页面隐藏，暂停采集" : refreshing ? " · 正在采集..." : " · 每 5 秒采集，最近 5 分钟趋势"}
         </p>
         {monitor ? (
           <Tag variant="primary">数据来源：{dataSourceLabel}</Tag>
@@ -312,7 +321,7 @@ export default function ServiceMonitorPage() {
           <Button
             variant="ghost"
             disabled={loading || refreshing}
-            onClick={() => void loadMonitor(Boolean(monitor))}
+            onClick={() => void loadMonitor()}
           >
             重试
           </Button>
@@ -330,116 +339,7 @@ export default function ServiceMonitorPage() {
 
       {monitor ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <MonitorCard
-              title="CPU 使用率"
-              icon={<Monitor className="h-5 w-5" aria-hidden="true" />}
-            >
-              <div className="grid gap-4">
-                <PercentGauge
-                  value={cpuUsage}
-                  label="CPU 使用率"
-                  tone={toneForPercent(cpuUsage, 60).variant}
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricItem
-                    icon={<Cpu />}
-                    label="核心数"
-                    value={monitor.cpu.core_count}
-                  />
-                  <MetricItem
-                    icon={<UserRound />}
-                    label="用户使用率"
-                    value={`${monitor.cpu.user_percent.toFixed(1)}%`}
-                  />
-                  <MetricItem
-                    icon={<Settings2 />}
-                    label="系统使用率"
-                    value={`${monitor.cpu.system_percent.toFixed(1)}%`}
-                  />
-                  <MetricItem
-                    icon={<Timer />}
-                    label="当前空闲率"
-                    value={`${monitor.cpu.idle_percent.toFixed(1)}%`}
-                  />
-                </div>
-              </div>
-            </MonitorCard>
-
-            <MonitorCard
-              title="内存使用率"
-              accent="success"
-              icon={<MemoryStick className="h-5 w-5" aria-hidden="true" />}
-            >
-              <div className="grid gap-4">
-                <PercentGauge
-                  value={memory?.usage_percent ?? 0}
-                  label="内存使用率"
-                  tone={toneForPercent(memory?.usage_percent ?? 0).variant}
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricItem
-                    icon={<MemoryStick />}
-                    accent="success"
-                    label="总内存"
-                    value={formatBytes(memory?.total ?? 0)}
-                  />
-                  <MetricItem
-                    icon={<Database />}
-                    accent="success"
-                    label="已用内存"
-                    value={formatBytes(memory?.used ?? 0)}
-                  />
-                  <MetricItem
-                    icon={<HardDrive />}
-                    accent="success"
-                    label="剩余内存"
-                    value={formatBytes(memory?.available ?? 0)}
-                  />
-                  <MetricItem
-                    icon={<ChartPie />}
-                    accent="success"
-                    label="使用率"
-                    value={`${(memory?.usage_percent ?? 0).toFixed(1)}%`}
-                  />
-                </div>
-              </div>
-            </MonitorCard>
-          </div>
-
-          {host ? (
-            <MonitorCard
-              title="主机监控"
-              icon={<Activity className="h-5 w-5" aria-hidden="true" />}
-            >
-              <div className="grid gap-3 lg:grid-cols-3">
-                <MetricItem
-                  label="CPU 使用率"
-                  value={`${host.cpu.usage_percent.toFixed(1)}%`}
-                />
-                <MetricItem
-                  label="内存使用率"
-                  value={`${host.memory.usage_percent.toFixed(1)}%`}
-                />
-                <MetricItem
-                  label="磁盘使用率"
-                  value={`${host.disk.usage_percent.toFixed(1)}%`}
-                />
-                <MetricItem
-                  label="系统负载"
-                  value={`${host.load.load1.toFixed(2)} / ${host.load.load5.toFixed(2)} / ${host.load.load15.toFixed(2)}`}
-                />
-                <MetricItem
-                  label="网络接收"
-                  value={formatRate(host.network.rx_bytes_per_second)}
-                />
-                <MetricItem
-                  label="网络发送"
-                  value={formatRate(host.network.tx_bytes_per_second)}
-                />
-              </div>
-            </MonitorCard>
-          ) : null}
+          <LiveMonitorOverview monitor={monitor} history={history} />
 
           <div className="grid items-start gap-4 xl:grid-cols-2">
             <MonitorCard

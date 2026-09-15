@@ -192,9 +192,13 @@ export type ServiceMonitor = {
       load5: number;
       load15: number;
     };
+    swap?: { total: number; used: number; available: number; usage_percent: number } | null;
+    connections?: { tcp: number | null; udp: number | null } | null;
     network: {
-      rx_bytes_per_second: number;
-      tx_bytes_per_second: number;
+      rx_bytes_per_second: number | null;
+      tx_bytes_per_second: number | null;
+      received_bytes?: number | null;
+      sent_bytes?: number | null;
     };
   } | null;
   containers: Array<{

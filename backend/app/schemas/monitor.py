@@ -73,8 +73,15 @@ class HostLoadMonitor(BaseModel):
 
 
 class HostNetworkMonitor(BaseModel):
-    rx_bytes_per_second: float
-    tx_bytes_per_second: float
+    rx_bytes_per_second: float | None = None
+    tx_bytes_per_second: float | None = None
+    received_bytes: int | None = None
+    sent_bytes: int | None = None
+
+
+class HostConnectionsMonitor(BaseModel):
+    tcp: int | None = None
+    udp: int | None = None
 
 
 class HostMonitor(BaseModel):
@@ -83,6 +90,8 @@ class HostMonitor(BaseModel):
     disk: HostDiskMonitor
     load: HostLoadMonitor
     network: HostNetworkMonitor
+    swap: HostMemoryMonitor | None = None
+    connections: HostConnectionsMonitor | None = None
 
 
 class ContainerMonitor(BaseModel):

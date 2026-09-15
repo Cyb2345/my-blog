@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import sys
 from datetime import datetime, timezone
@@ -12,6 +13,7 @@ from app.core.config import Settings
 from app.schemas.monitor import (
     ContainerMonitor,
     HostCpuMonitor,
+    HostConnectionsMonitor,
     HostDiskMonitor,
     HostLoadMonitor,
     HostMemoryMonitor,
@@ -56,7 +58,8 @@ class PrometheusClient:
         if not isinstance(value, list) or len(value) < 2:
             return default
         try:
-            return float(value[1])
+            number = float(value[1])
+            return number if math.isfinite(number) else default
         except (TypeError, ValueError):
             return default
 
@@ -73,7 +76,8 @@ def _vector_value(item: dict[str, object], default: float = 0) -> float:
     if not isinstance(value, list) or len(value) < 2:
         return default
     try:
-        return float(value[1])
+        number = float(value[1])
+        return number if math.isfinite(number) else default
     except (TypeError, ValueError):
         return default
 
@@ -137,6 +141,8 @@ def get_prometheus_monitor(settings: Settings) -> ServiceMonitor:
     cpu_usage = client.scalar(f'100 - (avg(rate(node_cpu_seconds_total{{mode="idle"}}[{window}])) * 100)')
     cpu_core_count = max(0, int(client.scalar('count(count(node_cpu_seconds_total{mode="idle"}) by (cpu))')))
     memory_total = client.scalar("node_memory_MemTotal_bytes")
+    if cpu_core_count <= 0 or memory_total <= 0:
+        raise PrometheusUnavailable("Node exporter metrics are missing")
     memory_available = client.scalar("node_memory_MemAvailable_bytes")
     memory_used = max(0, memory_total - memory_available)
     memory_usage = (memory_used / memory_total * 100) if memory_total else 0
@@ -146,7 +152,13 @@ def get_prometheus_monitor(settings: Settings) -> ServiceMonitor:
     disk_used = max(0, disk_total - disk_free)
     disk_usage = (disk_used / disk_total * 100) if disk_total else 0
 
+    swap_total = client.scalar("node_memory_SwapTotal_bytes", default=-1)
+    swap_free = client.scalar("node_memory_SwapFree_bytes", default=-1)
+    tcp = client.scalar("node_sockstat_TCP_inuse", default=-1)
+    udp = client.scalar("node_sockstat_UDP_inuse", default=-1)
     host = HostMonitor(
+        swap=HostMemoryMonitor(total=int(swap_total), used=int(max(0, swap_total-swap_free)), available=int(swap_free), usage_percent=round((swap_total-swap_free)/swap_total*100, 2) if swap_total else 0) if swap_total >= 0 and swap_free >= 0 else None,
+        connections=HostConnectionsMonitor(tcp=int(tcp) if tcp >= 0 else None, udp=int(udp) if udp >= 0 else None),
         cpu=HostCpuMonitor(usage_percent=_round_value(cpu_usage)),
         memory=HostMemoryMonitor(
             total=max(0, int(memory_total)),
@@ -166,6 +178,8 @@ def get_prometheus_monitor(settings: Settings) -> ServiceMonitor:
             load15=_round_value(client.scalar("node_load15")),
         ),
         network=HostNetworkMonitor(
+            received_bytes=int(client.scalar('sum(node_network_receive_bytes_total{device!~"lo|docker.*|br.*|veth.*"})')),
+            sent_bytes=int(client.scalar('sum(node_network_transmit_bytes_total{device!~"lo|docker.*|br.*|veth.*"})')),
             rx_bytes_per_second=_round_value(
                 client.scalar(f'sum(rate(node_network_receive_bytes_total{{device!~"lo|docker.*|br.*|veth.*"}}[{window}]))')
             ),

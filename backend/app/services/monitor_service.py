@@ -2,6 +2,8 @@ import os
 import platform
 import socket
 import sys
+import time
+from threading import Lock
 from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import suppress
@@ -98,13 +100,38 @@ def _disk_items() -> list[DiskMonitor]:
     return disks
 
 
+_network_lock = Lock()
+_network_sample = None
+
+
+def _network_snapshot() -> HostNetworkMonitor:
+    global _network_sample
+    with _network_lock:
+        now = time.monotonic()
+        counters = psutil.net_io_counters()
+        if counters is None:
+            return HostNetworkMonitor()
+        rx = tx = None
+        if _network_sample is not None:
+            previous_time, previous_rx, previous_tx = _network_sample
+            elapsed = now - previous_time
+            if elapsed > 0 and counters.bytes_recv >= previous_rx and counters.bytes_sent >= previous_tx:
+                rx = (counters.bytes_recv - previous_rx) / elapsed
+                tx = (counters.bytes_sent - previous_tx) / elapsed
+        _network_sample = (now, counters.bytes_recv, counters.bytes_sent)
+        return HostNetworkMonitor(rx_bytes_per_second=rx, tx_bytes_per_second=tx,
+                                  received_bytes=counters.bytes_recv, sent_bytes=counters.bytes_sent)
+
+
 def _host_from_psutil(cpu: CpuMonitor, memory: MemoryMonitor, disks: list[DiskMonitor]) -> HostMonitor:
     root_disk = next((disk for disk in disks if disk.mountpoint == "/"), disks[0])
     load1 = load5 = load15 = 0.0
     with suppress(OSError, AttributeError):
         load1, load5, load15 = os.getloadavg()
 
+    swap = psutil.swap_memory()
     return HostMonitor(
+        swap=HostMemoryMonitor(total=swap.total, used=swap.used, available=swap.free, usage_percent=swap.percent),
         cpu=HostCpuMonitor(usage_percent=cpu.usage_percent),
         memory=HostMemoryMonitor(
             total=memory.total,
@@ -123,7 +150,7 @@ def _host_from_psutil(cpu: CpuMonitor, memory: MemoryMonitor, disks: list[DiskMo
             load5=_round_percent(load5),
             load15=_round_percent(load15),
         ),
-        network=HostNetworkMonitor(rx_bytes_per_second=0, tx_bytes_per_second=0),
+        network=_network_snapshot(),
     )
 
 
