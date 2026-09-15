@@ -1,3 +1,4 @@
+from collections import deque
 import os
 import platform
 import socket
@@ -13,6 +14,7 @@ import psutil
 from app.core.config import get_settings
 from app.schemas.monitor import (
     CpuMonitor,
+    MonitorHistoryPoint,
     DiskMonitor,
     HostCpuMonitor,
     HostDiskMonitor,
@@ -208,11 +210,37 @@ def get_psutil_service_monitor(warning: str | None = None) -> ServiceMonitor:
     )
 
 
+_fallback_history = deque(maxlen=61)
+_fallback_history_lock = Lock()
+
+
+def _with_fallback_history(monitor: ServiceMonitor) -> ServiceMonitor:
+    host = monitor.host
+    sample = MonitorHistoryPoint(
+        time=int(monitor.timestamp.timestamp()) // 5 * 5000, source=monitor.data_source,
+        cpu=monitor.cpu.usage_percent, memory=monitor.memory.usage_percent,
+        disk=host.disk.usage_percent if host else None,
+        swap=host.swap.usage_percent if host and host.swap else None,
+        rx=host.network.rx_bytes_per_second if host else None,
+        tx=host.network.tx_bytes_per_second if host else None,
+    )
+    with _fallback_history_lock:
+        while _fallback_history and _fallback_history[0].time < sample.time - 300_000:
+            _fallback_history.popleft()
+        if _fallback_history and _fallback_history[-1].time == sample.time:
+            _fallback_history[-1] = sample
+        else:
+            _fallback_history.append(sample)
+        monitor.history = list(_fallback_history)
+    monitor.history_warning = "基础采集：仅保留当前后端进程已采集的记录；完整历史由 Prometheus 提供。"
+    return monitor
+
+
 def get_service_monitor() -> ServiceMonitor:
     settings = get_settings()
     if settings.PROMETHEUS_ENABLED:
         try:
             return get_prometheus_monitor(settings)
         except PrometheusUnavailable:
-            return get_psutil_service_monitor("Prometheus 不可用，当前显示基础监控数据")
-    return get_psutil_service_monitor()
+            return _with_fallback_history(get_psutil_service_monitor("Prometheus 不可用，当前显示基础监控数据"))
+    return _with_fallback_history(get_psutil_service_monitor())

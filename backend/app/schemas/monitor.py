@@ -102,7 +102,22 @@ class ContainerMonitor(BaseModel):
     last_seen: datetime | None = None
 
 
+class MonitorHistoryPoint(BaseModel):
+    time: int  # Unix milliseconds, aligned to the five-second sampling grid.
+    source: str
+    cpu: float | None = None
+    memory: float | None = None
+    disk: float | None = None
+    swap: float | None = None
+    rx: float | None = None
+    tx: float | None = None
+    tcp: float | None = None
+    udp: float | None = None
+
+
 class ServiceMonitor(BaseModel):
+    history: list[MonitorHistoryPoint] = []
+    history_warning: str | None = None
     data_source: str = "psutil_fallback"
     warning: str | None = None
     timestamp: datetime

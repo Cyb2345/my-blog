@@ -37,5 +37,34 @@ class NetworkSamplingTests(unittest.TestCase):
             self.assertEqual(client.scalar('test', default=-1), -1)
 
 
+
+class HistoryTests(unittest.TestCase):
+    def test_history_grid_preserves_missing_values_and_survives_reload(self):
+        from datetime import datetime, timezone
+        from app.services.prometheus_service import _build_history
+        client = PrometheusClient(SimpleNamespace(PROMETHEUS_BASE_URL='http://localhost', PROMETHEUS_TIMEOUT_SECONDS=1, PROMETHEUS_DEFAULT_RANGE_MINUTES=1))
+        now = datetime.fromtimestamp(1000, timezone.utc)
+        series = [{'metric': {'series': 'cpu'}, 'values': [[700, '10'], [705, 'NaN'], [1000, '20']]},
+                  {'metric': {'series': 'memory'}, 'values': [[700, '30'], [1000, '40']]}]
+        with patch.object(client, 'query', return_value=series) as query:
+            first = _build_history(client, now)
+            reloaded = _build_history(client, now)
+        self.assertEqual(len(first), 61)
+        self.assertEqual(first, reloaded)
+        self.assertEqual(first[0].time, 700000)
+        self.assertEqual(first[0].cpu, 10)
+        self.assertIsNone(first[1].cpu)
+        self.assertIsNone(first[0].tcp)
+        self.assertEqual(first[-1].memory, 40)
+        self.assertEqual(query.call_args.kwargs, {'start': 700, 'end': 1000})
+
+    def test_empty_history_is_not_fabricated(self):
+        from datetime import datetime, timezone
+        from app.services.prometheus_service import _build_history
+        client = PrometheusClient(SimpleNamespace(PROMETHEUS_BASE_URL='http://localhost', PROMETHEUS_TIMEOUT_SECONDS=1, PROMETHEUS_DEFAULT_RANGE_MINUTES=1))
+        with patch.object(client, 'query', return_value=[]):
+            rows = _build_history(client, datetime.now(timezone.utc))
+        self.assertTrue(all(row.cpu is None and row.swap is None for row in rows))
+
 if __name__ == '__main__':
     unittest.main()

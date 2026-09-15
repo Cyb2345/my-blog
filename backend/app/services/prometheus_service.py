@@ -20,6 +20,7 @@ from app.schemas.monitor import (
     HostMonitor,
     HostNetworkMonitor,
     ServiceMonitor,
+    MonitorHistoryPoint,
 )
 
 
@@ -33,9 +34,13 @@ class PrometheusClient:
         self.timeout = settings.PROMETHEUS_TIMEOUT_SECONDS
         self.range_minutes = max(1, settings.PROMETHEUS_DEFAULT_RANGE_MINUTES)
 
-    def query(self, promql: str) -> list[dict[str, object]]:
-        params = urlencode({"query": promql})
-        request = Request(f"{self.base_url}/api/v1/query?{params}")
+    def query(self, promql: str, *, start: int | None = None, end: int | None = None) -> list[dict[str, object]]:
+        params = {"query": promql}
+        endpoint = "query"
+        if start is not None and end is not None:
+            endpoint = "query_range"
+            params.update(start=start, end=end, step=5)
+        request = Request(f"{self.base_url}/api/v1/{endpoint}?{urlencode(params)}")
         try:
             with urlopen(request, timeout=self.timeout) as response:
                 body = json.loads(response.read().decode("utf-8"))
@@ -133,6 +138,39 @@ def _build_containers(client: PrometheusClient, now: datetime) -> list[Container
     return rows
 
 
+def _build_history(client: PrometheusClient, now: datetime) -> list[MonitorHistoryPoint]:
+    # One bounded range query for all eight series. Prometheus, not browser
+    # memory, retains samples while this page is closed or being reloaded.
+    end = int(now.timestamp()) // 5 * 5
+    window = f"{client.range_minutes}m"
+    disk = '{mountpoint="/",fstype!~"tmpfs|overlay|squashfs"}'
+    nic = '{device!~"lo|docker.*|br.*|veth.*"}'
+    expressions = {
+        "cpu": f'100 - avg(rate(node_cpu_seconds_total{{mode="idle"}}[{window}])) * 100',
+        "memory": '100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)',
+        "disk": f'100 * (1 - node_filesystem_avail_bytes{disk} / node_filesystem_size_bytes{disk})',
+        "swap": '100 * (node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / clamp_min(node_memory_SwapTotal_bytes, 1)',
+        "rx": f'sum(rate(node_network_receive_bytes_total{nic}[{window}]))',
+        "tx": f'sum(rate(node_network_transmit_bytes_total{nic}[{window}]))',
+        "tcp": 'node_sockstat_TCP_inuse',
+        "udp": 'node_sockstat_UDP_inuse',
+    }
+    query = ' or '.join(f'label_replace(({expr}), "series", "{key}", "", "")' for key, expr in expressions.items())
+    rows = {t: MonitorHistoryPoint(time=t * 1000, source="prometheus") for t in range(end - 300, end + 1, 5)}
+    for series in client.query(query, start=end - 300, end=end):
+        key = series.get("metric", {}).get("series")
+        if key not in expressions:
+            continue
+        for timestamp, raw in series.get("values", []):
+            try:
+                timestamp, value = int(float(timestamp)), float(raw)
+            except (TypeError, ValueError):
+                continue
+            if timestamp in rows and math.isfinite(value):
+                setattr(rows[timestamp], key, round(max(0, value), 2))
+    return list(rows.values())
+
+
 def get_prometheus_monitor(settings: Settings) -> ServiceMonitor:
     client = PrometheusClient(settings)
     now = datetime.now(timezone.utc)
@@ -201,7 +239,16 @@ def get_prometheus_monitor(settings: Settings) -> ServiceMonitor:
     process = psutil.Process(os.getpid())
     process_start_time = datetime.fromtimestamp(process.create_time(), timezone.utc)
 
+    history_warning = None
+    try:
+        history = _build_history(client, now)
+    except PrometheusUnavailable:
+        history = []
+        history_warning = "历史曲线暂时读取失败，保留已有记录并自动重试"
+
     return ServiceMonitor(
+        history=history,
+        history_warning=history_warning,
         data_source="prometheus",
         timestamp=now,
         host=host,

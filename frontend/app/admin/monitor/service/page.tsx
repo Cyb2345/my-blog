@@ -5,7 +5,6 @@ import {
   Boxes,
   HardDrive,
   Info,
-  RefreshCw,
   Server,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -21,7 +20,6 @@ import {
 } from "@/components/admin/monitor/MonitorCard";
 import { LiveMonitorOverview, sampleMonitor, type MonitorSample } from "@/components/admin/monitor/LiveMonitorOverview";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tag } from "@/components/ui/tag";
 import { StatusTag } from "@/components/admin/StatusTag";
 import { Button } from "@/components/ui/button";
 import { adminRequest } from "@/lib/auth";
@@ -93,9 +91,9 @@ function toneForPercent(value: number, warning = 70) {
 function LoadingGrid() {
   return (
     <div className="grid gap-4">
-      <div className="grid gap-4 xl:grid-cols-2">
-        {[0, 1].map((item) => (
-          <Skeleton key={item} className="h-80" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((item) => (
+          <Skeleton key={item} className="h-52" />
         ))}
       </div>
       {[0, 1, 2].map((item) => (
@@ -112,8 +110,6 @@ export default function ServiceMonitorPage() {
   const [error, setError] = useState("");
 
   const [history, setHistory] = useState<MonitorSample[]>([]);
-  const [paused, setPaused] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const activeRequest = useRef<AbortController | null>(null);
 
   const loadMonitor = useCallback(async () => {
@@ -129,6 +125,7 @@ export default function ServiceMonitorPage() {
       setError("");
       const sample = sampleMonitor(data);
       if (Number.isFinite(sample.time)) setHistory(previous => {
+        if (data.history?.length) return data.history;
         const sameSource = previous.at(-1)?.source === sample.source ? previous : [];
         if (sameSource.at(-1)?.time === sample.time) return sameSource;
         return [...sameSource.filter(p => p.time > sample.time - 300_000), sample].slice(-61);
@@ -147,9 +144,8 @@ export default function ServiceMonitorPage() {
 
   useEffect(() => {
     setRefreshing(false);
-    const tick = () => { if (!paused) void loadMonitor(); };
+    const tick = () => { void loadMonitor(); };
     const visibility = () => {
-      setHidden(document.hidden);
       if (!document.hidden) tick();
     };
     tick();
@@ -162,14 +158,8 @@ export default function ServiceMonitorPage() {
       activeRequest.current = null;
       request?.abort();
     };
-  }, [loadMonitor, paused]);
+  }, [loadMonitor]);
 
-  const lastUpdated = useMemo(
-    () => formatDateTime(monitor?.timestamp),
-    [monitor?.timestamp],
-  );
-  const dataSourceLabel =
-    monitor?.data_source === "prometheus" ? "Prometheus" : "psutil（当前运行环境）";
   const containerColumns = useMemo<
     Array<AdminDataTableColumn<ContainerMonitor>>
   >(
@@ -283,32 +273,7 @@ export default function ServiceMonitorPage() {
   );
 
   return (
-    <AdminPage
-      title="服务监控"
-      description="查看当前博客服务所在服务器的 CPU、内存、磁盘和运行环境状态。"
-      actions={
-        <div className="flex gap-2"><Button variant="outline" onClick={() => setPaused(value => !value)}>{paused ? "恢复实时" : "暂停实时"}</Button><Button
-          onClick={() => void loadMonitor()}
-          disabled={loading || refreshing}
-        >
-          <RefreshCw
-            className={cn("h-4 w-4", refreshing && "animate-spin")}
-            aria-hidden="true"
-          />
-          刷新
-        </Button></div>
-      }
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-bold text-muted-foreground">
-          最后更新：{lastUpdated}
-          {paused ? " · 已暂停" : hidden ? " · 页面隐藏，暂停采集" : refreshing ? " · 正在采集..." : " · 每 5 秒采集，最近 5 分钟趋势"}
-        </p>
-        {monitor ? (
-          <Tag variant="primary">数据来源：{dataSourceLabel}</Tag>
-        ) : null}
-      </div>
-
+    <AdminPage>
       {error ? (
         <div
           role="alert"
@@ -328,6 +293,7 @@ export default function ServiceMonitorPage() {
         </div>
       ) : null}
 
+      {monitor?.history_warning && <p role="status" className="text-sm text-muted-foreground">{monitor.history_warning}</p>}
       {monitor?.warning ? (
         <div className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--color-warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] p-4 text-sm font-bold text-[var(--color-warning)]">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />

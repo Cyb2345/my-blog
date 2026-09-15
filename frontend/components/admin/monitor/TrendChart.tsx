@@ -17,8 +17,8 @@ export function TrendChart({ points, labels, percent = false, compact = false }:
   const y = (value: number) => height - 4 - Math.min(max, Math.max(0, value)) / max * (height - 8);
   const colors = ["var(--admin-primary)", "var(--color-text-muted)"];
   return <div className="relative min-w-0">
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={compact ? "h-24 w-full" : "h-52 w-full"} role="img" aria-label={`${labels.join("、")}，最近五分钟趋势，已采集 ${points.length} 个样本`}>
-      {[0.25, 0.5, 0.75].map(r => <line key={r} x1="0" x2={width} y1={height*r} y2={height*r} stroke="var(--color-border)" strokeDasharray="3 5" />)}
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className={compact ? "h-16 w-full" : "h-44 w-full"} role="img" aria-label={`${labels.join("、")}，最近五分钟趋势，已采集 ${points.length} 个样本`}>
+      {(compact ? [] : [0.25, 0.5, 0.75]).map(r => <line key={r} x1="0" x2={width} y1={height*r} y2={height*r} stroke="var(--color-border)" strokeDasharray="3 5" />)}
       {labels.map((label, index) => {
         const segments: Array<Array<[number, number]>> = [];
         let segment: Array<[number, number]> = [];
@@ -43,6 +43,6 @@ export function TrendChart({ points, labels, percent = false, compact = false }:
         </g>;
       })}
     </svg>
-    {!compact && <div className="flex justify-between text-xs text-muted-foreground"><span>5 分钟前</span><span>{points.length < 2 ? "正在积累真实样本" : "最新采样"}</span></div>}
+    {!compact && <div className="flex justify-between text-xs text-muted-foreground"><span>5 分钟前</span><span>{points.filter(p => p.values.some(v => v != null)).length < 2 ? "暂无足够历史样本" : "最新采样"}</span></div>}
   </div>;
 }

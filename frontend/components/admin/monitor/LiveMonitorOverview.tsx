@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MonitorCard } from "@/components/admin/monitor/MonitorCard";
 import { TrendChart, type TrendPoint } from "@/components/admin/monitor/TrendChart";
-import type { ServiceMonitor } from "@/types/blog";
+import type { ServiceMonitor, MonitorHistoryPoint } from "@/types/blog";
 
-export type MonitorSample = { time: number; source: string; cpu: number; memory: number; disk: number | null; swap: number | null; rx: number | null; tx: number | null; tcp: number | null; udp: number | null };
+export type MonitorSample = MonitorHistoryPoint;
 export function sampleMonitor(data: ServiceMonitor): MonitorSample {
   return { time: Date.parse(data.timestamp), source: data.data_source, cpu: data.host?.cpu.usage_percent ?? data.cpu.usage_percent,
     memory: data.host?.memory.usage_percent ?? data.memory.usage_percent, disk: data.host?.disk.usage_percent ?? null,
@@ -31,24 +31,24 @@ export function LiveMonitorOverview({ monitor, history }: { monitor: ServiceMoni
     const values = history.map(s => s[key]).filter((v): v is number => v !== null && Number.isFinite(v));
     return values.length ? peak ? Math.max(...values) : values.reduce((a,b) => a+b,0) / values.length : null;
   };
-  const metric = (title: string, icon: ReactNode, key: "cpu" | "memory" | "swap" | "disk", detail: string) => <Card key={key}>
-    <CardContent className="space-y-3 p-5">
+  const metric = (title: string, icon: ReactNode, key: "cpu" | "memory" | "swap" | "disk", detail: string) => <Card key={key} className="monitor-resource-card">
+    <CardContent className="space-y-2 p-4 pb-0">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground"><span className="text-primary [&_svg]:size-4">{icon}</span>{title}</div>
       <p className="text-4xl font-semibold tabular-nums text-foreground">{percent(current[key])}</p>
       <p className="min-h-5 text-sm text-muted-foreground">{detail}</p>
       <div className="flex justify-between text-xs text-muted-foreground"><span>窗口均值 {percent(stat(key))}</span><span>峰值 {percent(stat(key, true))}</span></div>
-      <TrendChart compact percent points={points(key)} labels={[title]} />
+      <div className="-mx-4 pt-2"><TrendChart compact percent points={points(key)} labels={[title]} /></div>
     </CardContent>
   </Card>;
   return <>
-    <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {metric("CPU", <Cpu/>, "cpu", `${monitor.cpu.core_count} 个逻辑核心`)}
       {metric("内存", <MemoryStick/>, "memory", `${bytes(host?.memory.used ?? monitor.memory.used)} / ${bytes(host?.memory.total ?? monitor.memory.total)}`)}
       {metric("交换空间", <ArrowDownUp/>, "swap", host?.swap ? host.swap.total ? `${bytes(host.swap.used)} / ${bytes(host.swap.total)}` : "未配置交换空间" : "当前数据源未提供")}
       {metric("存储", <HardDrive/>, "disk", `${bytes(host?.disk.used)} / ${bytes(host?.disk.total)}`)}
     </div>
     <div className="grid gap-4 xl:grid-cols-3">
-      <div className="min-w-0 xl:col-span-2"><MonitorCard title="网络吞吐" icon={<Network/>}>
+      <div className="min-w-0 xl:col-span-2"><MonitorCard compact title="网络吞吐" icon={<Network/>}>
         <div className="space-y-4">
           <div className="flex flex-wrap justify-between gap-2 text-sm tabular-nums"><span className="text-primary">↑ 发送 {rate(current.tx)}</span><span className="text-muted-foreground">↓ 接收 {rate(current.rx)}</span></div>
           <TrendChart points={points("tx", "rx")} labels={["发送速率", "接收速率"]}/>
@@ -59,7 +59,7 @@ export function LiveMonitorOverview({ monitor, history }: { monitor: ServiceMoni
           </div>
         </div>
       </MonitorCard></div>
-      <MonitorCard title="连接数" icon={<Activity/>}>
+      <MonitorCard compact title="连接数" icon={<Activity/>}>
         <div className="space-y-4">
           <p className="text-4xl font-semibold tabular-nums">{current.tcp != null && current.udp != null ? current.tcp + current.udp : "—"}<span className="ml-2 text-sm font-normal text-muted-foreground">使用中的套接字</span></p>
           <div className="flex justify-between text-sm"><span className="text-primary">TCP {current.tcp ?? "—"}</span><span className="text-muted-foreground">UDP {current.udp ?? "—"}</span></div>

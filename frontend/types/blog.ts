@@ -167,7 +167,14 @@ export type LoginSuccess = {
   token_type: string;
 };
 
+export type MonitorHistoryPoint = {
+  time: number; source: string; cpu: number | null; memory: number | null;
+  disk: number | null; swap: number | null; rx: number | null; tx: number | null; tcp: number | null; udp: number | null;
+};
+
 export type ServiceMonitor = {
+  history?: MonitorHistoryPoint[];
+  history_warning?: string | null;
   data_source: "prometheus" | "psutil_fallback";
   warning?: string | null;
   timestamp: string;

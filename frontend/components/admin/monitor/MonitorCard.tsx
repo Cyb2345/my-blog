@@ -32,19 +32,21 @@ export function MonitorIcon({
 }
 
 export function MonitorCard({
+  compact = false,
   title,
   icon,
   accent = "primary",
   children,
 }: {
+  compact?: boolean;
   title: string;
   icon: ReactNode;
   accent?: Accent;
   children: ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex items-center gap-3">
+    <Card className="h-full">
+      <CardHeader className={cn("flex items-center gap-3", compact && "border-b-0 pb-0")}>
         <MonitorIcon icon={icon} accent={accent} />
         <CardTitle>{title}</CardTitle>
       </CardHeader>
