@@ -51,7 +51,7 @@ export function LiveMonitorOverview({ monitor, history }: { monitor: ServiceMoni
       <div className="min-w-0 xl:col-span-2"><MonitorCard compact title="网络吞吐" icon={<Network/>}>
         <div className="space-y-4">
           <div className="flex flex-wrap justify-between gap-2 text-sm tabular-nums"><span className="text-primary">↑ 发送 {rate(current.tx)}</span><span className="text-muted-foreground">↓ 接收 {rate(current.rx)}</span></div>
-          <TrendChart points={points("tx", "rx")} labels={["发送速率", "接收速率"]}/>
+          <TrendChart points={points("tx", "rx")} labels={["发送速率", "接收速率"]} formatValue={value => rate(value)}/>
           <div className="grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-3">
             <div className="text-muted-foreground">累计发送<p className="mt-1 font-semibold text-foreground">{bytes(host?.network.sent_bytes)}</p></div>
             <div className="text-muted-foreground">累计接收<p className="mt-1 font-semibold text-foreground">{bytes(host?.network.received_bytes)}</p></div>
@@ -63,7 +63,7 @@ export function LiveMonitorOverview({ monitor, history }: { monitor: ServiceMoni
         <div className="space-y-4">
           <p className="text-4xl font-semibold tabular-nums">{current.tcp != null && current.udp != null ? current.tcp + current.udp : "—"}<span className="ml-2 text-sm font-normal text-muted-foreground">使用中的套接字</span></p>
           <div className="flex justify-between text-sm"><span className="text-primary">TCP {current.tcp ?? "—"}</span><span className="text-muted-foreground">UDP {current.udp ?? "—"}</span></div>
-          <TrendChart points={points("tcp", "udp")} labels={["TCP", "UDP"]}/>
+          <TrendChart points={points("tcp", "udp")} labels={["TCP", "UDP"]} formatValue={value => value == null ? "—" : Math.round(value).toLocaleString("zh-CN")}/>
           {current.tcp == null && <p className="text-xs text-muted-foreground">当前采集器未提供连接数，不以零值代替。</p>}
         </div>
       </MonitorCard>
